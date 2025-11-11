@@ -18,6 +18,13 @@ const nextConfig = {
 		],
 	},
 	reactStrictMode: true,
+	// Add experimental features for better API route handling
+	experimental: {
+		// Increase function execution time (requires Vercel Pro or compatible platform)
+		serverActions: {
+			bodySizeLimit: "2mb",
+		},
+	},
 };
 
 export default nextConfig;

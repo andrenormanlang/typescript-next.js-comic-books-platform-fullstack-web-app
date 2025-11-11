@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "src/app/api/comicbooks-api/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/comicbooks-api/quick/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/comicbooks-api/details/route.ts": {
+      "maxDuration": 30
+    }
+  }
+}

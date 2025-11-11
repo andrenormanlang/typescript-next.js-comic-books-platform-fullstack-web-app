@@ -6,7 +6,7 @@ const BASE_URL = "https://getcomics.org";
 const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY;
 
 // Function to fetch HTML from any URL using ScraperAPI with retry logic
-async function fetchHtmlWithScraperAPI(url: string, retries = 3): Promise<string> {
+async function fetchHtmlWithScraperAPI(url: string, retries = 3, timeoutMs = 15000): Promise<string> {
 	if (!SCRAPER_API_KEY) {
 		throw new Error("SCRAPER_API_KEY is not configured");
 	}
@@ -17,30 +17,45 @@ async function fetchHtmlWithScraperAPI(url: string, retries = 3): Promise<string
 
 	for (let attempt = 0; attempt <= retries; attempt++) {
 		try {
-			const response = await fetch(scraperApiUrl, {
-				method: "GET",
-				headers: {
-					Accept: "text/html",
-					"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-				},
-			});
+			// Add timeout to the fetch request
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-			// Handle rate limiting with exponential backoff
-			if (response.status === 429) {
-				if (attempt < retries) {
-					const waitTime = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
-					console.log(`Rate limited. Waiting ${waitTime}ms before retry ${attempt + 1}/${retries}...`);
-					await new Promise((resolve) => setTimeout(resolve, waitTime));
-					continue;
+			try {
+				const response = await fetch(scraperApiUrl, {
+					method: "GET",
+					headers: {
+						Accept: "text/html",
+						"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+					},
+					signal: controller.signal,
+				});
+
+				clearTimeout(timeoutId);
+
+				// Handle rate limiting with exponential backoff
+				if (response.status === 429) {
+					if (attempt < retries) {
+						const waitTime = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+						console.log(`Rate limited. Waiting ${waitTime}ms before retry ${attempt + 1}/${retries}...`);
+						await new Promise((resolve) => setTimeout(resolve, waitTime));
+						continue;
+					}
 				}
-			}
 
-			if (!response.ok) {
-				const errorText = await response.text();
-				throw new Error(`ScraperAPI error (${response.status}): ${errorText}`);
-			}
+				if (!response.ok) {
+					const errorText = await response.text();
+					throw new Error(`ScraperAPI error (${response.status}): ${errorText}`);
+				}
 
-			return await response.text();
+				return await response.text();
+			} catch (fetchError) {
+				clearTimeout(timeoutId);
+				if ((fetchError as any).name === "AbortError") {
+					throw new Error(`Request timeout after ${timeoutMs}ms`);
+				}
+				throw fetchError;
+			}
 		} catch (error) {
 			if (attempt === retries) throw error;
 			const waitTime = Math.pow(2, attempt) * 1000;
@@ -386,14 +401,15 @@ async function scrapeWithScraperAPI(searchTerm?: string, page: number = 1) {
 			}
 		});
 
-		// Process comics and limit to 8 per page to conserve API credits
-		const limitedFactories = comicPromises.slice(0, 8);
+		// Process comics and limit to 5 per page to stay within timeout limits
+		// Reduced from 8 to 5 to ensure we complete within deployment timeout
+		const limitedFactories = comicPromises.slice(0, 5);
 		console.log(
 			`Found ${comicPromises.length} comics, processing first ${limitedFactories.length} with concurrency limit`
 		);
 
 		// Helper to run factories with concurrency limit and delay
-		async function runWithConcurrency<T>(factories: Array<() => Promise<T>>, concurrency = 5) {
+		async function runWithConcurrency<T>(factories: Array<() => Promise<T>>, concurrency = 3) {
 			const results: T[] = [];
 			let index = 0;
 
@@ -401,9 +417,9 @@ async function scrapeWithScraperAPI(searchTerm?: string, page: number = 1) {
 				while (index < factories.length) {
 					const current = index++;
 					try {
-						// Add small delay between requests to stagger them
+						// Reduce delay between requests from 300ms to 100ms to speed up processing
 						if (current > 0) {
-							await new Promise((resolve) => setTimeout(resolve, 300));
+							await new Promise((resolve) => setTimeout(resolve, 100));
 						}
 						// Invoke factory
 						const res = await factories[current]();
@@ -425,8 +441,9 @@ async function scrapeWithScraperAPI(searchTerm?: string, page: number = 1) {
 			return results;
 		}
 
-		// Run factories with limited concurrency (5) - balanced for Free plan with 20 concurrent threads
-		const comics = await runWithConcurrency(limitedFactories, 5);
+		// Run factories with increased concurrency (3 instead of 5) for faster processing
+		// Reduced to balance speed vs rate limiting
+		const comics = await runWithConcurrency(limitedFactories, 3);
 
 		// Filter out null results
 		const validComics = comics.filter((comic) => comic !== null && comic !== undefined);
@@ -453,6 +470,14 @@ async function scrapeWithScraperAPI(searchTerm?: string, page: number = 1) {
 	}
 }
 
+// Add timeout wrapper for the entire scraping operation
+async function scrapeWithTimeout(searchTerm: string | undefined, page: number, timeoutMs: number = 50000) {
+	return Promise.race([
+		scrapeWithScraperAPI(searchTerm, page),
+		new Promise((_, reject) => setTimeout(() => reject(new Error("Scraping operation timed out")), timeoutMs)),
+	]);
+}
+
 export async function GET(request: NextRequest) {
 	const urlParams = new URL(request.url).searchParams;
 	const searchTerm = urlParams.get("query");
@@ -467,7 +492,9 @@ export async function GET(request: NextRequest) {
 	}
 
 	try {
-		const data = await scrapeWithScraperAPI(searchTerm || undefined, page);
+		// Use timeout wrapper - adjust timeout based on your deployment platform
+		// Vercel Hobby: 10s, Vercel Pro: 60s, Railway/Render: 30s typical
+		const data = (await scrapeWithTimeout(searchTerm || undefined, page, 50000)) as any;
 
 		// Return just the comics array to match the expected format
 		return NextResponse.json(data.results, {
@@ -502,3 +529,7 @@ export async function GET(request: NextRequest) {
 		);
 	}
 }
+
+// Configure the route to run in edge runtime for better performance (optional)
+export const runtime = "nodejs"; // or 'edge' if compatible
+export const maxDuration = 60; // Set max duration (seconds) - requires Vercel Pro or compatible platform
