@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
 	Box,
 	Button,
@@ -39,24 +39,54 @@ interface Suggestion {
 	reason: string;
 }
 
+type ComicSuggestionApiResponse = { suggestion: Suggestion; error?: never } | { suggestion?: never; error: string };
+
+// Dev-mode (React Strict Mode) mounts components twice to surface side effects.
+// This dedupes identical in-flight requests so we don't hit the API twice.
+const inFlightRequests = new Map<string, Promise<ComicSuggestionApiResponse>>();
+
+async function fetchJsonDeduped(url: string): Promise<ComicSuggestionApiResponse> {
+	const existing = inFlightRequests.get(url);
+	if (existing) return existing;
+
+	const promise = fetch(url)
+		.then(async (response) => {
+			const data = (await response.json()) as ComicSuggestionApiResponse;
+			return data;
+		})
+		.finally(() => {
+			inFlightRequests.delete(url);
+		});
+
+	inFlightRequests.set(url, promise);
+	return promise;
+}
+
 export default function ComicSuggestion() {
 	const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [imageError, setImageError] = useState(false);
 	const [previousTitles, setPreviousTitles] = useState<string[]>([]);
+	const isMountedRef = useRef(true);
 	const toast = useToast();
 	const router = useRouter();
 	const searchParamsLocal = useSearchParams();
 
 	// On first load, fetch a suggestion
 	useEffect(() => {
+		isMountedRef.current = true;
 		fetchSuggestion();
+		return () => {
+			isMountedRef.current = false;
+		};
 	}, []);
 
 	const fetchSuggestion = async () => {
 		try {
-			setLoading(true);
-			setImageError(false);
+			if (isMountedRef.current) {
+				setLoading(true);
+				setImageError(false);
+			}
 
 			// Pass previous titles to avoid repetition
 			const encodedPrevious = encodeURIComponent(previousTitles.join("|"));
@@ -72,8 +102,9 @@ export default function ComicSuggestion() {
 			if (userStyle) params.append("style", userStyle);
 			const queryStr = params.toString() ? `&${params.toString()}` : "";
 
-			const response = await fetch(`/api/comic-suggestion?previous=${encodedPrevious}${queryStr}`);
-			const data = await response.json();
+			const url = `/api/comic-suggestion?previous=${encodedPrevious}${queryStr}`;
+			const data = await fetchJsonDeduped(url);
+			if (!isMountedRef.current) return;
 
 			if (data.error) {
 				toast({
@@ -91,6 +122,7 @@ export default function ComicSuggestion() {
 				}
 			}
 		} catch (error) {
+			if (!isMountedRef.current) return;
 			toast({
 				title: "Error",
 				description: "Failed to fetch comic suggestion.",
@@ -99,7 +131,7 @@ export default function ComicSuggestion() {
 				isClosable: true,
 			});
 		} finally {
-			setLoading(false);
+			if (isMountedRef.current) setLoading(false);
 		}
 	};
 
