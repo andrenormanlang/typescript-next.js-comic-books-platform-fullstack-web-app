@@ -198,7 +198,7 @@ export async function GET(request: NextRequest) {
 					if (getErrorStatus(retryError) === 503) {
 						return NextResponse.json(
 							{ error: "The model is overloaded. Please try again later." },
-							{ status: 503, headers: { "Retry-After": "2" } }
+							{ status: 503, headers: { "Retry-After": "2" } },
 						);
 					}
 					error = retryError;
@@ -229,7 +229,7 @@ export async function GET(request: NextRequest) {
 					if (getErrorStatus(finalError) === 503) {
 						return NextResponse.json(
 							{ error: "The model is overloaded. Please try again later." },
-							{ status: 503, headers: { "Retry-After": "2" } }
+							{ status: 503, headers: { "Retry-After": "2" } },
 						);
 					}
 
@@ -267,7 +267,7 @@ export async function GET(request: NextRequest) {
 		if (status === 503) {
 			return NextResponse.json(
 				{ error: "The model is overloaded. Please try again later." },
-				{ status: 503, headers: { "Retry-After": "2" } }
+				{ status: 503, headers: { "Retry-After": "2" } },
 			);
 		}
 
