@@ -29,8 +29,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 interface Suggestion {
 	title: string;
 	description: string;
-	imageUrl: string;
-	link: string;
+	imageUrl: string | null;
+	link: string | null;
 	year: string;
 	type: string;
 	publisher: string;
@@ -39,28 +39,11 @@ interface Suggestion {
 	reason: string;
 }
 
-type ComicSuggestionApiResponse = { suggestion: Suggestion; error?: never } | { suggestion?: never; error: string };
+type ComicSuggestionApiResponse =
+	| { suggestion: Suggestion; meta?: { selectedGenre?: string }; error?: never }
+	| { suggestion?: never; error: string };
 
-// Dev-mode (React Strict Mode) mounts components twice to surface side effects.
-// This dedupes identical in-flight requests so we don't hit the API twice.
-const inFlightRequests = new Map<string, Promise<ComicSuggestionApiResponse>>();
-
-async function fetchJsonDeduped(url: string): Promise<ComicSuggestionApiResponse> {
-	const existing = inFlightRequests.get(url);
-	if (existing) return existing;
-
-	const promise = fetch(url)
-		.then(async (response) => {
-			const data = (await response.json()) as ComicSuggestionApiResponse;
-			return data;
-		})
-		.finally(() => {
-			inFlightRequests.delete(url);
-		});
-
-	inFlightRequests.set(url, promise);
-	return promise;
-}
+type EnrichResponse = { imageUrl: string | null; link: string | null; error?: never } | { error: string };
 
 export default function ComicSuggestion() {
 	const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
@@ -68,6 +51,8 @@ export default function ComicSuggestion() {
 	const [imageError, setImageError] = useState(false);
 	const [previousTitles, setPreviousTitles] = useState<string[]>([]);
 	const isMountedRef = useRef(true);
+	const requestControllerRef = useRef<AbortController | null>(null);
+	const enrichControllerRef = useRef<AbortController | null>(null);
 	const toast = useToast();
 	const router = useRouter();
 	const searchParamsLocal = useSearchParams();
@@ -83,13 +68,18 @@ export default function ComicSuggestion() {
 
 	const fetchSuggestion = async () => {
 		try {
+			requestControllerRef.current?.abort();
+			enrichControllerRef.current?.abort();
+			requestControllerRef.current = new AbortController();
+			const { signal } = requestControllerRef.current;
+
 			if (isMountedRef.current) {
 				setLoading(true);
 				setImageError(false);
 			}
 
-			// Pass previous titles to avoid repetition
-			const encodedPrevious = encodeURIComponent(previousTitles.join("|"));
+			// Pass previous titles to avoid repetition (keep small)
+			const encodedPrevious = encodeURIComponent(previousTitles.slice(-10).join("|"));
 
 			// Get user input from query parameters
 			const userName = searchParamsLocal.get("name") || "";
@@ -103,7 +93,8 @@ export default function ComicSuggestion() {
 			const queryStr = params.toString() ? `&${params.toString()}` : "";
 
 			const url = `/api/comic-suggestion?previous=${encodedPrevious}${queryStr}`;
-			const data = await fetchJsonDeduped(url);
+			const response = await fetch(url, { signal });
+			const data = (await response.json()) as ComicSuggestionApiResponse;
 			if (!isMountedRef.current) return;
 
 			if (data.error) {
@@ -120,9 +111,32 @@ export default function ComicSuggestion() {
 				if (data.suggestion.title) {
 					setPreviousTitles((prev) => [...prev, data.suggestion.title]);
 				}
+
+				// Enrich cover/link without blocking the initial render.
+				enrichControllerRef.current = new AbortController();
+				const enrichSignal = enrichControllerRef.current.signal;
+				const enrichUrl = `/api/comic-suggestion/enrich?title=${encodeURIComponent(data.suggestion.title)}`;
+				fetch(enrichUrl, { signal: enrichSignal })
+					.then(async (r) => (await r.json()) as EnrichResponse)
+					.then((enriched) => {
+						if (!isMountedRef.current) return;
+						if ("error" in enriched) return;
+						setSuggestion((prev) => {
+							if (!prev) return prev;
+							return {
+								...prev,
+								imageUrl: enriched.imageUrl,
+								link: enriched.link,
+							};
+						});
+					})
+					.catch(() => {
+						// No fallback data; enrichment failures are silent.
+					});
 			}
 		} catch (error) {
 			if (!isMountedRef.current) return;
+			if ((error as { name?: string }).name === "AbortError") return;
 			toast({
 				title: "Error",
 				description: "Failed to fetch comic suggestion.",
@@ -173,20 +187,20 @@ export default function ComicSuggestion() {
 					<CardBody>
 						<SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
 							<Box>
-								<Image
-									src={
-										imageError
-											? "https://via.placeholder.com/300x450?text=Comic+Book+Cover"
-											: suggestion.imageUrl
-									}
-									alt={suggestion.title}
-									borderRadius="md"
-									onError={handleImageError}
-									maxH="500px"
-									mx="auto"
-									objectFit="contain"
-									boxShadow="dark-lg"
-								/>
+								{suggestion.imageUrl && !imageError ? (
+									<Image
+										src={suggestion.imageUrl}
+										alt={suggestion.title}
+										borderRadius="md"
+										onError={handleImageError}
+										maxH="500px"
+										mx="auto"
+										objectFit="contain"
+										boxShadow="dark-lg"
+									/>
+								) : (
+									<Skeleton height="400px" borderRadius="md" />
+								)}
 							</Box>
 
 							<VStack align="start" spacing={4}>
@@ -254,19 +268,25 @@ export default function ComicSuggestion() {
 								Get Another Suggestion
 							</Button>
 
-							<Link href={suggestion.link} isExternal>
-								<Button
-									rightIcon={<ExternalLinkIcon />}
-									colorScheme="teal"
-									variant="solid"
-									fontWeight="bold"
-									color="white"
-									_hover={{ bg: "teal.600" }}
-									boxShadow="md"
-								>
-									Learn More
+							{suggestion.link ? (
+								<Link href={suggestion.link} isExternal>
+									<Button
+										rightIcon={<ExternalLinkIcon />}
+										colorScheme="teal"
+										variant="solid"
+										fontWeight="bold"
+										color="white"
+										_hover={{ bg: "teal.600" }}
+										boxShadow="md"
+									>
+										Learn More
+									</Button>
+								</Link>
+							) : (
+								<Button rightIcon={<ExternalLinkIcon />} colorScheme="teal" isDisabled>
+									No link yet
 								</Button>
-							</Link>
+							)}
 						</Flex>
 					</CardFooter>
 				</Card>

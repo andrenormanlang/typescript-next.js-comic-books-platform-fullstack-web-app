@@ -1,12 +1,58 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
+import { jsonrepair } from "jsonrepair";
+import { z } from "zod";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-// You'll need to sign up for a free Comic Vine API key
-// https://comicvine.gamespot.com/api/
-const COMIC_VINE_API_KEY = process.env.COMIC_VINE_API_KEY || "your-api-key-here";
+const SuggestionResponseJsonSchema = {
+	$id: "https://retro-pop.app/schemas/comic-suggestion.json",
+	type: "object",
+	additionalProperties: false,
+	properties: {
+		title: { type: "string", minLength: 1 },
+		description: { type: "string", minLength: 1 },
+		reason: { type: "string", minLength: 1 },
+		year: { type: "string", minLength: 1 },
+		type: { type: "string", minLength: 1 },
+		publisher: { type: "string", minLength: 1 },
+		artist: { type: "string", minLength: 1 },
+		writer: { type: "string", minLength: 1 },
+	},
+	required: ["title", "description", "reason", "year", "type", "publisher", "artist", "writer"],
+} as const;
+
+const SYSTEM_INSTRUCTION =
+	"You are a strict JSON generator. Output ONLY a single JSON object matching the provided schema. No markdown, no code fences, no commentary.";
+
+function sleep(ms: number) {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function getErrorStatus(error: unknown): number | undefined {
+	if (typeof error !== "object" || error === null) return undefined;
+	const maybe = error as { status?: unknown };
+	return typeof maybe.status === "number" ? maybe.status : undefined;
+}
+
+const SuggestionSchema = z.object({
+	title: z.string().min(1),
+	description: z.string().min(1),
+	reason: z.string().min(1),
+	year: z.string().min(1),
+	type: z.string().min(1),
+	publisher: z.string().min(1),
+	artist: z.string().min(1),
+	writer: z.string().min(1),
+});
+
+function extractJsonObject(text: string): string | null {
+	const stripped = text.replace(/```(?:json)?\n?|\n?```/g, "").trim();
+	const start = stripped.indexOf("{");
+	const end = stripped.lastIndexOf("}");
+	if (start === -1 || end === -1 || end <= start) return null;
+	return stripped.slice(start, end + 1);
+}
 
 // List of comic genres to randomize suggestions
 const genres = [
@@ -32,29 +78,21 @@ const genres = [
 	"romance",
 ];
 
-// Reliable image sources as fallbacks
-const fallbackImages = {
-	superhero: "https://images.unsplash.com/photo-1568515045052-f9a854d70bfd?q=80&w=300&auto=format&fit=crop",
-	"sci-fi": "https://images.unsplash.com/photo-1506443432602-ac2fcd6f54e0?q=80&w=300&auto=format&fit=crop",
-	fantasy: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=300&auto=format&fit=crop",
-	horror: "https://images.unsplash.com/photo-1509248961158-e54f6934749c?q=80&w=300&auto=format&fit=crop",
-	crime: "https://images.unsplash.com/photo-1453873623425-04e3213d56e5?q=80&w=300&auto=format&fit=crop",
-	"slice of life": "https://images.unsplash.com/photo-1516979187457-637abb4f9353?q=80&w=300&auto=format&fit=crop",
-	manga: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=300&auto=format&fit=crop",
-	indie: "https://images.unsplash.com/photo-1471107340929-a87cd0f5b5f3?q=80&w=300&auto=format&fit=crop",
-	"graphic novel": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=300&auto=format&fit=crop",
-	action: "https://images.unsplash.com/photo-1535970793482-07de93762dc4?q=80&w=300&auto=format&fit=crop",
-	adventure: "https://images.unsplash.com/photo-1569498237219-011a1c1869ee?q=80&w=300&auto=format&fit=crop",
-	default: "https://images.unsplash.com/photo-1553545204-4f7d339aa06a?q=80&w=300&auto=format&fit=crop",
-};
-
 export async function GET(request: NextRequest) {
 	try {
+		if (!GEMINI_API_KEY) {
+			return NextResponse.json({ error: "GEMINI_API_KEY is not configured" }, { status: 500 });
+		}
+
+		const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+
 		// Extract previously shown comic titles from a URL parameter to avoid repetition
 		const url = new URL(request.url);
-		const previousTitles = url.searchParams.get("previous")
+		const previousTitlesRaw = url.searchParams.get("previous")
 			? decodeURIComponent(url.searchParams.get("previous") || "").split("|")
 			: [];
+		// Keep prompt small for latency + cost
+		const previousTitles = previousTitlesRaw.filter(Boolean).slice(-10);
 
 		// Get user preferences from query parameters
 		const userName = url.searchParams.get("name") || "";
@@ -68,11 +106,11 @@ export async function GET(request: NextRequest) {
 		const randomSeed = Math.floor(Math.random() * 10000);
 
 		// Build a personalized prompt based on user preferences
-		let prompt = `
-      Suggest a unique ${selectedGenre} comic book that's worth reading.
-      ${previousTitles.length > 0 ? `AVOID these titles that were already suggested: ${previousTitles.join(", ")}` : ""}
-      Use random seed: ${randomSeed} to ensure variety.
-    `;
+		let prompt = `Suggest one ${selectedGenre} comic recommendation.`;
+		if (previousTitles.length > 0) {
+			prompt += ` Avoid: ${previousTitles.join(", ")}.`;
+		}
+		prompt += ` Random seed: ${randomSeed}.`;
 
 		// Add personalization based on user inputs
 		if (userName) {
@@ -91,87 +129,148 @@ export async function GET(request: NextRequest) {
 			prompt += `\nThey're looking for comics for: ${userPurpose}.`;
 		}
 
-		prompt += `
-      IMPORTANT REQUIREMENTS:
-      1. Select a well-known, critically acclaimed comic that represents the best of the ${selectedGenre} genre
-      2. The title should be a specific comic series that can be found online
-      3. Include detailed information about the creative team
-      4. Do not suggest popular mainstream comics like Watchmen, Dark Knight Returns, Saga, etc. unless the genre specifically calls for it
-      ${userExperience && userExperience.includes("Beginner") ? "5. Make sure this is accessible to beginners" : ""}
-      ${
-			userExperience && userExperience.includes("Expert")
-				? "5. Feel free to suggest more obscure or complex works"
-				: ""
-		}
+		prompt += `\n\nRules: pick a real, notable title; include creative team; do not pick overused defaults unless truly relevant.`;
+		if (userExperience && userExperience.includes("Beginner")) prompt += ` Keep it beginner-friendly.`;
+		if (userExperience && userExperience.includes("Expert")) prompt += ` You may go more obscure/complex.`;
 
-      Return ONLY the following JSON format, no additional text:
-      {
-        "title": "Comic title",
-        "description": "A brief but compelling description of what makes this comic special",
-        "reason": "Why this comic is worth reading and what makes it stand out${
-			userName ? ` specifically for ${userName}` : ""
-		}",
-        "year": "Year first published (e.g. 1986)",
-        "type": "Format (e.g. graphic novel, limited series, ongoing series)",
-        "publisher": "Publishing company name",
-        "artist": "Main artist's full name",
-        "writer": "Main writer's full name"
-      }
-    `;
+		prompt += `\n\nReturn ONLY JSON with these keys: title, description, reason, year, type, publisher, artist, writer.`;
+		prompt += `\nAll values must be non-empty strings (no null/undefined).`;
+		prompt += `\nDo not include extra keys.`;
 
-		const result = await model.generateContent(prompt);
-		const response = result.response;
-		const text = response.text();
+		const baseConfig = {
+			responseMimeType: "application/json",
+			responseJsonSchema: SuggestionResponseJsonSchema,
+			maxOutputTokens: 900,
+			temperature: 0.6,
+			seed: randomSeed,
+			systemInstruction: {
+				role: "system",
+				parts: [{ text: SYSTEM_INSTRUCTION }],
+			},
+		} as const;
 
-		// Clean the response and parse it as JSON
-		const cleanedText = text.replace(/```(?:json)?\n?|\n?```/g, "").trim();
-		const suggestion = JSON.parse(cleanedText);
-
-		try {
-			// Search for the comic using Comic Vine API
-			const searchQuery = encodeURIComponent(suggestion.title);
-			const apiUrl = `https://comicvine.gamespot.com/api/search/?api_key=${COMIC_VINE_API_KEY}&format=json&query=${searchQuery}&resources=volume&field_list=name,image,site_detail_url&limit=1`;
-
-			const apiResponse = await fetch(apiUrl);
-			if (!apiResponse.ok) throw new Error("API request failed");
-
-			const apiData = await apiResponse.json();
-
-			if (apiData.results && apiData.results.length > 0) {
-				const comic = apiData.results[0];
-
-				// Comic Vine returns image data in a specific format
-				if (comic.image && comic.image.super_url) {
-					suggestion.imageUrl = comic.image.super_url;
-				}
-
-				// Use the Comic Vine detail URL if available
-				if (comic.site_detail_url) {
-					suggestion.link = comic.site_detail_url;
-				}
-			} else {
-				throw new Error("No results found");
+		const parseAndValidate = (text: string) => {
+			const candidate = extractJsonObject(text) ?? text.trim();
+			let parsed: unknown;
+			try {
+				parsed = JSON.parse(candidate);
+			} catch {
+				parsed = JSON.parse(jsonrepair(candidate));
 			}
-		} catch (apiError) {
-			console.error("Error fetching from Comic Vine API:", apiError);
-			// Use genre-specific fallback image if API call fails
-			suggestion.imageUrl = fallbackImages[selectedGenre] || fallbackImages["default"];
+
+			const validated = SuggestionSchema.safeParse(parsed);
+			if (!validated.success) {
+				const error = new Error("INVALID_SHAPE");
+				(error as any).issues = validated.error.issues;
+				(error as any).candidatePreview = candidate.slice(0, 500);
+				throw error;
+			}
+
+			return validated.data;
+		};
+
+		const generateTextOnce = async (contents: string, config: any) => {
+			const result = await ai.models.generateContent({
+				model: "gemini-3-flash-preview",
+				contents,
+				config,
+			});
+			return (result.text ?? "").trim();
+		};
+
+		let text: string | null = null;
+		let suggestion: z.infer<typeof SuggestionSchema> | null = null;
+
+		// Attempt 1: normal generation.
+		try {
+			text = await generateTextOnce(prompt, baseConfig);
+			if (!text) throw new Error("EMPTY_RESPONSE");
+			suggestion = parseAndValidate(text);
+		} catch (error) {
+			// If the model is overloaded, do a single short backoff retry.
+			if (getErrorStatus(error) === 503) {
+				await sleep(650);
+				try {
+					text = await generateTextOnce(prompt, baseConfig);
+					if (!text) throw new Error("EMPTY_RESPONSE");
+					suggestion = parseAndValidate(text);
+				} catch (retryError) {
+					if (getErrorStatus(retryError) === 503) {
+						return NextResponse.json(
+							{ error: "The model is overloaded. Please try again later." },
+							{ status: 503, headers: { "Retry-After": "2" } }
+						);
+					}
+					error = retryError;
+				}
+			}
+
+			// If we got invalid/truncated JSON, do one corrective retry with stricter settings.
+			if (!suggestion) {
+				const candidatePreview =
+					typeof error === "object" && error && "candidatePreview" in error
+						? String((error as any).candidatePreview)
+						: (text ?? "").slice(0, 500);
+
+				const correctivePrompt =
+					prompt +
+					`\n\nYour previous output was invalid or incomplete JSON. Output a corrected, complete JSON object that matches the schema exactly.` +
+					`\nPrevious output (truncated):\n${candidatePreview}`;
+
+				try {
+					text = await generateTextOnce(correctivePrompt, {
+						...baseConfig,
+						temperature: 0.2,
+						maxOutputTokens: 900,
+					});
+					if (!text) throw new Error("EMPTY_RESPONSE");
+					suggestion = parseAndValidate(text);
+				} catch (finalError) {
+					if (getErrorStatus(finalError) === 503) {
+						return NextResponse.json(
+							{ error: "The model is overloaded. Please try again later." },
+							{ status: 503, headers: { "Retry-After": "2" } }
+						);
+					}
+
+					if (typeof finalError === "object" && finalError && "issues" in finalError) {
+						console.error("Model JSON failed validation:", {
+							errors: (finalError as any).issues,
+							candidatePreview: (finalError as any).candidatePreview,
+						});
+						return NextResponse.json({ error: "Model returned unexpected JSON shape" }, { status: 502 });
+					}
+
+					console.error("Model returned invalid JSON:", {
+						candidatePreview: (text ?? "").slice(0, 500),
+					});
+					return NextResponse.json({ error: "Model returned invalid JSON" }, { status: 502 });
+				}
+			}
 		}
 
-		// If we still don't have an image URL, use the fallback
-		if (!suggestion.imageUrl) {
-			suggestion.imageUrl = fallbackImages[selectedGenre] || fallbackImages["default"];
+		if (!suggestion) {
+			return NextResponse.json({ error: "Failed to generate suggestion" }, { status: 502 });
 		}
 
-		// Add a generic link if none is available
-		if (!suggestion.link) {
-			suggestion.link = `https://www.google.com/search?q=${encodeURIComponent(
-				suggestion.title + " comic " + suggestion.publisher
-			)}`;
-		}
-
-		return NextResponse.json({ suggestion });
+		// No fallback data: return suggestion ASAP. Client can call /api/comic-suggestion/enrich.
+		return NextResponse.json({
+			suggestion: {
+				...suggestion,
+				imageUrl: null,
+				link: null,
+			},
+			meta: { selectedGenre },
+		});
 	} catch (error) {
+		const status = getErrorStatus(error);
+		if (status === 503) {
+			return NextResponse.json(
+				{ error: "The model is overloaded. Please try again later." },
+				{ status: 503, headers: { "Retry-After": "2" } }
+			);
+		}
+
 		console.error("Error generating comic suggestion:", error);
 		return NextResponse.json({ error: "Failed to generate suggestion" }, { status: 500 });
 	}
