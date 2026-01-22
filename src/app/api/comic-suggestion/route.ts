@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { jsonrepair } from "jsonrepair";
 import { z } from "zod";
+import { comicGenres, comicStyles, experienceLevels, purposes } from "@/lib/comicSuggestionOptions";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
@@ -54,29 +55,20 @@ function extractJsonObject(text: string): string | null {
 	return stripped.slice(start, end + 1);
 }
 
-// List of comic genres to randomize suggestions
-const genres = [
-	"superhero",
-	"sci-fi",
-	"fantasy",
-	"horror",
-	"crime",
-	"slice of life",
-	"manga",
-	"indie",
-	"graphic novel",
-	"action",
-	"adventure",
-	"western",
-	"war",
-	"biographical",
-	"historical",
-	"comedy",
-	"drama",
-	"mystery",
-	"thriller",
-	"romance",
-];
+function normalizeOption(input: string, allowed: readonly string[], aliases?: Record<string, string>): string | null {
+	const trimmed = input.trim();
+	if (!trimmed) return null;
+
+	const lower = trimmed.toLowerCase();
+	const aliased = aliases?.[lower] ?? trimmed;
+
+	// Exact match
+	if (allowed.includes(aliased)) return aliased;
+
+	// Case-insensitive match
+	const found = allowed.find((v) => v.toLowerCase() === aliased.toLowerCase());
+	return found ?? null;
+}
 
 export async function GET(request: NextRequest) {
 	try {
@@ -96,17 +88,63 @@ export async function GET(request: NextRequest) {
 
 		// Get user preferences from query parameters
 		const userName = url.searchParams.get("name") || "";
-		const userGenre = url.searchParams.get("genre") || "";
-		const userStyle = url.searchParams.get("style") || "";
-		const userExperience = url.searchParams.get("experience") || "";
-		const userPurpose = url.searchParams.get("purpose") || "";
+		const userGenreRaw = url.searchParams.get("genre") || "";
+		const userStyleRaw = url.searchParams.get("style") || "";
+		const userExperienceRaw = url.searchParams.get("experience") || "";
+		const userPurposeRaw = url.searchParams.get("purpose") || "";
+		const userAgeRaw = url.searchParams.get("age") || "";
 
-		// Use user's preferred genre if provided, otherwise pick random
-		const selectedGenre = userGenre ? userGenre.toLowerCase() : genres[Math.floor(Math.random() * genres.length)];
+		const genreAliases: Record<string, string> = {
+			"sci-fi": "Science Fiction",
+			scifi: "Science Fiction",
+			"science fiction": "Science Fiction",
+			crime: "Crime/Noir",
+			noir: "Crime/Noir",
+			action: "Action/Adventure",
+			adventure: "Action/Adventure",
+			"action/adventure": "Action/Adventure",
+			"slice of life": "Slice of Life",
+		};
+
+		const styleAliases: Record<string, string> = {
+			modern: "Modern Age",
+			golden: "Golden Age",
+			silver: "Silver Age",
+			bronze: "Bronze Age",
+		};
+
+		const userGenre = normalizeOption(userGenreRaw, comicGenres, genreAliases);
+		const userStyle = normalizeOption(userStyleRaw, comicStyles, styleAliases);
+		const userExperience = normalizeOption(userExperienceRaw, experienceLevels);
+		const userPurpose = normalizeOption(userPurposeRaw, purposes);
+		const userAge = userAgeRaw.trim() || "";
+
+		if (userGenreRaw.trim() && !userGenre) {
+			return NextResponse.json({ error: "Invalid genre", allowed: comicGenres }, { status: 400 });
+		}
+		if (userStyleRaw.trim() && !userStyle) {
+			return NextResponse.json({ error: "Invalid style", allowed: comicStyles }, { status: 400 });
+		}
+		if (userExperienceRaw.trim() && !userExperience) {
+			return NextResponse.json({ error: "Invalid experience", allowed: experienceLevels }, { status: 400 });
+		}
+		if (userPurposeRaw.trim() && !userPurpose) {
+			return NextResponse.json({ error: "Invalid purpose", allowed: purposes }, { status: 400 });
+		}
+		if (userAge && !/^\d{1,3}$/.test(userAge)) {
+			return NextResponse.json(
+				{ error: "Invalid age", message: "age must be a whole number in years" },
+				{ status: 400 },
+			);
+		}
+
+		// Use user's preferred genre if provided, otherwise pick random from the same allowed list used by the UI.
+		const selectedGenre = userGenre ?? comicGenres[Math.floor(Math.random() * comicGenres.length)];
+		const selectedGenrePrompt = selectedGenre.toLowerCase();
 		const randomSeed = Math.floor(Math.random() * 10000);
 
 		// Build a personalized prompt based on user preferences
-		let prompt = `Suggest one ${selectedGenre} comic recommendation.`;
+		let prompt = `Suggest one ${selectedGenrePrompt} comic recommendation.`;
 		if (previousTitles.length > 0) {
 			prompt += ` Avoid: ${previousTitles.join(", ")}.`;
 		}
@@ -115,6 +153,10 @@ export async function GET(request: NextRequest) {
 		// Add personalization based on user inputs
 		if (userName) {
 			prompt += `\nThis recommendation is for ${userName}.`;
+		}
+
+		if (userAge) {
+			prompt += `\nTheir age is ${userAge}. Keep content and themes age-appropriate.`;
 		}
 
 		if (userStyle) {
@@ -131,6 +173,11 @@ export async function GET(request: NextRequest) {
 
 		prompt += `\n\nRules: pick a real, notable title; include creative team; do not pick overused defaults unless truly relevant.`;
 		if (userExperience && userExperience.includes("Beginner")) prompt += ` Keep it beginner-friendly.`;
+		if (userExperience && userExperience.includes("Casual"))
+			prompt += ` A balance of accessibility and depth is preferred.`;
+		if (userExperience && userExperience.includes("Intermediate")) prompt += ` A moderate complexity is fine.`;
+		if (userExperience && userExperience.includes("Advanced"))
+			prompt += ` You can choose more complex themes and storytelling.`;
 		if (userExperience && userExperience.includes("Expert")) prompt += ` You may go more obscure/complex.`;
 
 		prompt += `\n\nReturn ONLY JSON with these keys: title, description, reason, year, type, publisher, artist, writer.`;
@@ -260,7 +307,13 @@ export async function GET(request: NextRequest) {
 				imageUrl: null,
 				link: null,
 			},
-			meta: { selectedGenre },
+			meta: {
+				selectedGenre,
+				style: userStyle ?? null,
+				experience: userExperience ?? null,
+				purpose: userPurpose ?? null,
+				age: userAge || null,
+			},
 		});
 	} catch (error) {
 		const status = getErrorStatus(error);

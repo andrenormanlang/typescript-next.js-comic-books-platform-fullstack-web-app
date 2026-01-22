@@ -21,6 +21,7 @@ import {
 	Divider,
 } from "@chakra-ui/react";
 import { FaBook, FaPencilAlt, FaPaintBrush } from "react-icons/fa";
+import { comicGenres, comicStyles, experienceLevels, purposes } from "@/lib/comicSuggestionOptions";
 
 export default function ComicSuggestionForm() {
 	const router = useRouter();
@@ -48,55 +49,6 @@ export default function ComicSuggestionForm() {
 		// Navigate to the comic suggestion page with query parameters
 		router.push(`/comic-suggestion?${params.toString()}`);
 	};
-
-	// Comic genres and styles for dropdown options
-	const comicGenres = [
-		"Superhero",
-		"Science Fiction",
-		"Fantasy",
-		"Horror",
-		"Crime/Noir",
-		"Action/Adventure",
-		"Slice of Life",
-		"Romance",
-		"Historical",
-		"Western",
-		"Manga",
-		"Comedy",
-		"Drama",
-	];
-
-	const comicStyles = [
-		"Golden Age",
-		"Silver Age",
-		"Bronze Age",
-		"Modern Age",
-		"Manga",
-		"European",
-		"Underground/Alternative",
-		"Webcomic",
-		"Graphic Novel",
-		"Indie",
-		"Cartoon",
-		"Realistic",
-	];
-
-	const experienceLevels = [
-		"Beginner - Never read comics before",
-		"Casual - Read a few comics",
-		"Intermediate - Regular comic reader",
-		"Advanced - Extensive comic knowledge",
-		"Expert - Comic collector/enthusiast",
-	];
-
-	const purposes = [
-		"Entertainment",
-		"Learning about comics",
-		"Research",
-		"Gift ideas",
-		"Collection expansion",
-		"Inspiration for my own work",
-	];
 
 	return (
 		<Container maxW="800px" py={8}>
