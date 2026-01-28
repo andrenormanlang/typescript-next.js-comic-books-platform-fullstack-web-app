@@ -1,21 +1,72 @@
-import { Input, Button, Stack, Flex, Box, useColorModeValue } from "@chakra-ui/react";
-import { FormEvent, useState } from "react";
+"use client";
+
+import { Input, Button, Stack, Flex, Box, useColorModeValue, IconButton } from "@chakra-ui/react";
+import { CloseIcon } from "@chakra-ui/icons";
+import { FormEvent, useEffect, useState } from "react";
 
 type SearchComponentProps = {
 	onSearch: (term: string) => void;
+	/** Optional override for the clear behavior */
+	onClearQuery?: () => void;
+	/** Show/hide the clear query button (default: true) */
+	showClearQuery?: boolean;
+
+	/** @deprecated Use onClearQuery */
+	onRefresh?: () => void;
+	/** @deprecated Use showClearQuery */
+	showRefresh?: boolean;
 };
 
-const SearchBox: React.FC<SearchComponentProps> = ({ onSearch }) => {
+const SearchBox: React.FC<SearchComponentProps> = ({
+	onSearch,
+	onClearQuery,
+	showClearQuery,
+	onRefresh,
+	showRefresh,
+}) => {
 	const [searchTerm, setSearchTerm] = useState("");
+	const [activeQuery, setActiveQuery] = useState("");
 	const bgColor = useColorModeValue("white", "gray.700");
 	const borderColor = useColorModeValue("gray.300", "gray.600");
+
+	const shouldShowClear = showClearQuery ?? showRefresh ?? true;
+
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+		const q = new URLSearchParams(window.location.search).get("query") || "";
+		setActiveQuery(q);
+		setSearchTerm(q);
+	}, []);
 
 	const handleSearch = (e: FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		onSearch(searchTerm);
 		if (typeof window !== "undefined") {
 			const searchParams = new URLSearchParams(window.location.search);
-			searchParams.set("query", searchTerm);
+			if (searchTerm) {
+				searchParams.set("query", searchTerm);
+			} else {
+				searchParams.delete("query");
+			}
+			window.history.pushState(null, "", "?" + searchParams.toString());
+			setActiveQuery(searchTerm);
+		}
+	};
+
+	const handleClear = () => {
+		// Back-compat: if someone wired refresh, treat it as the clear override.
+		const clearOverride = onClearQuery ?? onRefresh;
+		if (clearOverride) {
+			clearOverride();
+			return;
+		}
+
+		setSearchTerm("");
+		setActiveQuery("");
+		onSearch("");
+		if (typeof window !== "undefined") {
+			const searchParams = new URLSearchParams(window.location.search);
+			searchParams.delete("query");
 			window.history.pushState(null, "", "?" + searchParams.toString());
 		}
 	};
@@ -35,6 +86,15 @@ const SearchBox: React.FC<SearchComponentProps> = ({ onSearch }) => {
 							_hover={{ borderColor: "blue.500" }}
 							_focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
 						/>
+						{shouldShowClear && !!activeQuery && (
+							<IconButton
+								aria-label="Clear query"
+								onClick={handleClear}
+								icon={<CloseIcon />}
+								variant="outline"
+								colorScheme="blue"
+							/>
+						)}
 						<Button type="submit" colorScheme="blue" minW="100px">
 							Search
 						</Button>

@@ -152,7 +152,7 @@ const MetronReleasesClient = () => {
 		router.push(url.toString());
 	}, [activeView, currentPage, searchTerm, router]);
 
-	const { data, isLoading, error, refetch } = useQuery<MetronResponse>({
+	const { data, isLoading, error } = useQuery<MetronResponse>({
 		queryKey: ["releases", currentPage, pageSize, publisherName, seriesName, activeView, searchTerm],
 		queryFn: () =>
 			fetchReleases({
@@ -163,6 +163,8 @@ const MetronReleasesClient = () => {
 				view: activeView,
 				query: searchTerm,
 			}),
+		staleTime: 1000 * 60 * 5,
+		refetchOnWindowFocus: false,
 	});
 
 	const handleSearchTerm = useDebouncedCallback((value: string) => {
@@ -181,7 +183,6 @@ const MetronReleasesClient = () => {
 		const newView = index === 0 ? "recent" : "upcoming";
 		setActiveView(newView);
 		setCurrentPage(1); // Reset to first page when switching tabs
-		refetch(); // Refetch data with new view
 	};
 
 	const getDateRangeText = (view: ReleaseView) => {

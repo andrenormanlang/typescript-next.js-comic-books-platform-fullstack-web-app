@@ -13,12 +13,18 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 	const url = `https://metron.cloud/api/issue/${id}/`;
 
 	try {
+		const controller = new AbortController();
+		const timeout = setTimeout(() => controller.abort(), 8000);
 		const response = await fetch(url, {
 			headers: {
 				Authorization: `Basic ${authHeaderValue}`,
 				Accept: "application/json",
 			},
+			signal: controller.signal,
+			cache: "force-cache",
+			next: { revalidate: 3600 },
 		});
+		clearTimeout(timeout);
 
 		if (!response.ok) {
 			const errorText = await response.text();
@@ -27,7 +33,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 		}
 
 		const data = await response.json();
-		return NextResponse.json(data);
+		return NextResponse.json(data, {
+			headers: {
+				"Cache-Control": "s-maxage=3600, stale-while-revalidate=86400",
+			},
+		});
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
 		console.error("Failed to fetch comic issue:", errorMessage);
