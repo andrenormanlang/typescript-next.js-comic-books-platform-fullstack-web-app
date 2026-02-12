@@ -1,66 +1,66 @@
 name: Build and Push Docker image
 
 on:
-  push:
-    branches: ["main"]
+    push:
+        branches: ["main"]
 
 jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
-    env:
-      NEXT_PUBLIC_SUPABASE_URL: "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}"
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: "${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}"
-      SUPABASE_SERVICE_ROLE_KEY: "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
-      # Optional fallback secret name (kept separate; we map it in the validate step)
-      NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY: "${{ secrets.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY }}"
+    build-and-push:
+        runs-on: ubuntu-latest
+        env:
+            NEXT_PUBLIC_SUPABASE_URL: "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}"
+            NEXT_PUBLIC_SUPABASE_ANON_KEY: "${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}"
+            SUPABASE_SERVICE_ROLE_KEY: "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
+            # Optional fallback secret name (kept separate; we map it in the validate step)
+            NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY: "${{ secrets.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY }}"
 
-    steps:
-      - uses: actions/checkout@v4
+        steps:
+            - uses: actions/checkout@v4
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+            - name: Set up QEMU
+              uses: docker/setup-qemu-action@v2
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v2
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: "${{ secrets.DOCKERHUB_USERNAME }}"
-          password: "${{ secrets.DOCKERHUB_TOKEN }}"
+            - name: Log in to Docker Hub
+              uses: docker/login-action@v2
+              with:
+                  username: "${{ secrets.DOCKERHUB_USERNAME }}"
+                  password: "${{ secrets.DOCKERHUB_TOKEN }}"
 
-      - name: Validate required secrets
-        shell: bash
-        run: |
-          # Allow either secret name without changing the Dockerfile
-          if [ -z "${SUPABASE_SERVICE_ROLE_KEY}" ] && [ -n "${NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY}" ]; then
-            echo "SUPABASE_SERVICE_ROLE_KEY=${NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY}" >> "$GITHUB_ENV"
-          fi
+            - name: Validate required secrets
+              shell: bash
+              run: |
+                  # Allow either secret name without changing the Dockerfile
+                  if [ -z "${SUPABASE_SERVICE_ROLE_KEY}" ] && [ -n "${NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY}" ]; then
+                    echo "SUPABASE_SERVICE_ROLE_KEY=${NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY}" >> "$GITHUB_ENV"
+                  fi
 
-          missing=0
-          for v in NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY; do
-            if [ -z "${!v}" ]; then
-              echo "Missing required secret: ${v}"
-              missing=1
-            fi
-          done
-          if [ "$missing" -ne 0 ]; then
-            exit 1
-          fi
+                  missing=0
+                  for v in NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY; do
+                    if [ -z "${!v}" ]; then
+                      echo "Missing required secret: ${v}"
+                      missing=1
+                    fi
+                  done
+                  if [ "$missing" -ne 0 ]; then
+                    exit 1
+                  fi
 
-      - name: Build and push
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: docker/dockerfile
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/retropop:latest
-          platforms: linux/amd64
-          # Use GitHub Actions cache so the first run doesn't fail when the registry cache tag doesn't exist yet
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          # Map required build args from GitHub Secrets so the Dockerfile can validate/build
-          build-args: |
-            NEXT_PUBLIC_SUPABASE_URL=${{ env.NEXT_PUBLIC_SUPABASE_URL }}
-            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ env.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-            SUPABASE_SERVICE_ROLE_KEY=${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+            - name: Build and push
+              uses: docker/build-push-action@v4
+              with:
+                  context: .
+                  file: docker/dockerfile
+                  push: true
+                  tags: ${{ secrets.DOCKERHUB_USERNAME }}/retropop:latest
+                  platforms: linux/amd64
+                  # Use GitHub Actions cache so the first run doesn't fail when the registry cache tag doesn't exist yet
+                  cache-from: type=gha
+                  cache-to: type=gha,mode=max
+                  # Map required build args from GitHub Secrets so the Dockerfile can validate/build
+                  build-args: |
+                      NEXT_PUBLIC_SUPABASE_URL=${{ env.NEXT_PUBLIC_SUPABASE_URL }}
+                      NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ env.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+                      SUPABASE_SERVICE_ROLE_KEY=${{ env.SUPABASE_SERVICE_ROLE_KEY }}
