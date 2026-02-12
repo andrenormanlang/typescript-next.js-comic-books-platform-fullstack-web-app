@@ -172,7 +172,8 @@ export async function GET(request: Request) {
 		const sortedResults = [...(listData.results || [])].sort((a, b) => {
 			const aTime = a?.store_date ? new Date(a.store_date).getTime() : 0;
 			const bTime = b?.store_date ? new Date(b.store_date).getTime() : 0;
-			return aTime - bTime;
+			// Recent releases: newest -> oldest. Upcoming: soonest -> latest.
+			return view === "recent" ? bTime - aTime : aTime - bTime;
 		});
 
 		const viewCount = listData.count;
