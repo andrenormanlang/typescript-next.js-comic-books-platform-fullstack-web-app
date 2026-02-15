@@ -159,6 +159,7 @@ export default function ComicFormClient() {
 	// Lists for dropdowns
 	const publishers = [
 		"Marvel Comics",
+		"Editora Abril",
 		"DC Comics",
 		"Vertigo",
 		"Image Comics",
