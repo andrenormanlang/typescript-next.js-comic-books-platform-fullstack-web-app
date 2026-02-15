@@ -48,7 +48,7 @@ const validationSchema = z.object({
 	genre: z.string().min(1, { message: "Genre is required" }),
 	stock: z.preprocess(
 		(val) => parseInt(val as string),
-		z.number().nonnegative({ message: "Stock must be 0 or greater" })
+		z.number().nonnegative({ message: "Stock must be 0 or greater" }),
 	),
 });
 
@@ -94,6 +94,7 @@ const EditComic = () => {
 
 	const publishers = [
 		"Marvel Comics",
+		"Editorial Abril",
 		"DC Comics",
 		"Vertigo",
 		"Image Comics",
@@ -102,7 +103,6 @@ const EditComic = () => {
 		"Valiant Comics",
 		"Dynamite Entertainment",
 		"Boom! Studios",
-		"Editorial Frontera",
 	];
 
 	const currencies = [
