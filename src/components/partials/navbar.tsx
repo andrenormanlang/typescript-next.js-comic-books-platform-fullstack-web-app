@@ -376,47 +376,51 @@ const Navbar = () => {
 		fontWeight: "500",
 	};
 
-	const menuItems: MenuType[] = [
-		{
-			name: "Search",
-			submenu: [
-				{
-					name: "Comic Vine",
-					submenu: [
-						{ name: "Issues", href: "/search/comic-vine/issues" },
-						{ name: "Characters", href: "/search/comic-vine/characters" },
-						{ name: "Publishers", href: "/search/comic-vine/publishers" },
-					],
-				},
-				{
-					name: "Characters",
-					submenu: [
-						{ name: "Superheros API", href: "/search/superheros/superhero-api" },
-						{ name: "Superheros List", href: "/search/superheros/superheros-list" },
-					],
-				},
-				{
-					name: "getcomics.org",
-					submenu: [{ name: "Get Some!", href: "/search/comicbooks-api" }],
-				},
-				{
-					name: "MARVEL",
-					submenu: [
-						{ name: "Comics", href: "/search/marvel/marvel-comics" },
-						{ name: "Characters", href: "/search/marvel/marvel-characters" },
-						{ name: "Creators", href: "/search/marvel/marvel-creators" },
-						{ name: "Events", href: "/search/marvel/marvel-events" },
-						{ name: "Series", href: "/search/marvel/marvel-series" },
-						{ name: "Stories", href: "/search/marvel/marvel-stories" },
-					],
-				},
-				{
-					name: "Metron Cloud",
-					submenu: [{ name: "Issues", href: "/search/metron/metron-issues" }],
-				},
-			],
-		},
-	];
+const menuItems: MenuType[] = [
+{
+name: "Search",
+submenu: [
+{
+name: "Comic Vine",
+submenu: [
+{ name: "Issues", href: "/search/comic-vine/issues" },
+{ name: "Characters", href: "/search/comic-vine/characters" },
+{ name: "Publishers", href: "/search/comic-vine/publishers" },
+],
+},
+{
+name: "Characters",
+submenu: [
+{ name: "Superheros API", href: "/search/superheros/superhero-api" },
+{ name: "Superheros List", href: "/search/superheros/superheros-list" },
+],
+},
+{
+name: "Guia dos Quadrinhos",
+submenu: [{ name: "Search Guia", href: "/search/guia-search" }],
+},
+{
+name: "getcomics.org",
+submenu: [{ name: "Get Some!", href: "/search/comicbooks-api" }],
+},
+{
+name: "MARVEL",
+submenu: [
+{ name: "Comics", href: "/search/marvel/marvel-comics" },
+{ name: "Characters", href: "/search/marvel/marvel-characters" },
+{ name: "Creators", href: "/search/marvel/marvel-creators" },
+{ name: "Events", href: "/search/marvel/marvel-events" },
+{ name: "Series", href: "/search/marvel/marvel-series" },
+{ name: "Stories", href: "/search/marvel/marvel-stories" },
+],
+},
+{
+name: "Metron Cloud",
+submenu: [{ name: "Issues", href: "/search/metron/metron-issues" }],
+},
+],
+},
+];
 
 	if (isAdmin) {
 		menuItems.push({

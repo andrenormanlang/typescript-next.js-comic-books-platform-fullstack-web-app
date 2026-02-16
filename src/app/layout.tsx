@@ -3,6 +3,7 @@ import { Inter, Libre_Franklin } from "next/font/google";
 import { Metadata } from "next";
 import ClientProviders from "@/components/client-providers";
 import GlobalStyles from "@/components/global-styles";
+import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 const libreFranklin = Libre_Franklin({ subsets: ["latin"] }); // Assuming you want this font selectable in the editor
