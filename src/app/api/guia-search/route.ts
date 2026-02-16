@@ -5,6 +5,12 @@ import path from "path";
 
 const BASE_URL = "https://www.guiadosquadrinhos.com";
 const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY;
+const KEYWORD_CAPAS_ALIASES: Record<string, string> = {
+	hulk: `${BASE_URL}/capas/incrivel-hulk-o/hk00301`,
+	"incrivel hulk": `${BASE_URL}/capas/incrivel-hulk-o/hk00301`,
+	"o incrivel hulk": `${BASE_URL}/capas/incrivel-hulk-o/hk00301`,
+	wolverine: `${BASE_URL}/capas/wolverine/wo00302`,
+};
 
 /**
  * Fetch HTML with optional ScraperAPI proxy. Includes simple retry + timeout.
@@ -169,6 +175,30 @@ function getEditionCodeFromCapasUrl(capasUrl: string) {
 	return match?.[1]?.toLowerCase() || "";
 }
 
+function normalizeGuiaUrl(rawUrl: string) {
+	const value = (rawUrl || "").trim();
+	if (!value) return "";
+
+	return value
+		.replace(/^http:\/\/wwww\./i, "http://www.")
+		.replace(/^https:\/\/wwww\./i, "https://www.")
+		.replace(/^http:\/\//i, "https://")
+		.replace(/([^:]\/)\/+/g, "$1")
+		.trim();
+}
+
+function normalizeText(value: string) {
+	if (!value) return "";
+
+	try {
+		const fixed = Buffer.from(value, "latin1").toString("utf8");
+		if (fixed.includes("�")) return value.trim();
+		return fixed.trim();
+	} catch {
+		return value.trim();
+	}
+}
+
 type GuiaTitleRow = {
 	title: string;
 	url: string;
@@ -184,11 +214,11 @@ function parseTitleSearchRows(markdown: string): GuiaTitleRow[] {
 
 	let match: RegExpExecArray | null;
 	while ((match = rowRegex.exec(markdown)) !== null) {
-		const title = (match[1] || "").trim();
-		const url = (match[2] || "").trim();
-		const editora = (match[3] || "").trim();
+		const title = normalizeText((match[1] || "").trim());
+		const url = normalizeGuiaUrl((match[2] || "").trim());
+		const editora = normalizeText((match[3] || "").trim());
 		const issuesRaw = (match[6] || "").trim();
-		const issuesCount = Number.parseInt((issuesRaw.match(/\d+/)?.[0] || "0"), 10) || 0;
+		const issuesCount = Number.parseInt(issuesRaw.match(/\d+/)?.[0] || "0", 10) || 0;
 		if (!url || seen.has(url)) continue;
 		seen.add(url);
 		rows.push({ title, url, editora, issuesCount });
@@ -217,6 +247,9 @@ function scoreTitleCandidate(row: GuiaTitleRow, normalizedQuery: string) {
 async function resolveCapasUrlFromKeyword(query: string): Promise<string | null> {
 	const normalizedQuery = query.trim().toLowerCase();
 	if (!normalizedQuery) return null;
+
+	const aliasCapas = KEYWORD_CAPAS_ALIASES[normalizedQuery];
+	if (aliasCapas) return aliasCapas;
 
 	try {
 		const keywordUrl = `${BASE_URL}/titulos/${encodeURIComponent(normalizedQuery)}`;
@@ -311,16 +344,16 @@ function parseGuiaMarkdownResults(markdown: string, query?: string, editionCode?
 	const normalizedEditionCode = (editionCode || "").toLowerCase();
 
 	const imageLinkRegex =
-		/\[!\[([^\]]+)\]\((https?:\/\/[^)]+)\)\]\((https?:\/\/www\.guiadosquadrinhos\.com\/(?:capas|edicao)\/[^)\s]+)\)/g;
+		/\[!\[([^\]]+)\]\((https?:\/\/[^)]+)\)\]\((https?:\/\/www\.guiadosquadrinhos\.com\/(?:capas|edicao)\/[^)\s]+)(?:\s+"[^"]*")?\)/g;
 	let imgMatch: RegExpExecArray | null;
 	while ((imgMatch = imageLinkRegex.exec(markdown)) !== null) {
-		const rawTitle = (imgMatch[1] || "").trim();
-		const cover = (imgMatch[2] || "").trim();
-		const href = (imgMatch[3] || "").trim();
+		const rawTitle = normalizeText((imgMatch[1] || "").trim());
+		const cover = normalizeGuiaUrl((imgMatch[2] || "").trim());
+		const href = normalizeGuiaUrl((imgMatch[3] || "").trim());
 		if (!href || seen.has(href)) continue;
 		if (normalizedEditionCode && !href.toLowerCase().includes(`/${normalizedEditionCode}/`)) continue;
 
-		const title = rawTitle.replace(/^Image\s*\d+\s*:\s*/i, "").trim();
+		const title = normalizeText(rawTitle.replace(/^Image\s*\d+\s*:\s*/i, "").trim());
 		const haystack = `${title} ${href}`.toLowerCase();
 		if (normalizedQuery && !haystack.includes(normalizedQuery)) continue;
 
@@ -336,11 +369,12 @@ function parseGuiaMarkdownResults(markdown: string, query?: string, editionCode?
 		});
 	}
 
-	const textLinkRegex = /\[([^\]]+)\]\((https?:\/\/www\.guiadosquadrinhos\.com\/(?:capas|edicao)\/[^)\s]+)\)/g;
+	const textLinkRegex =
+		/\[([^\]]+)\]\((https?:\/\/www\.guiadosquadrinhos\.com\/(?:capas|edicao)\/[^)\s]+)(?:\s+"[^"]*")?\)/g;
 	let txtMatch: RegExpExecArray | null;
 	while ((txtMatch = textLinkRegex.exec(markdown)) !== null) {
-		const title = (txtMatch[1] || "").trim();
-		const href = (txtMatch[2] || "").trim();
+		const title = normalizeText((txtMatch[1] || "").trim());
+		const href = normalizeGuiaUrl((txtMatch[2] || "").trim());
 		if (!href || seen.has(href)) continue;
 		if (normalizedEditionCode && !href.toLowerCase().includes(`/${normalizedEditionCode}/`)) continue;
 
@@ -360,6 +394,19 @@ function parseGuiaMarkdownResults(markdown: string, query?: string, editionCode?
 	}
 
 	return results;
+}
+
+async function computeDirectHasMore(
+	capasUrl: string,
+	page: number,
+	range: { start: number; end: number; total: number } | null,
+	fallback: boolean,
+) {
+	let hasMore = range ? range.end < range.total : fallback;
+	if (!hasMore) return false;
+
+	const nextPage = await resolveDirectCapasMarkdownPage(capasUrl, page + 1);
+	return !!nextPage;
 }
 
 /**
@@ -388,7 +435,7 @@ async function scrapeGuiaSearch(query?: string, page = 1) {
 		const { markdown, usedUrl, range } = resolvedPage;
 		const editionCode = getEditionCodeFromCapasUrl(directCapasUrl);
 		const directResults = parseGuiaMarkdownResults(markdown, undefined, editionCode);
-		const hasMore = range ? range.end < range.total : /__doPostBack/i.test(markdown);
+		const hasMore = await computeDirectHasMore(directCapasUrl, page, range, /__doPostBack/i.test(markdown));
 
 		return {
 			results: directResults,
@@ -422,7 +469,7 @@ async function scrapeGuiaSearch(query?: string, page = 1) {
 			const { markdown, usedUrl, range } = resolvedPage;
 			const editionCode = getEditionCodeFromCapasUrl(keywordCapasUrl);
 			const keywordResults = parseGuiaMarkdownResults(markdown, undefined, editionCode);
-			const hasMore = range ? range.end < range.total : /__doPostBack/i.test(markdown);
+			const hasMore = await computeDirectHasMore(keywordCapasUrl, page, range, /__doPostBack/i.test(markdown));
 
 			return {
 				results: keywordResults,
@@ -553,6 +600,8 @@ export async function GET(request: NextRequest) {
 	try {
 		let results: any[] = [];
 		let hasMore = false;
+		let totalResults = 0;
+		let pageSize = 0;
 
 		if (useFixture) {
 			const fixturePath = path.join(process.cwd(), "src", "app", "api", "guia-search", "fixtures", "hulk.html");
@@ -630,6 +679,8 @@ export async function GET(request: NextRequest) {
 			}
 
 			hasMore = $(".nav-links .next, .pagination .next").length > 0 || $('a[rel="next"]').length > 0;
+			totalResults = results.length;
+			pageSize = results.length;
 		} else {
 			const data = (await Promise.race([
 				scrapeGuiaSearch(query, page),
@@ -637,12 +688,16 @@ export async function GET(request: NextRequest) {
 			])) as any;
 			results = data.results || [];
 			hasMore = data.pagination?.has_more || false;
+			totalResults = data.pagination?.total_results || results.length;
+			pageSize = results.length;
 		}
 
 		return NextResponse.json(results, {
 			headers: {
 				"Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
 				"X-Guia-Has-More": String(!!hasMore),
+				"X-Guia-Total-Results": String(totalResults || 0),
+				"X-Guia-Page-Size": String(pageSize || 0),
 			},
 		});
 	} catch (err) {
