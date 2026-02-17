@@ -3,7 +3,7 @@ import * as cheerio from "cheerio";
 import { promises as fs } from "fs";
 import path from "path";
 
-const BASE_URL = "https://www.guiadosquadrinhos.com";
+const BASE_URL = "http://www.guiadosquadrinhos.com";
 const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY;
 const KEYWORD_CAPAS_ALIASES: Record<string, string> = {
 	hulk: `${BASE_URL}/capas/incrivel-hulk-o/hk00301`,
@@ -113,7 +113,7 @@ async function fetchHtml(url: string, retries = 3, timeoutMs = 30000): Promise<s
 	}
 }
 
-async function fetchMirrorMarkdown(url: string, timeoutMs = 45000): Promise<string> {
+async function fetchMirrorMarkdown(url: string, timeoutMs = 18000): Promise<string> {
 	const mirrorUrl = `https://r.jina.ai/http://${url.replace(/^https?:\/\//, "")}`;
 	const controller = new AbortController();
 	const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -219,6 +219,22 @@ function normalizeText(value: string) {
 	}
 }
 
+function extractIssueMetaFromTitle(rawTitle: string) {
+	const normalized = normalizeText(rawTitle || "")
+		.replace(/&nbsp;|\u00a0/gi, " ")
+		.replace(/\s+/g, " ")
+		.trim();
+	const match = normalized.match(/n[°º]?\s*(\d+)\s*(.*)$/i);
+	const releaseDateMatch = normalized.match(
+		/(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+de\s+\d{4}/i,
+	);
+
+	return {
+		editionNumber: match ? `#${match[1]}` : "",
+		releaseDate: releaseDateMatch ? releaseDateMatch[0].toLowerCase() : "",
+	};
+}
+
 type GuiaTitleRow = {
 	title: string;
 	url: string;
@@ -247,46 +263,88 @@ function parseTitleSearchRows(markdown: string): GuiaTitleRow[] {
 	return rows;
 }
 
-function scoreTitleCandidate(row: GuiaTitleRow, normalizedQuery: string) {
-	const title = row.title.toLowerCase();
-	const url = row.url.toLowerCase();
-	const editora = row.editora.toLowerCase();
+function normalizeForComparison(value: string): string {
+	return (value || "")
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLowerCase()
+		.trim();
+}
+
+function parseTitlePublisherQuery(query: string) {
+	const normalized = query.trim();
+	const parts = normalized
+		.split("/")
+		.map((part) => part.trim())
+		.filter(Boolean);
+
+	if (parts.length >= 2) {
+		return {
+			title: parts[0],
+			publisher: parts.slice(1).join(" / "),
+		};
+	}
+
+	return { title: normalized, publisher: "" };
+}
+
+function scoreTitleCandidate(row: GuiaTitleRow, normalizedTitleQuery: string, normalizedPublisherQuery?: string) {
+	const title = normalizeForComparison(row.title);
+	const url = normalizeForComparison(row.url);
+	const editora = normalizeForComparison(row.editora);
 	let score = 0;
 
-	if (title === normalizedQuery) score += 40;
-	if (title.includes(normalizedQuery)) score += 50;
-	if (url.includes(normalizedQuery)) score += 20;
+	if (title === normalizedTitleQuery) score += 60;
+	if (title.includes(normalizedTitleQuery)) score += 70;
+	if (url.includes(normalizedTitleQuery)) score += 20;
 	if (editora.includes("abril")) score += 25;
-	if (normalizedQuery.includes("hulk") && /incr[ií]vel\s+hulk/.test(title)) score += 40;
-	if (normalizedQuery.includes("hulk") && editora.includes("abril") && title.includes("hulk")) score += 120;
+
+	if (normalizedPublisherQuery) {
+		if (editora.includes(normalizedPublisherQuery)) score += 180;
+		else score -= 25;
+	}
+
+	if (normalizedTitleQuery.includes("hulk") && /incrivel\s+hulk/.test(title)) score += 40;
+	if (normalizedTitleQuery.includes("hulk") && editora.includes("abril") && title.includes("hulk")) score += 120;
 	score += Math.min(row.issuesCount, 240) / 6;
 
 	return score;
 }
 
 async function resolveCapasUrlFromKeyword(query: string): Promise<string | null> {
-	const normalizedQuery = query.trim().toLowerCase();
+	const normalizedQuery = query.trim();
 	if (!normalizedQuery) return null;
 
-	const aliasCapas = KEYWORD_CAPAS_ALIASES[normalizedQuery];
+	const { title, publisher } = parseTitlePublisherQuery(normalizedQuery);
+	const normalizedTitle = normalizeForComparison(title);
+	const normalizedPublisher = normalizeForComparison(publisher);
+	if (!normalizedTitle) return null;
+
+	const aliasCapas =
+		KEYWORD_CAPAS_ALIASES[normalizedTitle] || KEYWORD_CAPAS_ALIASES[normalizeForComparison(normalizedQuery)];
 	if (aliasCapas) return aliasCapas;
 
 	try {
-		const keywordUrl = `${BASE_URL}/titulos/${encodeURIComponent(normalizedQuery)}`;
-		const markdown = await fetchMirrorMarkdown(keywordUrl, 60000);
+		const keywordUrl = `${BASE_URL}/titulos/${encodeURIComponent(title)}`;
+		const markdown = await fetchMirrorMarkdown(keywordUrl, 18000);
 		const rows = parseTitleSearchRows(markdown);
 		if (!rows.length) return null;
 
 		const directMatches = rows.filter((row) => {
-			const title = row.title.toLowerCase();
-			const url = row.url.toLowerCase();
-			return title.includes(normalizedQuery) || url.includes(normalizedQuery);
+			const rowTitle = normalizeForComparison(row.title);
+			const rowUrl = normalizeForComparison(row.url);
+			const rowPublisher = normalizeForComparison(row.editora);
+
+			const titleMatch = rowTitle.includes(normalizedTitle) || rowUrl.includes(normalizedTitle);
+			if (!titleMatch) return false;
+			if (!normalizedPublisher) return true;
+			return rowPublisher.includes(normalizedPublisher);
 		});
 
 		const candidateRows = directMatches.length ? directMatches : rows;
 
 		const scored = candidateRows
-			.map((row) => ({ row, score: scoreTitleCandidate(row, normalizedQuery) }))
+			.map((row) => ({ row, score: scoreTitleCandidate(row, normalizedTitle, normalizedPublisher) }))
 			.filter((item) => item.score > 0)
 			.sort((a, b) => b.score - a.score);
 
@@ -297,8 +355,9 @@ async function resolveCapasUrlFromKeyword(query: string): Promise<string | null>
 			const richer = scored.find(
 				(item) =>
 					item.row.issuesCount >= 8 &&
-					(item.row.title.toLowerCase().includes(normalizedQuery) ||
-						item.row.url.toLowerCase().includes(normalizedQuery)),
+					(normalizeForComparison(item.row.title).includes(normalizedTitle) ||
+						normalizeForComparison(item.row.url).includes(normalizedTitle)) &&
+					(!normalizedPublisher || normalizeForComparison(item.row.editora).includes(normalizedPublisher)),
 			);
 			if (richer) selected = richer;
 		}
@@ -321,6 +380,253 @@ function parseItensRange(content: string) {
 	return { start, end, total };
 }
 
+function decodeBasicHtmlEntities(value: string) {
+	return (value || "")
+		.replace(/&#39;/g, "'")
+		.replace(/&quot;/g, '"')
+		.replace(/&amp;/g, "&");
+}
+
+function parseAspNetPagerTargets(content: string) {
+	const normalized = decodeBasicHtmlEntities(content);
+	const numeric = new Map<number, string>();
+	const numericRegex = /\[(\d+)\]\(javascript:__doPostBack\('([^']+)'\s*,\s*''\)\)/gi;
+	let numericMatch: RegExpExecArray | null;
+	while ((numericMatch = numericRegex.exec(normalized)) !== null) {
+		const page = Number.parseInt(numericMatch[1], 10);
+		const target = (numericMatch[2] || "").trim();
+		if (!Number.isFinite(page) || !target) continue;
+		if (!numeric.has(page)) numeric.set(page, target);
+	}
+
+	const allTargets = [...normalized.matchAll(/__doPostBack\('([^']+)'\s*,\s*''\)/gi)].map((m) => (m[1] || "").trim());
+	const next = allTargets.find((target) => /\$ctl02\$ctl00$/i.test(target)) || null;
+
+	return { numeric, next };
+}
+
+function parseHiddenInputValue(html: string, id: string) {
+	const escapedId = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	const byId = new RegExp(`<input[^>]*id=["']${escapedId}["'][^>]*value=["']([^"']*)["']`, "i");
+	const byName = new RegExp(`<input[^>]*name=["']${escapedId}["'][^>]*value=["']([^"']*)["']`, "i");
+	return html.match(byId)?.[1] || html.match(byName)?.[1] || "";
+}
+
+function parseAspNetHiddenFields(html: string) {
+	const viewState = parseHiddenInputValue(html, "__VIEWSTATE");
+	const eventValidation = parseHiddenInputValue(html, "__EVENTVALIDATION");
+	const viewStateGenerator = parseHiddenInputValue(html, "__VIEWSTATEGENERATOR");
+
+	if (!viewState || !eventValidation) return null;
+	return { viewState, eventValidation, viewStateGenerator };
+}
+
+function parseHiddenInputsForPostback(html: string) {
+	const $ = cheerio.load(html);
+	const hidden = new Map<string, string>();
+
+	$('input[type="hidden"][name]').each((_, el) => {
+		const $input = $(el);
+		const name = ($input.attr("name") || "").trim();
+		if (!name) return;
+		hidden.set(name, decodeBasicHtmlEntities(($input.attr("value") || "").toString()));
+	});
+
+	return hidden;
+}
+
+async function fetchHtmlWithoutMirror(url: string, retries = 2, timeoutMs = 30000): Promise<string | null> {
+	const makeRequest = async (targetUrl: string, init?: RequestInit, tms = timeoutMs) => {
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), tms);
+		try {
+			const res = await fetch(targetUrl, {
+				method: init?.method || "GET",
+				headers: {
+					Accept: "text/html,application/xhtml+xml",
+					"User-Agent":
+						"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+					Referer: BASE_URL,
+					...(init?.headers || {}),
+				},
+				body: init?.body,
+				signal: controller.signal,
+			});
+			if (!res.ok) return null;
+			return await res.text();
+		} finally {
+			clearTimeout(timeoutId);
+		}
+	};
+
+	for (let attempt = 0; attempt <= retries; attempt++) {
+		try {
+			const html = await makeRequest(url);
+			if (html) return html;
+		} catch {
+			if (attempt < retries) {
+				await new Promise((r) => setTimeout(r, Math.pow(2, attempt) * 500));
+			}
+		}
+	}
+
+	if (SCRAPER_API_KEY && SCRAPER_API_KEY.length) {
+		let proxy = `https://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(url)}&render=true&keep_headers=true`;
+		proxy += "&country_code=BR";
+		try {
+			return await makeRequest(proxy, undefined, Math.max(timeoutMs, 90000));
+		} catch {
+			return null;
+		}
+	}
+
+	return null;
+}
+
+async function postbackToCapasPage(capasUrl: string, currentHtml: string, eventTarget: string) {
+	if (!eventTarget) return null;
+
+	const hiddenInputs = parseHiddenInputsForPostback(currentHtml);
+	if (!hiddenInputs.size) return null;
+
+	const body = new URLSearchParams();
+	hiddenInputs.forEach((value, key) => {
+		body.set(key, value || "");
+	});
+	body.set("__EVENTTARGET", decodeBasicHtmlEntities(eventTarget));
+	body.set("__EVENTARGUMENT", "");
+	body.set("__LASTFOCUS", "");
+
+	try {
+		const res = await fetch(capasUrl, {
+			method: "POST",
+			headers: {
+				Accept: "text/html,application/xhtml+xml",
+				"Content-Type": "application/x-www-form-urlencoded",
+				"User-Agent":
+					"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+				Referer: capasUrl,
+				Origin: BASE_URL,
+			},
+			body: body.toString(),
+		});
+
+		if (res.ok) {
+			const html = await res.text();
+			if (html) return html;
+		}
+	} catch {
+		// fall through to proxy attempt
+	}
+
+	if (SCRAPER_API_KEY && SCRAPER_API_KEY.length) {
+		try {
+			let proxy = `https://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(capasUrl)}&render=true&keep_headers=true`;
+			proxy += "&country_code=BR";
+			const pres = await fetch(proxy, {
+				method: "POST",
+				headers: {
+					Accept: "text/html,application/xhtml+xml",
+					"Content-Type": "application/x-www-form-urlencoded",
+					"User-Agent":
+						"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+					Referer: capasUrl,
+				},
+				body: body.toString(),
+			});
+			if (pres.ok) return await pres.text();
+		} catch {
+			return null;
+		}
+	}
+
+	return null;
+}
+
+function parseGuiaHtmlResults(html: string, editionCode?: string) {
+	const $ = cheerio.load(html);
+	const seen = new Set<string>();
+	const results: Array<any> = [];
+	const normalizedEditionCode = (editionCode || "").toLowerCase();
+
+	$('a[href*="/capas/"], a[href*="/edicao/"]').each((_, el) => {
+		const $a = $(el);
+		let href = ($a.attr("href") || "").split("#")[0];
+		if (!href) return;
+		if (!href.startsWith("http")) href = new URL(href, BASE_URL).toString();
+		href = normalizeGuiaUrl(href);
+		if (!href || seen.has(href)) return;
+		if (!/guiadosquadrinhos\.com/i.test(href) || !/(?:\/capas\/|\/edicao\/)/i.test(href)) return;
+		if (normalizedEditionCode && !href.toLowerCase().includes(`/${normalizedEditionCode}/`)) return;
+
+		let title = normalizeText(($a.text() || "").trim());
+		if (!title) {
+			title = normalizeText(($a.attr("title") || "").trim());
+		}
+
+		const $img = $a.find("img").first();
+		let cover = "";
+		if ($img.length) {
+			cover = ($img.attr("data-src") || $img.attr("src") || "").trim();
+			if (cover && !cover.startsWith("http")) cover = new URL(cover, BASE_URL).toString();
+			cover = normalizeCoverUrl(cover);
+		}
+
+		const meta = extractIssueMetaFromTitle(title);
+		const parts = href.split("/").filter(Boolean);
+		const id = parts.length ? parts[parts.length - 1] : href;
+
+		seen.add(href);
+		results.push({
+			title,
+			url: href,
+			cover,
+			id,
+			editionNumber: meta.editionNumber,
+			releaseDate: meta.releaseDate,
+			provider: "guiadosquadrinhos",
+		});
+	});
+
+	return results;
+}
+
+async function resolveDirectCapasHtmlByPostbackPage(capasUrl: string, page: number) {
+	if (page < 1) return null;
+
+	let currentHtml = await fetchHtmlWithoutMirror(capasUrl, 2, 30000);
+	if (!currentHtml) return null;
+
+	if (page === 1) {
+		return { html: currentHtml, range: parseItensRange(currentHtml) };
+	}
+
+	let currentPage = 1;
+	for (let guard = 0; guard < 40 && currentPage < page; guard++) {
+		const { numeric, next } = parseAspNetPagerTargets(currentHtml);
+		const targetForNext = numeric.get(currentPage + 1) || next;
+		if (!targetForNext) return null;
+
+		const nextHtml = await postbackToCapasPage(capasUrl, currentHtml, targetForNext);
+		if (!nextHtml) return null;
+
+		currentHtml = nextHtml;
+		const nextRange = parseItensRange(nextHtml);
+		if (nextRange) {
+			const inferredPage = Math.max(
+				1,
+				Math.floor((nextRange.start - 1) / Math.max(1, nextRange.end - nextRange.start + 1)) + 1,
+			);
+			currentPage = Math.max(currentPage + 1, inferredPage);
+		} else {
+			currentPage += 1;
+		}
+	}
+
+	if (currentPage < page) return null;
+	return { html: currentHtml, range: parseItensRange(currentHtml) };
+}
+
 function getCapasPageCandidates(capasUrl: string, page: number) {
 	if (page <= 1) return [capasUrl];
 
@@ -338,7 +644,7 @@ async function resolveDirectCapasMarkdownPage(capasUrl: string, page: number) {
 	const expectedPage = Math.max(1, page);
 
 	for (const candidate of candidates) {
-		const markdown = await fetchMirrorMarkdown(candidate);
+		const markdown = await fetchMirrorMarkdown(candidate, expectedPage === 1 ? 18000 : 12000);
 		const range = parseItensRange(markdown);
 
 		if (expectedPage === 1) {
@@ -360,8 +666,11 @@ async function resolveDirectCapasMarkdownPage(capasUrl: string, page: number) {
 function parseGuiaMarkdownResults(markdown: string, query?: string, editionCode?: string) {
 	const results: Array<any> = [];
 	const seen = new Set<string>();
+	const byUrl = new Map<string, any>();
 	const normalizedQuery = (query || "").toLowerCase();
 	const normalizedEditionCode = (editionCode || "").toLowerCase();
+	const releaseDateRegex =
+		/(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+de\s+\d{4}/i;
 
 	const imageLinkRegex = /\[!\[([^\]]+)\]\(([^)]+)\)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
 	let imgMatch: RegExpExecArray | null;
@@ -374,43 +683,67 @@ function parseGuiaMarkdownResults(markdown: string, query?: string, editionCode?
 		if (normalizedEditionCode && !href.toLowerCase().includes(`/${normalizedEditionCode}/`)) continue;
 
 		const title = normalizeText(rawTitle.replace(/^Image\s*\d+\s*:\s*/i, "").trim());
+		const meta = extractIssueMetaFromTitle(title);
 		const haystack = `${title} ${href}`.toLowerCase();
 		if (normalizedQuery && !haystack.includes(normalizedQuery)) continue;
 
 		seen.add(href);
 		const parts = href.split("/").filter(Boolean);
 		const id = parts.length ? parts[parts.length - 1] : href;
-		results.push({
+		const item = {
 			title,
 			url: href,
 			cover,
 			id,
+			editionNumber: meta.editionNumber,
+			releaseDate: meta.releaseDate,
 			provider: "guiadosquadrinhos",
-		});
+		};
+		results.push(item);
+		byUrl.set(href, item);
 	}
 
 	const textLinkRegex = /\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
 	let txtMatch: RegExpExecArray | null;
 	while ((txtMatch = textLinkRegex.exec(markdown)) !== null) {
 		const title = normalizeText((txtMatch[1] || "").trim());
+		const meta = extractIssueMetaFromTitle(title);
 		const href = normalizeGuiaUrl(toAbsoluteGuiaUrl((txtMatch[2] || "").trim()));
-		if (!href || seen.has(href)) continue;
+		if (!href) continue;
 		if (!/guiadosquadrinhos\.com/i.test(href) || !/(?:\/capas\/|\/edicao\/)/i.test(href)) continue;
 		if (normalizedEditionCode && !href.toLowerCase().includes(`/${normalizedEditionCode}/`)) continue;
 
 		const haystack = `${title} ${href}`.toLowerCase();
 		if (normalizedQuery && !haystack.includes(normalizedQuery)) continue;
 
+		if (seen.has(href)) {
+			const existing = byUrl.get(href);
+			if (existing) {
+				const existingHasDate = releaseDateRegex.test(existing.title || "");
+				const incomingHasDate = releaseDateRegex.test(title);
+				if ((!existingHasDate && incomingHasDate) || title.length > (existing.title || "").length) {
+					existing.title = title;
+					existing.releaseDate = meta.releaseDate || existing.releaseDate || "";
+					existing.editionNumber = meta.editionNumber || existing.editionNumber || "";
+				}
+			}
+			continue;
+		}
+
 		seen.add(href);
 		const parts = href.split("/").filter(Boolean);
 		const id = parts.length ? parts[parts.length - 1] : href;
-		results.push({
+		const item = {
 			title,
 			url: href,
 			cover: "",
 			id,
+			editionNumber: meta.editionNumber,
+			releaseDate: meta.releaseDate,
 			provider: "guiadosquadrinhos",
-		});
+		};
+		results.push(item);
+		byUrl.set(href, item);
 	}
 
 	return results;
@@ -432,6 +765,31 @@ async function computeDirectHasMore(
 async function scrapeGuiaSearch(query?: string, page = 1) {
 	const directCapasUrl = getDirectCapasUrl(query);
 	if (directCapasUrl) {
+		if (page > 1) {
+			const postbackPage = await resolveDirectCapasHtmlByPostbackPage(directCapasUrl, page);
+			if (postbackPage) {
+				const editionCode = getEditionCodeFromCapasUrl(directCapasUrl);
+				const directResults = parseGuiaHtmlResults(postbackPage.html, editionCode);
+				const range = postbackPage.range;
+				const pageSize = range ? Math.max(1, range.end - range.start + 1) : directResults.length || 30;
+				const hasMore = range
+					? range.end < range.total
+					: /\$ctl02\$ctl00/i.test(postbackPage.html) || /__doPostBack/i.test(postbackPage.html);
+
+				return {
+					results: directResults,
+					pagination: {
+						current_page: page,
+						has_more: hasMore,
+						total_results: range?.total ?? 0,
+						page_size: pageSize,
+					},
+					success: true,
+					searched_url: directCapasUrl,
+				};
+			}
+		}
+
 		const resolvedPage = await resolveDirectCapasMarkdownPage(directCapasUrl, page);
 		if (!resolvedPage) {
 			return {
@@ -453,6 +811,7 @@ async function scrapeGuiaSearch(query?: string, page = 1) {
 				current_page: page,
 				has_more: hasMore,
 				total_results: range?.total ?? directResults.length,
+				page_size: range ? Math.max(1, range.end - range.start + 1) : directResults.length,
 			},
 			success: true,
 			searched_url: usedUrl,
@@ -462,6 +821,31 @@ async function scrapeGuiaSearch(query?: string, page = 1) {
 	if (query?.trim()) {
 		const keywordCapasUrl = await resolveCapasUrlFromKeyword(query);
 		if (keywordCapasUrl) {
+			if (page > 1) {
+				const postbackPage = await resolveDirectCapasHtmlByPostbackPage(keywordCapasUrl, page);
+				if (postbackPage) {
+					const editionCode = getEditionCodeFromCapasUrl(keywordCapasUrl);
+					const keywordResults = parseGuiaHtmlResults(postbackPage.html, editionCode);
+					const range = postbackPage.range;
+					const pageSize = range ? Math.max(1, range.end - range.start + 1) : keywordResults.length || 30;
+					const hasMore = range
+						? range.end < range.total
+						: /\$ctl02\$ctl00/i.test(postbackPage.html) || /__doPostBack/i.test(postbackPage.html);
+
+					return {
+						results: keywordResults,
+						pagination: {
+							current_page: page,
+							has_more: hasMore,
+							total_results: range?.total ?? 0,
+							page_size: pageSize,
+						},
+						success: true,
+						searched_url: keywordCapasUrl,
+					};
+				}
+			}
+
 			const resolvedPage = await resolveDirectCapasMarkdownPage(keywordCapasUrl, page);
 			if (!resolvedPage) {
 				return {
@@ -483,6 +867,7 @@ async function scrapeGuiaSearch(query?: string, page = 1) {
 					current_page: page,
 					has_more: hasMore,
 					total_results: range?.total ?? keywordResults.length,
+					page_size: range ? Math.max(1, range.end - range.start + 1) : keywordResults.length,
 				},
 				success: true,
 				searched_url: usedUrl,
@@ -667,7 +1052,7 @@ export async function GET(request: NextRequest) {
 			results = data.results || [];
 			hasMore = data.pagination?.has_more || false;
 			totalResults = data.pagination?.total_results || results.length;
-			pageSize = results.length;
+			pageSize = data.pagination?.page_size || results.length;
 		}
 
 		return NextResponse.json(results, {

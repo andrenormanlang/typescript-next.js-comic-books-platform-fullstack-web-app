@@ -21,6 +21,8 @@ type Result = {
 	url: string;
 	cover?: string;
 	id?: string;
+	editionNumber?: string;
+	releaseDate?: string;
 	provider?: string;
 };
 
@@ -29,43 +31,6 @@ function extractEditionMeta(rawTitle: string) {
 	const match = normalizedTitle.match(/n[°º]?\s*(\d+)\s*(.*)$/i);
 	if (!match) return { editionNumber: "", editionDate: normalizedTitle };
 	return { editionNumber: `#${match[1]}`, editionDate: (match[2] || "").trim() };
-}
-
-function toTitleCase(text: string) {
-	return text
-		.split(" ")
-		.filter(Boolean)
-		.map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-		.join(" ");
-}
-
-function extractSeriesNameFromUrl(url: string) {
-	try {
-		const parsed = new URL(url);
-		const segments = parsed.pathname.split("/").filter(Boolean);
-		if (!segments.length) return "";
-
-		let raw = "";
-		if (segments[0] === "capas" && segments[1]) {
-			raw = segments[1];
-		} else if (segments[0] === "edicao" && segments[1]) {
-			raw = segments[1].replace(/-n-\d+.*$/i, "");
-		}
-
-		if (!raw) return "";
-		const cleaned = decodeURIComponent(raw).replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
-		return toTitleCase(cleaned);
-	} catch {
-		return "";
-	}
-}
-
-function getDisplayHeadline(result: Result, editionNumber: string) {
-	const seriesName = extractSeriesNameFromUrl(result.url);
-	if (seriesName && editionNumber) return `${seriesName} ${editionNumber}`;
-	if (seriesName) return seriesName;
-	if (editionNumber) return editionNumber;
-	return "Edição";
 }
 
 const GUIA_HOSTNAMES = ["www.guiadosquadrinhos.com", "guiadosquadrinhos.com"];
@@ -182,7 +147,7 @@ export default function GuiaSearchPage() {
 	const effectivePageSize = pageSize || (results.length > 0 ? results.length : 30);
 	const computedTotalPages =
 		totalResults > 0 ? Math.ceil(totalResults / Math.max(1, effectivePageSize)) : hasMore ? page + 1 : page;
-	const totalPages = hasMore ? Math.max(page + 1, computedTotalPages) : page;
+	const totalPages = Math.max(page, computedTotalPages, hasMore ? page + 1 : 0);
 
 	const handlePageChange = async (nextPage: number) => {
 		if (!lastQuery || loading || nextPage === page || nextPage < 1) return;
@@ -193,12 +158,10 @@ export default function GuiaSearchPage() {
 	return (
 		<Container maxW="container.xl" py={6}>
 			<Box mb={6}>
-				<Text fontSize="2xl" fontWeight="bold" mb={1}>
+				{/* <Text fontSize="2xl" fontWeight="bold" mb={1}>
 					Guia dos Quadrinhos Search
-				</Text>
-				<Text color={subtleText}>
-					Search by keyword or paste a full `/capas/...` URL (example: Incrível Hulk / Abril).
-				</Text>
+				</Text> */}
+				<Text color={subtleText}>Search by (example: Incrível Hulk / Abril).</Text>
 			</Box>
 
 			<Box as="form" onSubmit={handleSearch} mb={6}>
@@ -241,7 +204,8 @@ export default function GuiaSearchPage() {
 			<SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
 				{results.map((r) => {
 					const { editionNumber, editionDate } = extractEditionMeta(r.title);
-					const headline = getDisplayHeadline(r, editionNumber);
+					const displayIssueNumber = r.editionNumber || editionNumber || "Edição";
+					const displayReleaseDate = r.releaseDate || editionDate || "Data não informada";
 					return (
 						<Box
 							key={r.id || r.url}
@@ -264,10 +228,10 @@ export default function GuiaSearchPage() {
 
 							<Box minW={0} flex={1}>
 								<Text fontWeight="bold" fontSize="lg" noOfLines={1}>
-									{headline}
+									{displayIssueNumber}
 								</Text>
 								<Text color={subtleText} mb={2} noOfLines={2}>
-									{editionDate || "Data não informada"}
+									{displayReleaseDate}
 								</Text>
 								{r.provider && (
 									<Text fontSize="xs" color={subtleText} mt={2}>
