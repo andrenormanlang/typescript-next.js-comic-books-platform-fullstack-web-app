@@ -228,10 +228,18 @@ function extractIssueMetaFromTitle(rawTitle: string) {
 	const releaseDateMatch = normalized.match(
 		/(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+de\s+\d{4}/i,
 	);
+	const releaseMonthOnlyMatch = normalized.match(
+		/-?\s*(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b/i,
+	);
+	const releaseDate = releaseDateMatch
+		? releaseDateMatch[0].toLowerCase()
+		: releaseMonthOnlyMatch
+			? releaseMonthOnlyMatch[1].toLowerCase()
+			: "";
 
 	return {
 		editionNumber: match ? `#${match[1]}` : "",
-		releaseDate: releaseDateMatch ? releaseDateMatch[0].toLowerCase() : "",
+		releaseDate,
 	};
 }
 
@@ -546,8 +554,11 @@ async function postbackToCapasPage(capasUrl: string, currentHtml: string, eventT
 function parseGuiaHtmlResults(html: string, editionCode?: string) {
 	const $ = cheerio.load(html);
 	const seen = new Set<string>();
+	const byUrl = new Map<string, any>();
 	const results: Array<any> = [];
 	const normalizedEditionCode = (editionCode || "").toLowerCase();
+	const fullDateRegex =
+		/(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+de\s+\d{4}/i;
 
 	$('a[href*="/capas/"], a[href*="/edicao/"]').each((_, el) => {
 		const $a = $(el);
@@ -559,12 +570,22 @@ function parseGuiaHtmlResults(html: string, editionCode?: string) {
 		if (!/guiadosquadrinhos\.com/i.test(href) || !/(?:\/capas\/|\/edicao\/)/i.test(href)) return;
 		if (normalizedEditionCode && !href.toLowerCase().includes(`/${normalizedEditionCode}/`)) return;
 
-		let title = normalizeText(($a.text() || "").trim());
-		if (!title) {
-			title = normalizeText(($a.attr("title") || "").trim());
+		const $img = $a.find("img").first();
+		let title = "";
+		if ($img.length) {
+			title =
+				normalizeText(($img.attr("alt") || "").trim()) ||
+				normalizeText(($img.attr("title") || "").trim()) ||
+				normalizeText(($a.attr("title") || "").trim()) ||
+				normalizeText(($a.text() || "").trim());
+		} else {
+			title = normalizeText(($a.attr("title") || "").trim()) || normalizeText(($a.text() || "").trim());
 		}
 
-		const $img = $a.find("img").first();
+		const anchorText = normalizeText(($a.text() || "").replace(/\s+/g, " ").trim());
+		const titleForMeta = anchorText || title;
+		const listItemText = normalizeText(($a.closest("li").text() || "").replace(/\s+/g, " ").trim());
+
 		let cover = "";
 		if ($img.length) {
 			cover = ($img.attr("data-src") || $img.attr("src") || "").trim();
@@ -572,20 +593,53 @@ function parseGuiaHtmlResults(html: string, editionCode?: string) {
 			cover = normalizeCoverUrl(cover);
 		}
 
-		const meta = extractIssueMetaFromTitle(title);
+		const listMeta = extractIssueMetaFromTitle(listItemText);
+		const titleMeta = extractIssueMetaFromTitle(titleForMeta);
+		const meta = {
+			editionNumber: listMeta.editionNumber || titleMeta.editionNumber,
+			releaseDate: listMeta.releaseDate || titleMeta.releaseDate,
+		};
 		const parts = href.split("/").filter(Boolean);
 		const id = parts.length ? parts[parts.length - 1] : href;
+		const parsedTitle = title || anchorText || listItemText;
+
+		if (seen.has(href)) {
+			const existing = byUrl.get(href);
+			if (existing) {
+				const existingHasFullDate = fullDateRegex.test(existing.releaseDate || "");
+				const incomingHasFullDate = fullDateRegex.test(meta.releaseDate || "");
+
+				if ((!existingHasFullDate && incomingHasFullDate) || (meta.releaseDate || "").length > (existing.releaseDate || "").length) {
+					existing.releaseDate = meta.releaseDate || existing.releaseDate || "";
+				}
+
+				if ((meta.editionNumber || "").length > (existing.editionNumber || "").length) {
+					existing.editionNumber = meta.editionNumber || existing.editionNumber || "";
+				}
+
+				if (parsedTitle && parsedTitle.length > (existing.title || "").length) {
+					existing.title = parsedTitle;
+				}
+
+				if (!existing.cover && cover) {
+					existing.cover = cover;
+				}
+			}
+			return;
+		}
 
 		seen.add(href);
-		results.push({
-			title,
+		const item = {
+			title: parsedTitle,
 			url: href,
 			cover,
 			id,
 			editionNumber: meta.editionNumber,
 			releaseDate: meta.releaseDate,
 			provider: "guiadosquadrinhos",
-		});
+		};
+		results.push(item);
+		byUrl.set(href, item);
 	});
 
 	return results;
@@ -765,17 +819,17 @@ async function computeDirectHasMore(
 async function scrapeGuiaSearch(query?: string, page = 1) {
 	const directCapasUrl = getDirectCapasUrl(query);
 	if (directCapasUrl) {
-		if (page > 1) {
-			const postbackPage = await resolveDirectCapasHtmlByPostbackPage(directCapasUrl, page);
-			if (postbackPage) {
-				const editionCode = getEditionCodeFromCapasUrl(directCapasUrl);
-				const directResults = parseGuiaHtmlResults(postbackPage.html, editionCode);
-				const range = postbackPage.range;
-				const pageSize = range ? Math.max(1, range.end - range.start + 1) : directResults.length || 30;
-				const hasMore = range
-					? range.end < range.total
-					: /\$ctl02\$ctl00/i.test(postbackPage.html) || /__doPostBack/i.test(postbackPage.html);
+		const postbackPage = await resolveDirectCapasHtmlByPostbackPage(directCapasUrl, page);
+		if (postbackPage) {
+			const editionCode = getEditionCodeFromCapasUrl(directCapasUrl);
+			const directResults = parseGuiaHtmlResults(postbackPage.html, editionCode);
+			const range = postbackPage.range;
+			const pageSize = range ? Math.max(1, range.end - range.start + 1) : directResults.length || 30;
+			const hasMore = range
+				? range.end < range.total
+				: /\$ctl02\$ctl00/i.test(postbackPage.html) || /__doPostBack/i.test(postbackPage.html);
 
+			if (directResults.length > 0) {
 				return {
 					results: directResults,
 					pagination: {
@@ -821,17 +875,17 @@ async function scrapeGuiaSearch(query?: string, page = 1) {
 	if (query?.trim()) {
 		const keywordCapasUrl = await resolveCapasUrlFromKeyword(query);
 		if (keywordCapasUrl) {
-			if (page > 1) {
-				const postbackPage = await resolveDirectCapasHtmlByPostbackPage(keywordCapasUrl, page);
-				if (postbackPage) {
-					const editionCode = getEditionCodeFromCapasUrl(keywordCapasUrl);
-					const keywordResults = parseGuiaHtmlResults(postbackPage.html, editionCode);
-					const range = postbackPage.range;
-					const pageSize = range ? Math.max(1, range.end - range.start + 1) : keywordResults.length || 30;
-					const hasMore = range
-						? range.end < range.total
-						: /\$ctl02\$ctl00/i.test(postbackPage.html) || /__doPostBack/i.test(postbackPage.html);
+			const postbackPage = await resolveDirectCapasHtmlByPostbackPage(keywordCapasUrl, page);
+			if (postbackPage) {
+				const editionCode = getEditionCodeFromCapasUrl(keywordCapasUrl);
+				const keywordResults = parseGuiaHtmlResults(postbackPage.html, editionCode);
+				const range = postbackPage.range;
+				const pageSize = range ? Math.max(1, range.end - range.start + 1) : keywordResults.length || 30;
+				const hasMore = range
+					? range.end < range.total
+					: /\$ctl02\$ctl00/i.test(postbackPage.html) || /__doPostBack/i.test(postbackPage.html);
 
+				if (keywordResults.length > 0) {
 					return {
 						results: keywordResults,
 						pagination: {

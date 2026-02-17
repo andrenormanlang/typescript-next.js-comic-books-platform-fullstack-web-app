@@ -99,7 +99,9 @@ export default function GuiaSearchPage() {
 		setLoading(true);
 		setError(null);
 		try {
-			const res = await fetch(`/api/guia-search?query=${encodeURIComponent(queryToSearch)}&page=${pageToFetch}`);
+			const res = await fetch(`/api/guia-search?query=${encodeURIComponent(queryToSearch)}&page=${pageToFetch}`, {
+				cache: "no-store",
+			});
 
 			if (!res.ok) {
 				let message = `HTTP ${res.status}`;
