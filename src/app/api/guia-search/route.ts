@@ -609,7 +609,10 @@ function parseGuiaHtmlResults(html: string, editionCode?: string) {
 				const existingHasFullDate = fullDateRegex.test(existing.releaseDate || "");
 				const incomingHasFullDate = fullDateRegex.test(meta.releaseDate || "");
 
-				if ((!existingHasFullDate && incomingHasFullDate) || (meta.releaseDate || "").length > (existing.releaseDate || "").length) {
+				if (
+					(!existingHasFullDate && incomingHasFullDate) ||
+					(meta.releaseDate || "").length > (existing.releaseDate || "").length
+				) {
 					existing.releaseDate = meta.releaseDate || existing.releaseDate || "";
 				}
 

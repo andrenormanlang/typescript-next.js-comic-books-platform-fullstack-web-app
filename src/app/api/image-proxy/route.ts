@@ -195,6 +195,24 @@ export async function GET(request: NextRequest) {
 		console.warn("[image-proxy] Jina failed:", (err as Error).message);
 	}
 
+	// ─── Strategy 4: weserv relay (good for anti-hotlink placeholders) ──────
+	try {
+		const relayUrl = `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl.replace(/^https?:\/\//i, ""))}`;
+		const res = await timedFetch(relayUrl, 12000, {
+			Accept: "image/*,*/*;q=0.8",
+			"User-Agent":
+				"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+		});
+		if (res.ok) {
+			const imageResponse = await buildImageResponse(res);
+			if (imageResponse) return imageResponse;
+			console.warn(`[image-proxy] weserv returned non-image payload for ${relayUrl}`);
+		}
+		console.warn(`[image-proxy] weserv: ${res.status} for ${relayUrl}`);
+	} catch (err) {
+		console.warn("[image-proxy] weserv failed:", (err as Error).message);
+	}
+
 	// ─── All strategies exhausted → 404 ───────────────────────────────────────
 	// Frontend onError will show placeholder immediately — no browser spinners.
 	return new NextResponse("Image unavailable", {
