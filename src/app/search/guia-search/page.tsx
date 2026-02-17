@@ -27,18 +27,89 @@ type Result = {
 function extractEditionMeta(rawTitle: string) {
 	const normalizedTitle = (rawTitle || "").replace(/Â°/g, "°").trim();
 	const match = normalizedTitle.match(/n[°º]?\s*(\d+)\s*(.*)$/i);
+	if (!match) return { editionNumber: "", editionDate: normalizedTitle };
+	return { editionNumber: `#${match[1]}`, editionDate: (match[2] || "").trim() };
+}
 
-	if (!match) {
-		return {
-			editionNumber: "",
-			editionDate: normalizedTitle,
-		};
+function toTitleCase(text: string) {
+	return text
+		.split(" ")
+		.filter(Boolean)
+		.map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+		.join(" ");
+}
+
+function extractSeriesNameFromUrl(url: string) {
+	try {
+		const parsed = new URL(url);
+		const segments = parsed.pathname.split("/").filter(Boolean);
+		if (!segments.length) return "";
+
+		let raw = "";
+		if (segments[0] === "capas" && segments[1]) {
+			raw = segments[1];
+		} else if (segments[0] === "edicao" && segments[1]) {
+			raw = segments[1].replace(/-n-\d+.*$/i, "");
+		}
+
+		if (!raw) return "";
+		const cleaned = decodeURIComponent(raw).replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
+		return toTitleCase(cleaned);
+	} catch {
+		return "";
+	}
+}
+
+function getDisplayHeadline(result: Result, editionNumber: string) {
+	const seriesName = extractSeriesNameFromUrl(result.url);
+	if (seriesName && editionNumber) return `${seriesName} ${editionNumber}`;
+	if (seriesName) return seriesName;
+	if (editionNumber) return editionNumber;
+	return "Edição";
+}
+
+const GUIA_HOSTNAMES = ["www.guiadosquadrinhos.com", "guiadosquadrinhos.com"];
+
+/**
+ * The site's image server only speaks HTTP — normalize before proxying.
+ */
+function toHttpCoverUrl(url: string): string {
+	return url.replace(/^https:\/\//i, "http://");
+}
+
+function proxiedCoverUrl(cover?: string): string {
+	if (!cover) return "";
+	try {
+		const { hostname } = new URL(cover);
+		if (GUIA_HOSTNAMES.includes(hostname.toLowerCase())) {
+			// Always send http:// to proxy — proxy also normalizes, but belt-and-suspenders
+			return `/api/image-proxy?url=${encodeURIComponent(toHttpCoverUrl(cover))}`;
+		}
+	} catch {
+		/* not a valid URL */
+	}
+	return cover;
+}
+
+/**
+ * Cover thumbnail.
+ * Loads via /api/image-proxy which tries ScraperAPI → direct → allorigins → Jina.
+ * If all fail the proxy returns 404 and onError shows the placeholder immediately
+ * — no browser connection reset spinning.
+ */
+function CoverImage({ cover, title, subtleText }: { cover?: string; title: string; subtleText: string }) {
+	const proxied = useMemo(() => proxiedCoverUrl(cover), [cover]);
+	const [failed, setFailed] = useState(false);
+
+	if (!proxied || failed) {
+		return (
+			<Center h="100%" color={subtleText} fontSize="xs">
+				No image
+			</Center>
+		);
 	}
 
-	return {
-		editionNumber: `#${match[1]}`,
-		editionDate: (match[2] || "").trim(),
-	};
+	return <Image src={proxied} alt={title} w="100%" h="100%" objectFit="cover" onError={() => setFailed(true)} />;
 }
 
 export default function GuiaSearchPage() {
@@ -170,6 +241,7 @@ export default function GuiaSearchPage() {
 			<SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
 				{results.map((r) => {
 					const { editionNumber, editionDate } = extractEditionMeta(r.title);
+					const headline = getDisplayHeadline(r, editionNumber);
 					return (
 						<Box
 							key={r.id || r.url}
@@ -187,24 +259,15 @@ export default function GuiaSearchPage() {
 							gap={3}
 						>
 							<Box w="92px" h="132px" bg={thumbBg} flexShrink={0} rounded="md" overflow="hidden">
-								{r.cover ? (
-									<Image src={r.cover} alt={r.title} w="100%" h="100%" objectFit="cover" />
-								) : (
-									<Center h="100%" color={subtleText} fontSize="xs">
-										No image
-									</Center>
-								)}
+								<CoverImage cover={r.cover} title={r.title} subtleText={subtleText} />
 							</Box>
 
 							<Box minW={0} flex={1}>
 								<Text fontWeight="bold" fontSize="lg" noOfLines={1}>
-									{editionNumber || "Edição"}
+									{headline}
 								</Text>
 								<Text color={subtleText} mb={2} noOfLines={2}>
 									{editionDate || "Data não informada"}
-								</Text>
-								<Text fontSize="xs" color={subtleText} noOfLines={2}>
-									{r.url}
 								</Text>
 								{r.provider && (
 									<Text fontSize="xs" color={subtleText} mt={2}>

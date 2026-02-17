@@ -16,8 +16,6 @@ const KEYWORD_CAPAS_ALIASES: Record<string, string> = {
  * Fetch HTML with optional ScraperAPI proxy. Includes simple retry + timeout.
  */
 async function fetchHtml(url: string, retries = 3, timeoutMs = 30000): Promise<string> {
-	// Try a direct fetch first. If it fails (network error, reset, 4xx/5xx),
-	// and a SCRAPER_API_KEY is available, fall back to ScraperAPI as a proxy.
 	const makeRequest = async (targetUrl: string, tms: number) => {
 		const controller = new AbortController();
 		const timeoutId = setTimeout(() => controller.abort(), tms);
@@ -43,26 +41,21 @@ async function fetchHtml(url: string, retries = 3, timeoutMs = 30000): Promise<s
 
 	for (let attempt = 0; attempt <= retries; attempt++) {
 		try {
-			// Prefer direct fetch first
 			const res = await makeRequest(url, timeoutMs);
 			if (res.ok) return await res.text();
 
-			// If non-OK and we have a key, try proxying as next step below.
 			const txt = await res.text().catch(() => "");
 			lastErr = new Error(`Direct fetch failed ${res.status}: ${txt}`);
 
-			// Retry on 429 with backoff
 			if (res.status === 429 && attempt < retries) {
 				const wait = Math.pow(2, attempt) * 1000;
 				await new Promise((r) => setTimeout(r, wait));
 				continue;
 			}
 
-			// Otherwise break to try scraper proxy fallback (if available)
 			break;
 		} catch (err) {
 			lastErr = err;
-			// If aborted / network error, try again a few times before proxying
 			if (
 				(err as any).name === "AbortError" ||
 				(err as any).code === "ECONNRESET" ||
@@ -74,17 +67,14 @@ async function fetchHtml(url: string, retries = 3, timeoutMs = 30000): Promise<s
 					continue;
 				}
 			} else {
-				// other errors: stop direct retries and attempt proxy if available
 				break;
 			}
 		}
 	}
 
-	// Fallback to ScraperAPI proxy if configured
 	let proxyErr: unknown = null;
 	if (SCRAPER_API_KEY && SCRAPER_API_KEY.length) {
 		let proxy = `https://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(url)}&render=true&keep_headers=true`;
-		// Optionally pin geo to Brazil which sometimes helps site responses
 		proxy += "&country_code=BR";
 
 		try {
@@ -97,7 +87,6 @@ async function fetchHtml(url: string, retries = 3, timeoutMs = 30000): Promise<s
 		}
 	}
 
-	// Final fallback: public mirror that can bypass some anti-bot protections
 	try {
 		const mirrorUrl = `https://r.jina.ai/http://${url.replace(/^https?:\/\//, "")}`;
 		const mirrorController = new AbortController();
@@ -175,14 +164,45 @@ function getEditionCodeFromCapasUrl(capasUrl: string) {
 	return match?.[1]?.toLowerCase() || "";
 }
 
+/**
+ * Normalize a guiadosquadrinhos *page* URL — always http://.
+ */
 function normalizeGuiaUrl(rawUrl: string) {
 	const value = (rawUrl || "").trim();
 	if (!value) return "";
 
 	return value
 		.replace(/^http:\/\/wwww\./i, "http://www.")
-		.replace(/^https:\/\/wwww\./i, "https://www.")
-		.replace(/^http:\/\//i, "https://")
+		.replace(/^https:\/\/wwww\./i, "http://www.")
+		.replace(/^https:\/\//i, "http://")
+		.replace(/([^:]\/)\/+/g, "$1")
+		.trim();
+}
+
+function toAbsoluteGuiaUrl(rawUrl: string): string {
+	const value = (rawUrl || "").trim();
+	if (!value) return "";
+
+	if (/^https?:\/\//i.test(value)) return value;
+	if (value.startsWith("//")) return `http:${value}`;
+	if (value.startsWith("/")) return `${BASE_URL}${value}`;
+	if (/^www\./i.test(value)) return `http://${value}`;
+	return value;
+}
+
+/**
+ * Normalize a guiadosquadrinhos *image/cover* URL — always http://.
+ * The site's image server (capasthumbs, capastemp_thumbs) only listens on
+ * port 80 and drops https connections with ERR_CONNECTION_RESET.
+ */
+function normalizeCoverUrl(rawUrl: string) {
+	const value = (rawUrl || "").trim();
+	if (!value) return "";
+
+	return value
+		.replace(/^https:\/\/wwww\./i, "http://www.")
+		.replace(/^http:\/\/wwww\./i, "http://www.")
+		.replace(/^https:\/\//i, "http://")
 		.replace(/([^:]\/)\/+/g, "$1")
 		.trim();
 }
@@ -343,14 +363,14 @@ function parseGuiaMarkdownResults(markdown: string, query?: string, editionCode?
 	const normalizedQuery = (query || "").toLowerCase();
 	const normalizedEditionCode = (editionCode || "").toLowerCase();
 
-	const imageLinkRegex =
-		/\[!\[([^\]]+)\]\((https?:\/\/[^)]+)\)\]\((https?:\/\/www\.guiadosquadrinhos\.com\/(?:capas|edicao)\/[^)\s]+)(?:\s+"[^"]*")?\)/g;
+	const imageLinkRegex = /\[!\[([^\]]+)\]\(([^)]+)\)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
 	let imgMatch: RegExpExecArray | null;
 	while ((imgMatch = imageLinkRegex.exec(markdown)) !== null) {
 		const rawTitle = normalizeText((imgMatch[1] || "").trim());
-		const cover = normalizeGuiaUrl((imgMatch[2] || "").trim());
-		const href = normalizeGuiaUrl((imgMatch[3] || "").trim());
+		const cover = normalizeCoverUrl(toAbsoluteGuiaUrl((imgMatch[2] || "").trim()));
+		const href = normalizeGuiaUrl(toAbsoluteGuiaUrl((imgMatch[3] || "").trim()));
 		if (!href || seen.has(href)) continue;
+		if (!/guiadosquadrinhos\.com/i.test(href) || !/(?:\/capas\/|\/edicao\/)/i.test(href)) continue;
 		if (normalizedEditionCode && !href.toLowerCase().includes(`/${normalizedEditionCode}/`)) continue;
 
 		const title = normalizeText(rawTitle.replace(/^Image\s*\d+\s*:\s*/i, "").trim());
@@ -369,13 +389,13 @@ function parseGuiaMarkdownResults(markdown: string, query?: string, editionCode?
 		});
 	}
 
-	const textLinkRegex =
-		/\[([^\]]+)\]\((https?:\/\/www\.guiadosquadrinhos\.com\/(?:capas|edicao)\/[^)\s]+)(?:\s+"[^"]*")?\)/g;
+	const textLinkRegex = /\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
 	let txtMatch: RegExpExecArray | null;
 	while ((txtMatch = textLinkRegex.exec(markdown)) !== null) {
 		const title = normalizeText((txtMatch[1] || "").trim());
-		const href = normalizeGuiaUrl((txtMatch[2] || "").trim());
+		const href = normalizeGuiaUrl(toAbsoluteGuiaUrl((txtMatch[2] || "").trim()));
 		if (!href || seen.has(href)) continue;
+		if (!/guiadosquadrinhos\.com/i.test(href) || !/(?:\/capas\/|\/edicao\/)/i.test(href)) continue;
 		if (normalizedEditionCode && !href.toLowerCase().includes(`/${normalizedEditionCode}/`)) continue;
 
 		const haystack = `${title} ${href}`.toLowerCase();
@@ -409,12 +429,6 @@ async function computeDirectHasMore(
 	return !!nextPage;
 }
 
-/**
- * Parse Guia dos Quadrinhos search/listing page.
- * Strategy:
- *  - Try WordPress-style search at /?s=term and paginated /page/N/?s=term
- *  - Collect anchors that include '/capas/' and extract title, href and image (if present)
- */
 async function scrapeGuiaSearch(query?: string, page = 1) {
 	const directCapasUrl = getDirectCapasUrl(query);
 	if (directCapasUrl) {
@@ -422,11 +436,7 @@ async function scrapeGuiaSearch(query?: string, page = 1) {
 		if (!resolvedPage) {
 			return {
 				results: [],
-				pagination: {
-					current_page: page,
-					has_more: false,
-					total_results: 0,
-				},
+				pagination: { current_page: page, has_more: false, total_results: 0 },
 				success: true,
 				searched_url: directCapasUrl,
 			};
@@ -456,11 +466,7 @@ async function scrapeGuiaSearch(query?: string, page = 1) {
 			if (!resolvedPage) {
 				return {
 					results: [],
-					pagination: {
-						current_page: page,
-						has_more: false,
-						total_results: 0,
-					},
+					pagination: { current_page: page, has_more: false, total_results: 0 },
 					success: true,
 					searched_url: keywordCapasUrl,
 				};
@@ -494,52 +500,39 @@ async function scrapeGuiaSearch(query?: string, page = 1) {
 	const seen = new Set<string>();
 	const results: Array<any> = [];
 
-	// Find anchors that point to capas (covers) or edicao entries
 	$('a[href*="/capas/"], a[href*="/edicao/"]').each((_, el) => {
 		const $a = $(el);
 		let href = $a.attr("href") || "";
 		href = href.split("#")[0];
-		if (!href.startsWith("http")) {
-			href = new URL(href, BASE_URL).toString();
-		}
-
+		if (!href.startsWith("http")) href = new URL(href, BASE_URL).toString();
 		if (seen.has(href)) return;
 		seen.add(href);
 
-		// Title: prefer image alt, then anchor text, then title attribute
 		let title = "";
 		const $img = $a.find("img").first();
 		if ($img.length) title = ($img.attr("alt") || "").trim();
 		if (!title) title = $a.text().trim();
 		if (!title) title = $a.attr("title") || "";
 
-		// Cover: look for img src (data-src fallback)
 		let cover = "";
 		if ($img.length) {
 			cover = ($img.attr("data-src") || $img.attr("src") || "").trim();
 			if (cover && !cover.startsWith("http")) cover = new URL(cover, BASE_URL).toString();
+			cover = normalizeCoverUrl(cover);
 		} else {
-			// Also try to find nearby img inside the parent element
 			const $parentImg = $a.parent().find("img").first();
 			if ($parentImg.length) {
 				cover = ($parentImg.attr("data-src") || $parentImg.attr("src") || "").trim();
 				if (cover && !cover.startsWith("http")) cover = new URL(cover, BASE_URL).toString();
+				cover = normalizeCoverUrl(cover);
 			}
 		}
 
 		const parts = href.split("/").filter(Boolean);
 		const id = parts.length ? parts[parts.length - 1] : href;
-
-		results.push({
-			title: title || "",
-			url: href,
-			cover,
-			id,
-			provider: "guiadosquadrinhos",
-		});
+		results.push({ title: title || "", url: href, cover, id, provider: "guiadosquadrinhos" });
 	});
 
-	// Fallback: if no /capas/ anchors found, try article or listing items
 	if (results.length === 0) {
 		$("article, .post, .entry").each((_, article) => {
 			const $article = $(article);
@@ -559,29 +552,23 @@ async function scrapeGuiaSearch(query?: string, page = 1) {
 				"";
 			let cover = $article.find("img").first().attr("src") || "";
 			if (cover && !cover.startsWith("http")) cover = new URL(cover, BASE_URL).toString();
+			cover = normalizeCoverUrl(cover);
 
 			const parts = href.split("/").filter(Boolean);
 			const id = parts.length ? parts[parts.length - 1] : href;
-
 			results.push({ title, url: href, cover, id, provider: "guiadosquadrinhos" });
 		});
 	}
 
-	// Fallback for markdown mirror responses (no HTML anchors available)
 	if (results.length === 0 && html.includes("Markdown Content:")) {
 		results.push(...parseGuiaMarkdownResults(html, query));
 	}
 
-	// Pagination heuristics
 	const hasMore = $(".nav-links .next, .pagination .next").length > 0 || $('a[rel="next"]').length > 0;
 
 	return {
 		results,
-		pagination: {
-			current_page: page,
-			has_more: hasMore,
-			total_results: results.length,
-		},
+		pagination: { current_page: page, has_more: hasMore, total_results: results.length },
 		success: true,
 		searched_url: url,
 	};
@@ -607,17 +594,13 @@ export async function GET(request: NextRequest) {
 			const fixturePath = path.join(process.cwd(), "src", "app", "api", "guia-search", "fixtures", "hulk.html");
 			const html = await fs.readFile(fixturePath, "utf8");
 			const $ = cheerio.load(html);
-
 			const seen = new Set<string>();
 
 			$('a[href*="/capas/"], a[href*="/edicao/"]').each((_, el) => {
 				const $a = $(el);
 				let href = $a.attr("href") || "";
 				href = href.split("#")[0];
-				if (!href.startsWith("http")) {
-					href = new URL(href, BASE_URL).toString();
-				}
-
+				if (!href.startsWith("http")) href = new URL(href, BASE_URL).toString();
 				if (seen.has(href)) return;
 				seen.add(href);
 
@@ -631,24 +614,19 @@ export async function GET(request: NextRequest) {
 				if ($img.length) {
 					cover = ($img.attr("data-src") || $img.attr("src") || "").trim();
 					if (cover && !cover.startsWith("http")) cover = new URL(cover, BASE_URL).toString();
+					cover = normalizeCoverUrl(cover);
 				} else {
 					const $parentImg = $a.parent().find("img").first();
 					if ($parentImg.length) {
 						cover = ($parentImg.attr("data-src") || $parentImg.attr("src") || "").trim();
 						if (cover && !cover.startsWith("http")) cover = new URL(cover, BASE_URL).toString();
+						cover = normalizeCoverUrl(cover);
 					}
 				}
 
 				const parts = href.split("/").filter(Boolean);
 				const id = parts.length ? parts[parts.length - 1] : href;
-
-				results.push({
-					title: title || "",
-					url: href,
-					cover,
-					id,
-					provider: "guiadosquadrinhos",
-				});
+				results.push({ title: title || "", url: href, cover, id, provider: "guiadosquadrinhos" });
 			});
 
 			if (results.length === 0) {
@@ -670,10 +648,10 @@ export async function GET(request: NextRequest) {
 						"";
 					let cover = $article.find("img").first().attr("src") || "";
 					if (cover && !cover.startsWith("http")) cover = new URL(cover, BASE_URL).toString();
+					cover = normalizeCoverUrl(cover);
 
 					const parts = href.split("/").filter(Boolean);
 					const id = parts.length ? parts[parts.length - 1] : href;
-
 					results.push({ title, url: href, cover, id, provider: "guiadosquadrinhos" });
 				});
 			}
