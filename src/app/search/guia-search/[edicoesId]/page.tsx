@@ -255,7 +255,8 @@ export default function GuiaEditionPage() {
 									)}
 									{story.publicadaPrimeiraVez && (
 										<Text color={subtleText}>
-											<strong>Publicada pela primeira vez em:</strong> {story.publicadaPrimeiraVez}
+											<strong>Publicada pela primeira vez em:</strong>{" "}
+											{story.publicadaPrimeiraVez}
 										</Text>
 									)}
 									{story.description ? (

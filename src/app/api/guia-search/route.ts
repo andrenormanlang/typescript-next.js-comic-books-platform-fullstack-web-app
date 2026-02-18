@@ -932,7 +932,13 @@ function isEdicaoUrl(url: string) {
 }
 
 function cleanMarkdownInline(text: string) {
-	return normalizeText((text || "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/\*\*/g, "").replace(/\s+/g, " ").trim());
+	return normalizeText(
+		(text || "")
+			.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+			.replace(/\*\*/g, "")
+			.replace(/\s+/g, " ")
+			.trim(),
+	);
 }
 
 function parseEditionStoriesFromMarkdown(markdown: string) {
@@ -977,7 +983,9 @@ function parseEditionStoriesFromMarkdown(markdown: string) {
 			blockBody.match(/Publicada pela primeira vez em\s*([^\n]+)/i)?.[1] || "",
 		);
 
-		let description = cleanMarkdownInline(blockBody.match(/Publicada pela primeira vez[^\n]*\n\n([^\n]{20,})/i)?.[1] || "");
+		let description = cleanMarkdownInline(
+			blockBody.match(/Publicada pela primeira vez[^\n]*\n\n([^\n]{20,})/i)?.[1] || "",
+		);
 		if (!description) {
 			description = cleanMarkdownInline(blockBody.match(/\n\n([^\n]{20,})\n\nT[ií]tulo original:/i)?.[1] || "");
 		}
