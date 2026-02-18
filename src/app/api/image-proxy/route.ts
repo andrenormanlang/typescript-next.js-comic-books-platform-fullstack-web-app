@@ -77,19 +77,21 @@ function isSvgPayload(buf: Uint8Array): boolean {
 }
 
 function isSinglePixelGif(buf: Uint8Array): boolean {
-	if (buf.byteLength !== 43) return false;
-	return (
+	if (buf.byteLength < 10) return false;
+	const isGifHeader =
 		buf[0] === 0x47 &&
 		buf[1] === 0x49 &&
 		buf[2] === 0x46 &&
 		buf[3] === 0x38 &&
-		buf[4] === 0x39 &&
-		buf[5] === 0x61 &&
-		buf[6] === 0x01 &&
-		buf[7] === 0x00 &&
-		buf[8] === 0x01 &&
-		buf[9] === 0x00
-	);
+		(buf[4] === 0x37 || buf[4] === 0x39) &&
+		buf[5] === 0x61;
+	if (!isGifHeader) return false;
+
+	const width = buf[6] | (buf[7] << 8);
+	const height = buf[8] | (buf[9] << 8);
+
+	// anti-hotlink placeholders are usually tiny 1x1/2x2 gifs
+	return width <= 2 && height <= 2;
 }
 
 async function buildImageResponse(res: Response): Promise<NextResponse | null> {
@@ -138,12 +140,18 @@ export async function GET(request: NextRequest) {
 	// Always use http:// — the site's image server doesn't support https
 	const imageUrl = toHttpImageUrl(rawImageUrl);
 
-	const imageHeaders = {
+	const isShowImage = /\/edicao\/ShowImage\.aspx/i.test(imageUrl);
+	const imageHeaders: Record<string, string> = {
 		"User-Agent":
 			"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-		Referer: "http://www.guiadosquadrinhos.com",
 		Accept: "image/jpeg,image/png,image/gif,image/*,*/*;q=0.8",
 	};
+
+	// The ShowImage endpoint may return a tiny anti-hotlink GIF when Referer is present.
+	// Omitting Referer yields the real image consistently.
+	if (!isShowImage) {
+		imageHeaders.Referer = "http://www.guiadosquadrinhos.com";
+	}
 
 	// ─── Strategy 1: Direct http:// fetch ─────────────────────────────────────
 	try {

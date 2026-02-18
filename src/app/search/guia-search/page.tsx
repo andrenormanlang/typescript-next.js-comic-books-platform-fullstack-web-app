@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useMemo, useState } from "react";
+import Link from "next/link";
 import {
 	Box,
 	Button,
@@ -211,10 +212,8 @@ export default function GuiaSearchPage() {
 					return (
 						<Box
 							key={r.id || r.url}
-							as="a"
-							href={r.url}
-							target="_blank"
-							rel="noreferrer"
+							as={Link}
+							href={`/search/guia-search/${encodeURIComponent(r.id || "edicao")}?url=${encodeURIComponent(r.url)}`}
 							bg={cardBg}
 							borderWidth="1px"
 							borderColor={borderColor}

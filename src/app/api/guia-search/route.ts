@@ -9,6 +9,14 @@ const KEYWORD_CAPAS_ALIASES: Record<string, string> = {
 	hulk: `${BASE_URL}/capas/incrivel-hulk-o/hk00301`,
 	"incrivel hulk": `${BASE_URL}/capas/incrivel-hulk-o/hk00301`,
 	"o incrivel hulk": `${BASE_URL}/capas/incrivel-hulk-o/hk00301`,
+	"capitao america": `${BASE_URL}/capas/capitao-america/ca00301`,
+	"homem aranha": `${BASE_URL}/capas/homem-aranha-1-serie/ha00401`,
+	"homem-aranha": `${BASE_URL}/capas/homem-aranha-1-serie/ha00401`,
+	"o homem aranha": `${BASE_URL}/capas/homem-aranha-1-serie/ha00401`,
+	"herois da tv": `${BASE_URL}/capas/herois-da-tv-2-serie/htv0302`,
+	"herois-da-tv": `${BASE_URL}/capas/herois-da-tv-2-serie/htv0302`,
+	"herois da tv 2 serie": `${BASE_URL}/capas/herois-da-tv-2-serie/htv0302`,
+	"herois da tv - 2 serie": `${BASE_URL}/capas/herois-da-tv-2-serie/htv0302`,
 	wolverine: `${BASE_URL}/capas/wolverine/wo00302`,
 };
 
@@ -143,7 +151,7 @@ function getDirectCapasUrl(query?: string) {
 			const parsed = new URL(trimmed);
 			if (
 				parsed.hostname.toLowerCase().includes("guiadosquadrinhos.com") &&
-				parsed.pathname.includes("/capas/")
+				(parsed.pathname.includes("/capas/") || parsed.pathname.includes("/edicao/"))
 			) {
 				return `${parsed.origin}${parsed.pathname}`.replace(/\/$/, "");
 			}
@@ -153,6 +161,10 @@ function getDirectCapasUrl(query?: string) {
 	}
 
 	if (trimmed.startsWith("/capas/")) {
+		return `${BASE_URL}${trimmed}`.replace(/\/$/, "");
+	}
+
+	if (trimmed.startsWith("/edicao/")) {
 		return `${BASE_URL}${trimmed}`.replace(/\/$/, "");
 	}
 
@@ -296,6 +308,49 @@ function parseTitlePublisherQuery(query: string) {
 	return { title: normalized, publisher: "" };
 }
 
+function splitTitleAndEdition(raw: string) {
+	const value = (raw || "").trim();
+	if (!value) return { title: "", edition: "" };
+
+	// Match forms like: "homem aranha 1", "homem aranha #1", "homem aranha n°1", "homem aranha nº 1"
+	const m = value.match(/^(.*?)[\s,:-]*(?:n[°º]?|no|n)?\.?\s*#?(\d+)\s*$/i);
+	if (m) {
+		return { title: m[1].trim(), edition: m[2].trim() };
+	}
+
+	return { title: value, edition: "" };
+}
+
+function matchesEdition(item: any, editionRequested: string) {
+	if (!editionRequested) return false;
+	const want = (editionRequested || "").replace(/^0+/, "").trim();
+	if (!want) return false;
+
+	// Check explicit extracted editionNumber (#1)
+	const edNum = (item.editionNumber || "").replace(/[^0-9]/g, "");
+	if (edNum && edNum === want) return true;
+
+	// Check title for common patterns ("n° 1", "#1", or just "1")
+	if (item.title) {
+		const t = (item.title || "").toString();
+		const m = t.match(/(?:n[°º]?\s*|no\s*|n\s*|#)?(\d+)\b/i);
+		if (m && m[1] && m[1].replace(/^0+/, "") === want) return true;
+		// also accept title that is just the number
+		const just = t.trim();
+		if (/^\d+$/.test(just) && just.replace(/^0+/, "") === want) return true;
+	}
+
+	// Check url path for -n-<num> or patterns like 'homem-aranha-n-3'
+	if (item.url) {
+		const u = (item.url || "").toString();
+		const mu = u.match(/-n-?(\d+)\b/i) || u.match(/n[°º]?-?(\d+)\b/i) || u.match(/edicao\/[^/]*-(\d+)\b/i);
+		if (mu && mu[1] && mu[1].replace(/^0+/, "") === want) return true;
+		// sometimes the url ends with /<numeric id> but that is not the edition number
+	}
+
+	return false;
+}
+
 function scoreTitleCandidate(row: GuiaTitleRow, normalizedTitleQuery: string, normalizedPublisherQuery?: string) {
 	const title = normalizeForComparison(row.title);
 	const url = normalizeForComparison(row.url);
@@ -310,6 +365,8 @@ function scoreTitleCandidate(row: GuiaTitleRow, normalizedTitleQuery: string, no
 	if (normalizedPublisherQuery) {
 		if (editora.includes(normalizedPublisherQuery)) score += 180;
 		else score -= 25;
+	} else if (editora.includes("abril") && title === normalizedTitleQuery) {
+		score += 240;
 	}
 
 	if (normalizedTitleQuery.includes("hulk") && /incrivel\s+hulk/.test(title)) score += 40;
@@ -319,18 +376,49 @@ function scoreTitleCandidate(row: GuiaTitleRow, normalizedTitleQuery: string, no
 	return score;
 }
 
+function isAbrilTitleCandidate(row: GuiaTitleRow) {
+	const editora = normalizeForComparison(row.editora);
+	const title = normalizeForComparison(row.title);
+	const url = normalizeForComparison(row.url);
+
+	return (
+		editora.includes("abril") ||
+		title.includes("/abril") ||
+		title.endsWith(" abril") ||
+		title.includes("- abril") ||
+		url.includes("/abril")
+	);
+}
+
 async function resolveCapasUrlFromKeyword(query: string): Promise<string | null> {
-	const normalizedQuery = query.trim();
+	const normalizedQuery = (query || "").trim();
 	if (!normalizedQuery) return null;
 
-	const { title, publisher } = parseTitlePublisherQuery(normalizedQuery);
+	// Support queries with trailing edition numbers, e.g. "homem aranha 1" or "capitao america #3".
+	const split = splitTitleAndEdition(normalizedQuery);
+	const editionRequested = split.edition || "";
+	const { title, publisher } = parseTitlePublisherQuery(split.title || normalizedQuery);
 	const normalizedTitle = normalizeForComparison(title);
 	const normalizedPublisher = normalizeForComparison(publisher);
 	if (!normalizedTitle) return null;
 
 	const aliasCapas =
 		KEYWORD_CAPAS_ALIASES[normalizedTitle] || KEYWORD_CAPAS_ALIASES[normalizeForComparison(normalizedQuery)];
-	if (aliasCapas) return aliasCapas;
+	if (aliasCapas) {
+		// If an edition number was requested, try to pick the exact edition from the series page
+		if (editionRequested) {
+			try {
+				const markdown = await fetchMirrorMarkdown(aliasCapas, 12000);
+				if (markdown) {
+					const editionResults = parseGuiaMarkdownResults(markdown);
+					const match = editionResults.find((it) => matchesEdition(it, editionRequested));
+					if (match) return match.url;
+				}
+			} catch {}
+		}
+
+		return aliasCapas;
+	}
 
 	try {
 		const keywordUrl = `${BASE_URL}/titulos/${encodeURIComponent(title)}`;
@@ -358,9 +446,13 @@ async function resolveCapasUrlFromKeyword(query: string): Promise<string | null>
 
 		if (!scored.length) return null;
 
-		let selected = scored[0];
+		const preferAbril = !normalizedPublisher;
+		const preferredPool = preferAbril ? scored.filter((item) => isAbrilTitleCandidate(item.row)) : scored;
+		const selectionPool = preferredPool.length ? preferredPool : scored;
+
+		let selected = selectionPool[0];
 		if (selected.row.issuesCount < 5) {
-			const richer = scored.find(
+			const richer = selectionPool.find(
 				(item) =>
 					item.row.issuesCount >= 8 &&
 					(normalizeForComparison(item.row.title).includes(normalizedTitle) ||
@@ -368,6 +460,22 @@ async function resolveCapasUrlFromKeyword(query: string): Promise<string | null>
 					(!normalizedPublisher || normalizeForComparison(item.row.editora).includes(normalizedPublisher)),
 			);
 			if (richer) selected = richer;
+		}
+
+		// If the user requested a specific edition number (e.g. "homem aranha 1"), try to fetch
+		// the series markdown and return the exact edition URL when available.
+		if (editionRequested) {
+			try {
+				const seriesUrl = selected.row.url;
+				const markdown = await fetchMirrorMarkdown(seriesUrl, 12000);
+				if (markdown) {
+					const editionResults = parseGuiaMarkdownResults(markdown);
+					const match = editionResults.find((it) => matchesEdition(it, editionRequested));
+					if (match) return match.url;
+				}
+			} catch {
+				// fall back to series URL
+			}
 		}
 
 		return selected.row.url;
@@ -819,9 +927,225 @@ async function computeDirectHasMore(
 	return !!nextPage;
 }
 
+function isEdicaoUrl(url: string) {
+	return /\/edicao\//i.test((url || "").trim());
+}
+
+function cleanMarkdownInline(text: string) {
+	return normalizeText((text || "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/\*\*/g, "").replace(/\s+/g, " ").trim());
+}
+
+function parseEditionStoriesFromMarkdown(markdown: string) {
+	const stories: Array<{
+		title: string;
+		description: string;
+		personagens?: string;
+		roteiro?: string;
+		desenho?: string;
+		arteFinal?: string;
+		cores?: string;
+		letrista?: string;
+		tradutor?: string;
+		editorOriginal?: string;
+		publicadaPrimeiraVez?: string;
+	}> = [];
+
+	if (!markdown) return stories;
+
+	const blockRegex =
+		/(?:^|\n)([^\n*][^\n]{2,})\n\n\*\*Personagens:\*\*\s*([^\n]+)([\s\S]*?)(?=\n[^\n*][^\n]{2,}\n\n\*\*Personagens:\*\*|\n\[!\[Image|\n\*\*Galeria de capas|\n$)/g;
+
+	let m: RegExpExecArray | null;
+	while ((m = blockRegex.exec(markdown)) !== null) {
+		const title = cleanMarkdownInline((m[1] || "").trim());
+		const personagens = cleanMarkdownInline((m[2] || "").trim());
+		const blockBody = m[3] || "";
+
+		const getField = (label: string) => {
+			const rx = new RegExp(`\\*\\*${label}:\\*\\*\\s*([^\\n]+)`, "i");
+			return cleanMarkdownInline(blockBody.match(rx)?.[1] || "");
+		};
+
+		const roteiro = getField("Roteiro");
+		const desenho = getField("Desenho");
+		const arteFinal = getField("Arte-Final");
+		const cores = getField("Cores");
+		const letrista = getField("Letrista");
+		const tradutor = getField("Tradutor");
+		const editorOriginal = getField("Editor original");
+		const publicadaPrimeiraVez = cleanMarkdownInline(
+			blockBody.match(/Publicada pela primeira vez em\s*([^\n]+)/i)?.[1] || "",
+		);
+
+		let description = cleanMarkdownInline(blockBody.match(/Publicada pela primeira vez[^\n]*\n\n([^\n]{20,})/i)?.[1] || "");
+		if (!description) {
+			description = cleanMarkdownInline(blockBody.match(/\n\n([^\n]{20,})\n\nT[ií]tulo original:/i)?.[1] || "");
+		}
+
+		if (!title && !description) continue;
+
+		stories.push({
+			title,
+			description,
+			personagens,
+			roteiro,
+			desenho,
+			arteFinal,
+			cores,
+			letrista,
+			tradutor,
+			editorOriginal,
+			publicadaPrimeiraVez,
+		});
+	}
+
+	return stories;
+}
+
+function toSingleEditionResult(url: string) {
+	const normalizedUrl = normalizeGuiaUrl(url);
+	let slug = "";
+	let id = normalizedUrl;
+
+	try {
+		const parsed = new URL(normalizedUrl);
+		const parts = parsed.pathname.split("/").filter(Boolean);
+		if (parts.length >= 2) slug = decodeURIComponent(parts[1] || "");
+		if (parts.length >= 4) id = parts[3] || id;
+	} catch {
+		// keep fallback values
+	}
+
+	const editionMatch = slug.match(/(?:^|-)n-(\d+)\b/i) || slug.match(/(?:n[°º]?|#)\s*(\d+)\b/i);
+	const editionNumber = editionMatch?.[1] ? `#${editionMatch[1].replace(/^0+/, "") || "0"}` : "";
+
+	const baseTitle = normalizeText(
+		slug
+			.replace(/(?:^|-)n-\d+\b.*$/i, "")
+			.replace(/-/g, " ")
+			.trim(),
+	);
+
+	const title = baseTitle && editionNumber ? `${baseTitle} ${editionNumber}` : baseTitle || editionNumber || "Edição";
+
+	return {
+		title,
+		url: normalizedUrl,
+		cover: "",
+		id,
+		editionNumber,
+		releaseDate: "",
+		provider: "guiadosquadrinhos",
+	};
+}
+
+async function scrapeEditionDetails(edicaoUrl: string) {
+	const normalizedUrl = normalizeGuiaUrl(edicaoUrl);
+	let html = "";
+	let markdown = "";
+
+	try {
+		html = (await fetchHtmlWithoutMirror(normalizedUrl, 1, 15000)) || "";
+	} catch {
+		html = "";
+	}
+
+	try {
+		markdown = await fetchMirrorMarkdown(normalizedUrl, 15000);
+	} catch {
+		if (!html) return toSingleEditionResult(normalizedUrl);
+	}
+
+	const singleFallback = toSingleEditionResult(normalizedUrl);
+	const $ = html ? cheerio.load(html) : null;
+
+	const titleFromMeta = normalizeText(markdown.match(/^Title:\s*(.+)$/im)?.[1] || "");
+	const titleFromBody = normalizeText(markdown.match(/^([^\n|]+)\|\s*Guia dos Quadrinhos/im)?.[1] || "");
+	const titleFromHtml = normalizeText(($?.("h1").first().text() || "").trim());
+	const title = titleFromMeta || titleFromBody || titleFromHtml || singleFallback.title;
+
+	const coverFromMarkdown =
+		normalizeCoverUrl(
+			toAbsoluteGuiaUrl(
+				markdown.match(/!\[[^\]]*\]\((https?:\/\/[^)\s]*ShowImage\.aspx[^)\s]*)\)/i)?.[1] ||
+					markdown.match(/!\[[^\]]*\]\(([^)\s]*ShowImage\.aspx[^)\s]*)\)/i)?.[1] ||
+					"",
+			),
+		) || "";
+	let coverFromHtml = "";
+	let coverFromMeta = "";
+	if ($) {
+		const ogImage =
+			($('meta[property="og:image"]').attr("content") || "").trim() ||
+			($('meta[name="twitter:image"]').attr("content") || "").trim();
+		if (ogImage) {
+			const absOg = /^https?:\/\//i.test(ogImage) ? ogImage : new URL(ogImage, BASE_URL).toString();
+			coverFromMeta = normalizeCoverUrl(absOg);
+		}
+
+		const srcCandidate =
+			($('img[src*="ShowImage.aspx"]').first().attr("src") || "").trim() ||
+			($('img[data-src*="ShowImage.aspx"]').first().attr("data-src") || "").trim() ||
+			($('a[href*="ShowImage.aspx"] img').first().attr("src") || "").trim() ||
+			($('a[href*="ShowImage.aspx"]').first().attr("href") || "").trim() ||
+			($('img[src*="/images/capas/"]').first().attr("src") || "").trim() ||
+			($('img[data-src*="/images/capas/"]').first().attr("data-src") || "").trim();
+		if (srcCandidate) {
+			const abs = /^https?:\/\//i.test(srcCandidate) ? srcCandidate : new URL(srcCandidate, BASE_URL).toString();
+			coverFromHtml = normalizeCoverUrl(abs);
+		}
+	}
+	const cover = coverFromMarkdown || coverFromHtml || coverFromMeta || "";
+
+	const releaseDate = normalizeText(markdown.match(/\*\*Publicado em:\*\*\s*([^\n]+)/i)?.[1] || "");
+	const editora = normalizeText(
+		markdown.match(/\*\*Editora:\*\*\s*(?:\[([^\]]+)\]\([^)]+\)|([^\n]+))/i)?.[1] ||
+			markdown.match(/\*\*Editora:\*\*\s*(?:\[([^\]]+)\]\([^)]+\)|([^\n]+))/i)?.[2] ||
+			"",
+	);
+	const licenciador = normalizeText(markdown.match(/\*\*Licenciador:\*\*\s*([^\n]+)/i)?.[1] || "");
+	const categoria = normalizeText(markdown.match(/\*\*Categoria:\*\*\s*([^\n]+)/i)?.[1] || "");
+	const numeroPaginas = normalizeText(markdown.match(/\*\*N[uú]mero de p[aá]ginas:\*\*\s*([^\n]+)/i)?.[1] || "");
+	const formato = normalizeText(markdown.match(/\*\*Formato:\*\*\s*([^\n]+)/i)?.[1] || "");
+	const precoCapa = normalizeText(markdown.match(/\*\*Pre[cç]o de capa:\*\*\s*([^\n]+)/i)?.[1] || "");
+
+	const parts = normalizedUrl.split("/").filter(Boolean);
+	const id = parts.length ? parts[parts.length - 1] : normalizedUrl;
+	const meta = extractIssueMetaFromTitle(title);
+
+	const stories = parseEditionStoriesFromMarkdown(markdown);
+
+	return {
+		title,
+		url: normalizedUrl,
+		cover,
+		id,
+		editionNumber: meta.editionNumber,
+		releaseDate: meta.releaseDate || releaseDate,
+		editora,
+		licenciador,
+		categoria,
+		numeroPaginas,
+		formato,
+		precoCapa,
+		stories,
+		provider: "guiadosquadrinhos",
+	};
+}
+
 async function scrapeGuiaSearch(query?: string, page = 1) {
 	const directCapasUrl = getDirectCapasUrl(query);
 	if (directCapasUrl) {
+		if (isEdicaoUrl(directCapasUrl)) {
+			const single = await scrapeEditionDetails(directCapasUrl);
+			return {
+				results: [single],
+				pagination: { current_page: 1, has_more: false, total_results: 1, page_size: 1 },
+				success: true,
+				searched_url: directCapasUrl,
+			};
+		}
+
 		const postbackPage = await resolveDirectCapasHtmlByPostbackPage(directCapasUrl, page);
 		if (postbackPage) {
 			const editionCode = getEditionCodeFromCapasUrl(directCapasUrl);
@@ -878,6 +1202,16 @@ async function scrapeGuiaSearch(query?: string, page = 1) {
 	if (query?.trim()) {
 		const keywordCapasUrl = await resolveCapasUrlFromKeyword(query);
 		if (keywordCapasUrl) {
+			if (isEdicaoUrl(keywordCapasUrl)) {
+				const single = await scrapeEditionDetails(keywordCapasUrl);
+				return {
+					results: [single],
+					pagination: { current_page: 1, has_more: false, total_results: 1, page_size: 1 },
+					success: true,
+					searched_url: keywordCapasUrl,
+				};
+			}
+
 			const postbackPage = await resolveDirectCapasHtmlByPostbackPage(keywordCapasUrl, page);
 			if (postbackPage) {
 				const editionCode = getEditionCodeFromCapasUrl(keywordCapasUrl);
@@ -1031,6 +1365,7 @@ export async function GET(request: NextRequest) {
 		let hasMore = false;
 		let totalResults = 0;
 		let pageSize = 0;
+		let searchedUrl: string | null = null;
 
 		if (useFixture) {
 			const fixturePath = path.join(process.cwd(), "src", "app", "api", "guia-search", "fixtures", "hulk.html");
@@ -1101,6 +1436,7 @@ export async function GET(request: NextRequest) {
 			hasMore = $(".nav-links .next, .pagination .next").length > 0 || $('a[rel="next"]').length > 0;
 			totalResults = results.length;
 			pageSize = results.length;
+			searchedUrl = `fixture:${fixturePath}`;
 		} else {
 			const data = (await Promise.race([
 				scrapeGuiaSearch(query, page),
@@ -1110,6 +1446,7 @@ export async function GET(request: NextRequest) {
 			hasMore = data.pagination?.has_more || false;
 			totalResults = data.pagination?.total_results || results.length;
 			pageSize = data.pagination?.page_size || results.length;
+			searchedUrl = data.searched_url || null;
 		}
 
 		return NextResponse.json(results, {
@@ -1118,6 +1455,7 @@ export async function GET(request: NextRequest) {
 				"X-Guia-Has-More": String(!!hasMore),
 				"X-Guia-Total-Results": String(totalResults || 0),
 				"X-Guia-Page-Size": String(pageSize || 0),
+				"X-Guia-Searched-URL": String(searchedUrl || ""),
 			},
 		});
 	} catch (err) {
