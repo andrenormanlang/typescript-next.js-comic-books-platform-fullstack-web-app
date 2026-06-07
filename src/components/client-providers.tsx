@@ -15,8 +15,8 @@ export default function ClientProviders({ children }: { children: React.ReactNod
   useEffect(() => { setMounted(true); }, []);
 
   return (
-    <ChakraProvider value={defaultSystem}>
-      <ColorModeProvider>
+    <ColorModeProvider>
+      <ChakraProvider value={defaultSystem}>
         <ReactQueryProvider>
           <ReduxProvider>
             <UserProvider>
@@ -28,7 +28,7 @@ export default function ClientProviders({ children }: { children: React.ReactNod
             </UserProvider>
           </ReduxProvider>
         </ReactQueryProvider>
-      </ColorModeProvider>
-    </ChakraProvider>
+      </ChakraProvider>
+    </ColorModeProvider>
   );
 }

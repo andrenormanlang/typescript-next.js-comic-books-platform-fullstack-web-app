@@ -591,9 +591,10 @@ const Navbar = () => {
 								top="1rem"
 								right="1rem"
 								zIndex="tooltip"
-								bg="transparent"
-								_hover={{ bg: "whiteAlpha.200" }}
-								transition="all 0.2s"><CloseIcon size={5} /></IconButton>
+								bg="whiteAlpha.200"
+								color="white"
+								_hover={{ bg: "whiteAlpha.300" }}
+								transition="all 0.2s"><CloseIcon size={24} /></IconButton>
 						</motion.div>
 						<Stack gap={4} align="center" justify="center" pt="5rem" width="100%" px={4}>
 							{!user && (
