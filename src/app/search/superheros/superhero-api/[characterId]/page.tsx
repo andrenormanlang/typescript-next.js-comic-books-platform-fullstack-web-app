@@ -1,10 +1,11 @@
 "use client";
 
+import { useColorModeValue } from "@/components/ui/color-mode";
 import { useSearchParameters } from "@/hooks/useSearchParameters";
 import { useGetSuperhero } from "@/hooks/superhero-api/useGetSuperhero";
 import { Superhero } from "@/types/superhero.types";
-import { ArrowBackIcon } from "@chakra-ui/icons";
-import {
+import { ArrowLeft } from "lucide-react";
+import {Tag, 
 	Box,
 	Button,
 	Center,
@@ -12,12 +13,8 @@ import {
 	Image,
 	Flex,
 	HStack,
-	Spinner,
-	Tag,
-	Text,
-	VStack,
-	useColorModeValue,
-} from "@chakra-ui/react";
+	Spinner, Text,
+	VStack } from "@chakra-ui/react";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 
 const SuperheroID = () => {
@@ -98,23 +95,23 @@ const SuperheroID = () => {
 		<Container maxW="1300px" p={4}>
 			<Flex justifyContent="space-between" mb={4}>
 				<Button
-					leftIcon={<ArrowBackIcon />}
-					colorScheme="teal"
+					
+					colorPalette="teal"
 					variant="outline"
 					onClick={handleBack}
 				>
 					Back to Grid
 				</Button>
 				<Button
-					leftIcon={<ArrowBackIcon />}
-					colorScheme="orange"
+					
+					colorPalette="orange"
 					variant="outline"
 					onClick={handleBackList}
 				>
 					Back to List
 				</Button>
 			</Flex>
-			<VStack spacing={4}>
+			<VStack gap={4}>
 				<Flex
 					bg={bgColor}
 					p={4}
@@ -142,7 +139,7 @@ const SuperheroID = () => {
 
 					<VStack
 						ml={5}
-						spacing={1}
+						gap={1}
 						align="flex-start"
 						mb={4}
 						minWidth="200px"
@@ -160,11 +157,11 @@ const SuperheroID = () => {
 						{/* Mapping through powerstats for cleaner code */}
 						{Object.entries(superhero.powerstats).map(
 							([key, value], index) => (
-								<Tag
+								<Tag.Root
 									key={key}
 									minWidth="150px"
 									m={1}
-									colorScheme={
+									colorPalette={
 										powerStatColors[
 											index % powerStatColors.length
 										]
@@ -174,14 +171,14 @@ const SuperheroID = () => {
 										key.charAt(0).toUpperCase() +
 										key.slice(1)
 									}: ${value}`}
-								</Tag>
+								</Tag.Root>
 							)
 						)}
 					</VStack>
 
 					<VStack
 						ml={5}
-						spacing={2}
+						gap={2}
 						align="flex-start"
 						mb={4}
 						minW={200}
@@ -212,7 +209,7 @@ const SuperheroID = () => {
 							Hair Color: {superhero.appearance["hair-color"]}
 						</Text>
 					</VStack>
-					<VStack ml={5} spacing={1} align="flex-start" mb={4}>
+					<VStack ml={5} gap={1} align="flex-start" mb={4}>
 						<Text fontSize="1.5rem" fontWeight="bold">
 							Biography
 						</Text>
@@ -254,7 +251,7 @@ const SuperheroID = () => {
 
 					<HStack
 						ml={5}
-						spacing={2}
+						gap={2}
 						align="flex-start"
 						mb={4}
 					></HStack>

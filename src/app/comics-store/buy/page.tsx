@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import {
 	SimpleGrid,
 	Box,
@@ -10,22 +10,18 @@ import {
 	Center,
 	Spinner,
 	Alert,
-	AlertIcon,
 	IconButton,
-	useToast,
 	Button,
-	AlertDialog,
-	AlertDialogBody,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogContent,
-	AlertDialogOverlay,
+	Dialog,
 	Badge,
 	Stack,
 } from "@chakra-ui/react";
+import { toaster } from "@/components/ui/toaster";
 import { motion } from "framer-motion";
 import NextLink from "next/link";
-import { DeleteIcon, EditIcon, AddIcon } from "@chakra-ui/icons";
+
+const MotionDiv = motion.div as any;
+import { Trash2, Pencil, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/utils/supabase/client";
 import { Comic } from "@/types/comics-store/comic-detail.type";
@@ -52,12 +48,10 @@ const formatDate = (dateString: string) => {
 
 const ComicsBuy: NextPage = () => {
 	const [searchQuery, setSearchQuery] = useState("");
-	const toast = useToast();
 	const [isAdmin, setIsAdmin] = useState(false);
 	const [selectedComic, setSelectedComic] = useState<Comic | null>(null);
 	const [isOpen, setIsOpen] = useState(false);
 	const [loadingComicIds, setLoadingComicIds] = useState<string[]>([]);
-	const cancelRef = useRef<HTMLButtonElement>(null);
 	const { user } = useUser();
 	const router = useRouter();
 	const dispatch: AppDispatch = useDispatch();
@@ -101,22 +95,20 @@ const ComicsBuy: NextPage = () => {
 
 				if (error) throw error;
 
-				toast({
+				toaster.create({
 					title: "Comic deleted.",
 					description: "The comic has been successfully deleted.",
-					status: "success",
+					type: "success",
 					duration: 5000,
-					isClosable: true,
 				});
 
 				// The useQuery hook will automatically refetch the data after a successful mutation.
 			} catch (error) {
-				toast({
+				toaster.create({
 					title: "Error deleting comic.",
 					description: "There was an error deleting the comic.",
-					status: "error",
+					type: "error",
 					duration: 5000,
-					isClosable: true,
 				});
 			} finally {
 				setIsOpen(false);
@@ -131,22 +123,11 @@ const ComicsBuy: NextPage = () => {
 
 	const handleStockChange = async (comicId: string, quantity: number) => {
 		if (!user) {
-			toast({
-				render: () => (
-					<Box
-						bg="red.500" // Set the background color according to the status (warning, error, etc.)
-						color="white" // Text color
-						p={3}
-						borderRadius="md"
-						textAlign="center"
-					>
-						<strong>📚Login required!📚</strong>
-						<p>🦹‍♂️You need to register and log in to add comics to your cart.🦸</p>
-					</Box>
-				),
-				status: "warning",
+			toaster.create({
+				title: "Login required!",
+				description: "You need to register and log in to add comics to your cart.",
+				type: "warning",
 				duration: 5000,
-				isClosable: true,
 			});
 			return;
 		}
@@ -161,24 +142,22 @@ const ComicsBuy: NextPage = () => {
 			.single();
 
 		if (comicError || !comicData) {
-			toast({
+			toaster.create({
 				title: "Error updating stock.",
 				description: "There was an error updating the stock or insufficient stock available.",
-				status: "error",
+				type: "error",
 				duration: 5000,
-				isClosable: true,
 			});
 			setLoadingComicIds((prev) => prev.filter((id) => id !== comicId));
 			return;
 		}
 
 		if (comicData.stock < quantity) {
-			toast({
+			toaster.create({
 				title: "Error updating stock.",
 				description: "Insufficient stock available.",
-				status: "error",
+				type: "error",
 				duration: 5000,
-				isClosable: true,
 			});
 			setLoadingComicIds((prev) => prev.filter((id) => id !== comicId));
 			return;
@@ -195,12 +174,11 @@ const ComicsBuy: NextPage = () => {
 						{
 							onSuccess: () => {
 								setLoadingComicIds((prev) => prev.filter((id) => id !== comicId));
-								toast({
+								toaster.create({
 									title: "Cart updated.",
 									description: "The stock has been updated.",
-									status: "success",
+									type: "success",
 									duration: 5000,
-									isClosable: true,
 								});
 							},
 							onError: () => {
@@ -210,12 +188,11 @@ const ComicsBuy: NextPage = () => {
 					);
 				})
 				.catch(() => {
-					toast({
+					toaster.create({
 						title: "Error updating cart.",
 						description: "There was an error updating the cart.",
-						status: "error",
+						type: "error",
 						duration: 5000,
-						isClosable: true,
 					});
 					setLoadingComicIds((prev) => prev.filter((id) => id !== comicId));
 				});
@@ -239,12 +216,11 @@ const ComicsBuy: NextPage = () => {
 						{
 							onSuccess: () => {
 								setLoadingComicIds((prev) => prev.filter((id) => id !== comicId));
-								toast({
+								toaster.create({
 									title: "Added to cart.",
 									description: "The comic has been added to your cart.",
-									status: "success",
+									type: "success",
 									duration: 5000,
-									isClosable: true,
 								});
 							},
 							onError: () => {
@@ -254,12 +230,11 @@ const ComicsBuy: NextPage = () => {
 					);
 				})
 				.catch(() => {
-					toast({
+					toaster.create({
 						title: "Error adding to cart.",
 						description: "There was an error adding the comic to your cart.",
-						status: "error",
+						type: "error",
 						duration: 5000,
-						isClosable: true,
 					});
 					setLoadingComicIds((prev) => prev.filter((id) => id !== comicId));
 				});
@@ -276,13 +251,8 @@ const ComicsBuy: NextPage = () => {
 	return (
 		<Container
 			maxW="container.xl"
-			centerContent
 			p={4}
-			// bgImage="url('/bg-mainpage.svg')" // Ensure this path is correct and the image is accessible
-			bgSize="cover"
-			bgPosition="center"
-			bgRepeat="no-repeat"
-			minHeight="100vh"
+			css={{ minHeight: "100vh" }}
 		>
 			<SearchBar onSearch={handleSearch} searchQuery={searchQuery} totalResults={totalResults} />
 			{isLoading ? (
@@ -291,28 +261,29 @@ const ComicsBuy: NextPage = () => {
 				</Center>
 			) : isError ? (
 				<Center h="100vh">
-					<Alert status="error">
-						<AlertIcon />
-						{"An error occurred"}
-					</Alert>
+					<Alert.Root status="error">
+						<Alert.Indicator />
+						<Alert.Description>{"An error occurred"}</Alert.Description>
+					</Alert.Root>
 				</Center>
 			) : (
 				<>
-					<SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} spacing={6} width="100%">
+					<SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} gap={6} width="100%">
 						{data?.pages.map((page) =>
 							// @ts-ignore
 							page.comics
 								.filter((comic: Comic) => isAdmin || comic.is_approved)
 								.map((comic: Comic) => (
-									<Box
+									<MotionDiv
 										key={comic.id}
-										as={motion.div}
 										whileHover={{ scale: 1.05 }}
-										boxShadow="0 4px 8px rgba(0,0,0,0.1)"
-										rounded="md"
-										overflow="hidden"
-										position="relative"
-										cursor="pointer"
+										style={{
+											boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+											borderRadius: "var(--chakra-radii-md)",
+											overflow: "hidden",
+											position: "relative",
+											cursor: "pointer",
+										}}
 										onClick={() => router.push(`/${comic.id}`)}
 									>
 										<Box position="relative" width="100%" height="0" paddingBottom="150%">
@@ -381,32 +352,29 @@ const ComicsBuy: NextPage = () => {
 											)}
 										</Box>
 										<Box p={3} bgColor="black" color="white" width="100%">
-											<Stack spacing={2}>
+											<Stack gap={2}>
 												<Text
 													fontWeight="bold"
 													fontSize={{ base: "xs", md: "lg" }}
-													noOfLines={1}
+													lineClamp={1}
 													textAlign="center"
 												>
 													{comic.title}
 												</Text>
-												<Badge m={1} colorScheme="green" fontSize={{ base: "2xs", md: "sm" }}>
+												<Badge m={1} colorPalette="green" fontSize={{ base: "2xs", md: "sm" }}>
 													Released: {formatDate(comic.release_date)}
 												</Badge>
-												<Badge m={1} colorScheme="purple" fontSize={{ base: "2xs", md: "sm" }}>
+												<Badge m={1} colorPalette="purple" fontSize={{ base: "2xs", md: "sm" }}>
 													{comic.publisher}
 												</Badge>
-												<Badge m={1} colorScheme="yellow" fontSize={{ base: "2xs", md: "sm" }}>
+												<Badge m={1} colorPalette="yellow" fontSize={{ base: "2xs", md: "sm" }}>
 													Genre: {comic.genre}
 												</Badge>
 											</Stack>
 										</Box>
 										<IconButton
 											aria-label="Add to cart"
-											icon={
-												loadingComicIds.includes(comic.id) ? <Spinner size="sm" /> : <AddIcon />
-											}
-											colorScheme="yellow"
+											colorPalette="yellow"
 											position="absolute"
 											top={2}
 											left={2}
@@ -415,14 +383,13 @@ const ComicsBuy: NextPage = () => {
 												handleStockChange(comic.id, 1);
 											}}
 											size={{ base: "xs", md: "md" }}
-											disabled={comic.stock === 0 || loadingComicIds.includes(comic.id)}
-										/>
+											disabled={comic.stock === 0 || loadingComicIds.includes(comic.id)}>loadingComicIds.includes(comic.id) ? <Spinner size="sm" /> : <Plus /></IconButton>
 										{isAdmin && (
 											<Box position="absolute" top={2} right={2} display="flex" gap={1}>
 												<NextLink href={`/comics-store/edit/${comic.id}`} passHref>
 													<IconButton
 														aria-label="Edit Comic"
-														icon={<EditIcon />}
+														
 														fontWeight={"900"}
 														color={"white"}
 														backgroundColor={"blue.500"}
@@ -432,7 +399,7 @@ const ComicsBuy: NextPage = () => {
 												</NextLink>
 												<IconButton
 													aria-label="Delete Comic"
-													icon={<DeleteIcon />}
+													
 													fontWeight={"900"}
 													color={"white"}
 													backgroundColor={"red.500"}
@@ -444,7 +411,7 @@ const ComicsBuy: NextPage = () => {
 												/>
 											</Box>
 										)}
-									</Box>
+									</MotionDiv>
 								))
 						)}
 					</SimpleGrid>
@@ -457,33 +424,24 @@ const ComicsBuy: NextPage = () => {
 				</>
 			)}
 
-			<AlertDialog
-				isOpen={isOpen}
-				leastDestructiveRef={cancelRef as React.RefObject<HTMLElement>}
-				onClose={onClose}
-			>
-				{" "}
-				<AlertDialogOverlay>
-					<AlertDialogContent>
-						<AlertDialogHeader fontSize="lg" fontWeight="bold">
-							Delete Comic
-						</AlertDialogHeader>
-
-						<AlertDialogBody>
-							Are you sure you want to delete the comic titled {selectedComic?.title}?
-						</AlertDialogBody>
-
-						<AlertDialogFooter>
-							<Button ref={cancelRef} onClick={onClose}>
-								Cancel
-							</Button>
-							<Button colorScheme="red" onClick={handleDelete} ml={3}>
-								Delete
-							</Button>
-						</AlertDialogFooter>
-					</AlertDialogContent>
-				</AlertDialogOverlay>
-			</AlertDialog>
+			<Dialog.Root open={isOpen} onOpenChange={(e) => { if (!e.open) onClose(); }} role="alertdialog">
+				<Dialog.Backdrop />
+				<Dialog.Content>
+					<Dialog.Header><Dialog.Title fontSize="lg" fontWeight="bold">Delete Comic</Dialog.Title></Dialog.Header>
+					<Dialog.Body>
+						Are you sure you want to delete the comic titled {selectedComic?.title}?
+					</Dialog.Body>
+					<Dialog.Footer>
+						<Button onClick={onClose}>
+							Cancel
+						</Button>
+						<Button colorPalette="red" onClick={handleDelete} ml={3}>
+							Delete
+						</Button>
+					</Dialog.Footer>
+					<Dialog.CloseTrigger />
+				</Dialog.Content>
+			</Dialog.Root>
 		</Container>
 	);
 };

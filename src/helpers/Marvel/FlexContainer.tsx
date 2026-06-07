@@ -1,5 +1,6 @@
+import { useColorModeValue } from "@/components/ui/color-mode";
 import React, { ReactNode } from 'react';
-import { Flex, useColorModeValue } from '@chakra-ui/react';
+import { Flex } from '@chakra-ui/react';
 
 interface Props {
   children: ReactNode; // Typing children explicitly

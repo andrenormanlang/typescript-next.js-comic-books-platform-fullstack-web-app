@@ -1,10 +1,11 @@
 'use client';
 
-import { useToast, FormControl, FormLabel, Input, Button, Box, Text, InputGroup, InputRightElement, IconButton } from '@chakra-ui/react';
+import { Field, Input, Button, Box, Text, InputGroup, IconButton } from '@chakra-ui/react';
+import { toaster } from "@/components/ui/toaster";
 import { useState, FormEvent } from "react";
 import { z, ZodError } from "zod";
 import { User, createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
+import { Eye, EyeOff } from "lucide-react";
 
 // Define a Zod schema for password validation directly
 const passwordSchema = z.string()
@@ -29,7 +30,6 @@ type FormData = z.infer<typeof UpdatePasswordSchema>;
 export default function PasswordForm({ user }: { user: User | undefined }) {
   const supabase = createClientComponentClient();
   const [error, setError] = useState<string | null>(null);
-  const toast = useToast();
   const [formData, setFormData] = useState<FormData>({ password: "", passwordConfirm: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -43,12 +43,11 @@ export default function PasswordForm({ user }: { user: User | undefined }) {
     } catch (err) {
       if (err instanceof ZodError) {
         err.errors.forEach((error) => {
-          toast({
+          toaster.create({
             title: "Validation Error",
             description: error.message,
-            status: "error",
+            type: "error",
             duration: 9000,
-            isClosable: true,
           });
         });
         return;
@@ -57,23 +56,21 @@ export default function PasswordForm({ user }: { user: User | undefined }) {
 
     const { error } = await supabase.auth.updateUser({ password });
     if (error) {
-      toast({
+      toaster.create({
         title: "Error Updating Password",
         description: error.message,
-        status: "error",
+        type: "error",
         duration: 9000,
-        isClosable: true,
       });
       return;
     }
 
     setFormData({ password: "", passwordConfirm: "" });
-    toast({
+    toaster.create({
       title: "Success",
       description: "Your password was updated successfully.",
-      status: "success",
+      type: "success",
       duration: 9000,
-      isClosable: true,
     });
   };
 
@@ -90,9 +87,14 @@ export default function PasswordForm({ user }: { user: User | undefined }) {
       <Text fontSize="xl" fontWeight="semibold" mb={4}>Update Password</Text>
       <Text mb={4}>Hi {user?.email}, enter your new password below and confirm it.</Text>
       <form onSubmit={handleSubmit}>
-        <FormControl isInvalid={formData.password !== ""}>
-          <FormLabel htmlFor="password">Password</FormLabel>
-          <InputGroup>
+        <Field.Root invalid={formData.password !== ""}>
+          <Field.Label htmlFor="password">Password</Field.Label>
+          <InputGroup endElement={
+            <IconButton
+              onClick={() => setShowPassword(!showPassword)}
+              variant="ghost"
+              aria-label="Toggle Password Visibility">showPassword ? <EyeOff /> : <Eye /></IconButton>
+          }>
             <Input
               id="password"
               name="password"
@@ -100,19 +102,16 @@ export default function PasswordForm({ user }: { user: User | undefined }) {
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
             />
-            <InputRightElement>
-              <IconButton
-                icon={showPassword ? <ViewOffIcon /> : <ViewIcon />}
-                onClick={() => setShowPassword(!showPassword)}
-                variant="ghost"
-                aria-label="Toggle Password Visibility"
-              />
-            </InputRightElement>
           </InputGroup>
-        </FormControl>
-        <FormControl isInvalid={formData.passwordConfirm !== ""} mt={4}>
-          <FormLabel htmlFor="passwordConfirm">Confirm Password</FormLabel>
-          <InputGroup>
+        </Field.Root>
+        <Field.Root invalid={formData.passwordConfirm !== ""} mt={4}>
+          <Field.Label htmlFor="passwordConfirm">Confirm Password</Field.Label>
+          <InputGroup endElement={
+            <IconButton
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              variant="ghost"
+              aria-label="Toggle Confirm Password Visibility">showConfirmPassword ? <EyeOff /> : <Eye /></IconButton>
+          }>
             <Input
               id="passwordConfirm"
               name="passwordConfirm"
@@ -120,17 +119,9 @@ export default function PasswordForm({ user }: { user: User | undefined }) {
               value={formData.passwordConfirm}
               onChange={(e) => setFormData({ ...formData, passwordConfirm: e.target.value })}
             />
-            <InputRightElement>
-              <IconButton
-                icon={showConfirmPassword ? <ViewOffIcon /> : <ViewIcon />}
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                variant="ghost"
-                aria-label="Toggle Confirm Password Visibility"
-              />
-            </InputRightElement>
           </InputGroup>
-        </FormControl>
-        <Button colorScheme="blue" mt={6} type="submit" onClick={handleReset}>Update Password & Login</Button>
+        </Field.Root>
+        <Button colorPalette="blue" mt={6} type="submit" onClick={handleReset}>Update Password & Login</Button>
       </form>
     </Box>
   );

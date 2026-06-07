@@ -1,9 +1,10 @@
-// BlogPostDetail.client.tsx
 "use client";
 
+// BlogPostDetail.client.tsx
 import React from "react";
 import { useRouter } from "next/navigation";
-import { Container, Button, Box, Heading, Text, Center, useColorMode } from "@chakra-ui/react";
+import { Container, Button, Box, Heading, Text, Center } from "@chakra-ui/react";
+import { useColorMode } from "@/components/ui/color-mode";
 import { BlogPost } from "@/types/blog/blog.type";
 
 interface BlogPostDetailClientProps {

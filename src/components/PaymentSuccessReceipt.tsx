@@ -1,20 +1,16 @@
-'use client';
+"use client";
 
+import { useColorModeValue } from "@/components/ui/color-mode";
 import React, { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import {
+import {List, 
   Box,
   Spinner,
   Text,
-  Center,
-  List,
-  ListItem,
-  Heading,
+  Center, Heading,
   Stack,
-  Divider,
-  Image,
-  useColorModeValue,
-  Badge,
+  Separator,
+  Image, Badge,
   Button,
 } from '@chakra-ui/react';
 import { createClient } from '@supabase/supabase-js';
@@ -100,8 +96,8 @@ const PaymentSuccessReceipt = () => {
         <Heading size="lg" mb={4} textAlign="center" color={headingColor}>
           Thank you for your purchase!
         </Heading>
-        <Divider mb={4} />
-        <Stack spacing={2} mb={4} color={textColor}>
+        <Separator mb={4} />
+        <Stack gap={2} mb={4} color={textColor}>
           <Text fontWeight="bold" fontSize="lg">
             <Badge bg={badgeBg} color={badgeColor} mr={2}>
               Receipt #:
@@ -115,13 +111,13 @@ const PaymentSuccessReceipt = () => {
             {receipt.order_id}
           </Text>
         </Stack>
-        <Divider my={4} />
+        <Separator my={4} />
         <Heading size="md" mb={2} color={headingColor}>
           Items:
         </Heading>
-        <List spacing={3}>
+        <List.Root gap={3}>
           {receipt.items.map((item: any, index: number) => (
-            <ListItem key={index} display="flex" alignItems="center" color={textColor}>
+            <List.Item key={index} display="flex" alignItems="center" color={textColor}>
               <Image
                 src={item.image}
                 alt={item.title}
@@ -136,18 +132,18 @@ const PaymentSuccessReceipt = () => {
                 </Text>
                 <Text>Total: ${(item.price * item.quantity).toFixed(2)}</Text>
               </Box>
-            </ListItem>
+            </List.Item>
           ))}
-        </List>
-        <Divider my={4} />
+        </List.Root>
+        <Separator my={4} />
         <Center>
           <Text fontWeight="bold" fontSize="2xl" color={totalColor}>
             Total Amount: ${(receipt.total_amount).toFixed(2)}
           </Text>
         </Center>
-        <Divider my={4} />
+        <Separator my={4} />
         <Center>
-          <Button colorScheme="teal" onClick={() => router.push('/')}>
+          <Button colorPalette="teal" onClick={() => router.push('/')}>
             Back to Store
           </Button>
         </Center>

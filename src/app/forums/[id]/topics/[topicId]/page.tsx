@@ -1,37 +1,26 @@
 'use client';
 
+import { useColorModeValue } from "@/components/ui/color-mode";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, use } from "react";
 import { supabase } from "@/utils/supabaseClient";
-import {
+import {Avatar, Dialog, 
   Box,
   Spinner,
   Heading,
   Text,
   Button,
-  VStack,
-  useColorModeValue,
-  Center,
-  Container,
-  Avatar,
-  HStack,
+  VStack, Center,
+  Container, HStack,
   Image,
-  useToast,
   Flex,
-  Badge,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalCloseButton,
-  ModalBody,
-  ModalFooter,
-  useDisclosure,
+  Badge, useDisclosure,
 } from "@chakra-ui/react";
+import { toaster } from "@/components/ui/toaster";
 import { Params, Post } from "@/types/forum/forum.type";
 import { useUser } from "@/contexts/UserContext";
 import { format } from "date-fns";
-import { DeleteIcon } from "@chakra-ui/icons";
+import { Trash2 } from "lucide-react";
 
 const PostPage = (props: { params: Promise<Params['params']> }) => {
   const params = use(props.params);
@@ -43,57 +32,56 @@ const PostPage = (props: { params: Promise<Params['params']> }) => {
   const { user } = useUser();
   const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
-  const toast = useToast();
-  const { isOpen, onOpen, onClose } = useDisclosure();
-
-  const fetchPostsAndTopic = async () => {
-    try {
-      const { data: postsData, error: postsError } = await supabase
-        .from("posts")
-        .select(
-          `
-          *,
-          profiles (
-            username,
-            avatar_url,
-            is_admin
-          )
-        `
-        )
-        .eq("topic_id", topicId);
-
-      if (postsError) {
-        console.error("Error fetching posts:", postsError);
-        setLoading(false);
-        return;
-      }
-
-      const { data: topicData, error: topicError } = await supabase
-        .from("topics")
-        .select("title")
-        .eq("id", topicId)
-        .single();
-
-      if (topicError) {
-        console.error("Error fetching topic:", topicError);
-        setLoading(false);
-        return;
-      }
-
-      setPosts(postsData);
-      setTopicTitle(topicData.title);
-      setLoading(false);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      setLoading(false);
-    }
-  };
+  const { open: isOpen, onOpen, onClose } = useDisclosure();
 
   useEffect(() => {
-    if (topicId) {
-      fetchPostsAndTopic();
-    }
-  }, [topicId]);
+    if (!topicId) return;
+
+    const fetchPostsAndTopic = async () => {
+      try {
+        const { data: postsData, error: postsError } = await supabase
+          .from("posts")
+          .select(
+            `
+            *,
+            profiles (
+              username,
+              avatar_url,
+              is_admin
+            )
+          `
+          )
+          .eq("topic_id", topicId);
+
+        if (postsError) {
+          console.error("Error fetching posts:", postsError);
+          setLoading(false);
+          return;
+        }
+
+        const { data: topicData, error: topicError } = await supabase
+          .from("topics")
+          .select("title")
+          .eq("id", topicId)
+          .single();
+
+        if (topicError) {
+          console.error("Error fetching topic:", topicError);
+          setLoading(false);
+          return;
+        }
+
+        setPosts(postsData);
+        setTopicTitle(topicData.title);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        setLoading(false);
+      }
+    };
+
+    fetchPostsAndTopic();
+  }, [topicId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -119,21 +107,19 @@ const PostPage = (props: { params: Promise<Params['params']> }) => {
       const { error } = await supabase.from("posts").delete().eq("id", postToDelete);
       if (error) throw error;
       setPosts((prevPosts) => prevPosts.filter((post) => post.id !== postToDelete));
-      toast({
+      toaster.create({
         title: "Post deleted.",
         description: "The post has been deleted successfully.",
-        status: "success",
+        type: "success",
         duration: 5000,
-        isClosable: true,
       });
     } catch (error) {
       console.error("Error deleting post:", error);
-      toast({
+      toaster.create({
         title: "Error",
         description: "There was an error deleting the post.",
-        status: "error",
+        type: "error",
         duration: 5000,
-        isClosable: true,
       });
     } finally {
       setPostToDelete(null);
@@ -154,12 +140,11 @@ const PostPage = (props: { params: Promise<Params['params']> }) => {
 
   const handleCreatePost = () => {
     if (!user) {
-      toast({
+      toaster.create({
         title: "Error",
         description: "You need to be signed in to create a post.",
-        status: "error",
+        type: "error",
         duration: 5000,
-        isClosable: true,
       });
       return;
     }
@@ -179,14 +164,14 @@ const PostPage = (props: { params: Promise<Params['params']> }) => {
         {topicTitle || "Posts"}
       </Heading>
       <Flex justifyContent="space-between" mb={8}>
-        <Button colorScheme="teal" onClick={() => router.push(`/forums/${id}`)}>
+        <Button colorPalette="teal" onClick={() => router.push(`/forums/${id}`)}>
           Back to Topics
         </Button>
-        <Button colorScheme="teal" onClick={handleCreatePost}>
+        <Button colorPalette="teal" onClick={handleCreatePost}>
           Create Post
         </Button>
       </Flex>
-      <VStack spacing={4} width="100%">
+      <VStack gap={4} width="100%">
         {posts.map((post) => (
           <Flex
             key={post.id}
@@ -213,11 +198,11 @@ const PostPage = (props: { params: Promise<Params['params']> }) => {
               alignSelf="stretch"
               position="relative"
             >
-              <Avatar size="lg" src={post.profiles.avatar_url} mt={2} mb={4} />
+              <Avatar.Root size="lg" mt={2} mb={4}><Avatar.Image src={post.profiles.avatar_url} /><Avatar.Fallback /></Avatar.Root>
               <Text fontWeight="bold">{post.profiles.username}</Text>
               {post.profiles.is_admin && (
                 <Badge
-                  colorScheme="red.500"
+                  colorPalette="red.500"
 				  variant="solid"
 				  bg="red.500"
                   position="absolute"
@@ -242,33 +227,33 @@ const PostPage = (props: { params: Promise<Params['params']> }) => {
             {isAdmin && (
               <Button
                 ml={2}
-                colorScheme="red"
+                colorPalette="red"
                 onClick={() => openDeleteModal(post.id)}
                 alignSelf="flex-start"
               >
-                <DeleteIcon />
+                <Trash2 />
               </Button>
             )}
           </Flex>
         ))}
       </VStack>
 
-      <Modal isOpen={isOpen} onClose={onClose}>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Delete Post</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
+      <Dialog.Root open={isOpen} onOpenChange={(e) => !e.open && (onClose)()}>
+        <Dialog.Backdrop />
+        <Dialog.Content>
+          <Dialog.Header><Dialog.Title>Delete Post</Dialog.Title></Dialog.Header>
+          <Dialog.CloseTrigger />
+          <Dialog.Body>
             <Text>Are you sure you want to delete this post?</Text>
-          </ModalBody>
-          <ModalFooter>
-            <Button colorScheme="red" mr={3} onClick={handleDeletePost}>
+          </Dialog.Body>
+          <Dialog.Footer>
+            <Button colorPalette="red" mr={3} onClick={handleDeletePost}>
               Yes, Delete
             </Button>
             <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+          </Dialog.Footer>
+        </Dialog.Content>
+      </Dialog.Root>
     </Container>
   );
 };

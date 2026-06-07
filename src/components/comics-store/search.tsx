@@ -1,5 +1,8 @@
-import { Input, InputGroup, InputLeftElement, Icon, Box, Text, useColorModeValue, Center } from "@chakra-ui/react";
-import { SearchIcon } from "@chakra-ui/icons";
+"use client";
+
+import { useColorModeValue } from "@/components/ui/color-mode";
+import { Input, InputGroup, Icon, Box, Text, Center } from "@chakra-ui/react";
+import { Search } from "lucide-react";
 
 interface SearchBarProps {
 	onSearch: (query: string) => void;
@@ -19,10 +22,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, searchQuery, totalResul
 	return (
 		<Center mb={4} width="100%">
 			<Box width={{ base: "100%", md: "40%" }} mb={4}>
-				<InputGroup>
-					<InputLeftElement pointerEvents="none">
-						<Icon as={SearchIcon} color={borderColor} />
-					</InputLeftElement>
+				<InputGroup startElement={<Search size={16} color={borderColor} />}>
 					<Input
 						type="text"
 						placeholder="Search for comics..."

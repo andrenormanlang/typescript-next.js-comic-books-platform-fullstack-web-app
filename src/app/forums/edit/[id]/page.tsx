@@ -6,23 +6,20 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { supabase } from "@/utils/supabaseClient";
-import {
+import {Field, 
   Box,
   Button,
   Input,
   Spinner,
   Center,
   Text,
-  VStack,
-  FormControl,
-  FormLabel,
-  Textarea,
-  useToast,
+  VStack, Textarea,
   Container,
   Flex,
   Heading,
 } from "@chakra-ui/react";
-import { ArrowBackIcon } from "@chakra-ui/icons";
+import { toaster } from "@/components/ui/toaster";
+import { ArrowLeft } from "lucide-react";
 import ImageUpload from "@/components/ImageUpload";
 
 
@@ -41,7 +38,6 @@ const EditForum = () => {
   const id = pathParts.pop();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const toast = useToast();
   const [forum, setForum] = useState<any | null>(null);
 
   const {
@@ -83,22 +79,20 @@ const EditForum = () => {
       setLoading(true);
       const { error } = await supabase.from("forums").update(data).eq("id", id);
       if (error) throw error;
-      toast({
+      toaster.create({
         title: "Forum updated.",
         description: "The forum has been successfully updated.",
-        status: "success",
+        type: "success",
         duration: 5000,
-        isClosable: true,
       });
       router.push("/forums");
     } catch (error: any) {
       setError("Error updating the forum!");
-      toast({
+      toaster.create({
         title: "Error updating forum.",
         description: error.message,
-        status: "error",
+        type: "error",
         duration: 5000,
-        isClosable: true,
       });
     } finally {
       setLoading(false);
@@ -128,7 +122,7 @@ const EditForum = () => {
   return (
     <Container maxW="container.xl" p={4}>
       <Box mb={4}>
-        <Button leftIcon={<ArrowBackIcon />} colorScheme="teal" variant="outline" onClick={() => router.push("/forums")}>
+        <Button  colorPalette="teal" variant="outline" onClick={() => router.push("/forums")}>
           Back to Forums
         </Button>
       </Box>
@@ -140,24 +134,24 @@ const EditForum = () => {
         borderWidth="1px"
         borderColor="gray.700"
       >
-        <VStack as="form" onSubmit={handleSubmit(onSubmit)} align="start" spacing={4} p={4}>
+        <VStack as="form" onSubmit={handleSubmit(onSubmit)} align="start" gap={4} p={4}>
           <Heading>Edit Forum</Heading>
-          <FormControl isInvalid={!!errors.title}>
-            <FormLabel>Title</FormLabel>
+          <Field.Root invalid={!!errors.title}>
+            <Field.Label>Title</Field.Label>
             <Input type="text" {...register("title")} />
             {errors.title && <Text color="red.500">{errors.title.message}</Text>}
-          </FormControl>
-          <FormControl isInvalid={!!errors.description}>
-            <FormLabel>Description</FormLabel>
+          </Field.Root>
+          <Field.Root invalid={!!errors.description}>
+            <Field.Label>Description</Field.Label>
             <Textarea {...register("description")} />
             {errors.description && <Text color="red.500">{errors.description.message}</Text>}
-          </FormControl>
-          <FormControl isInvalid={!!errors.image}>
-            <FormLabel>Image URL</FormLabel>
+          </Field.Root>
+          <Field.Root invalid={!!errors.image}>
+            <Field.Label>Image URL</Field.Label>
             <ImageUpload onUpload={handleImageUpload} />
             {errors.image && <Text color="red.500">{errors.image.message}</Text>}
-          </FormControl>
-          <Button colorScheme="teal" width="300px" type="submit" isDisabled={loading}>
+          </Field.Root>
+          <Button colorPalette="teal" width="300px" type="submit" disabled={loading}>
             {loading ? "Loading ..." : "Update Forum"}
           </Button>
         </VStack>

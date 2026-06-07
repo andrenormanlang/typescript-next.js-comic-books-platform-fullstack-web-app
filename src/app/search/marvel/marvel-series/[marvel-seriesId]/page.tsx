@@ -1,23 +1,20 @@
 "use client";
 
+import { useColorModeValue } from "@/components/ui/color-mode";
 import React, { Suspense, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import {
+import {Tag, 
 	Box,
 	Image,
 	Text,
-	VStack,
-	Tag,
-	Flex,
-	Container,
-	useColorModeValue,
-	Heading,
+	VStack, Flex,
+	Container, Heading,
 	Button,
 	Center,
 	Spinner,
 	SimpleGrid,
 } from "@chakra-ui/react";
-import { ArrowBackIcon } from "@chakra-ui/icons";
+import { ArrowLeft } from "lucide-react";
 import { NextPage } from "next";
 import NextLink from "next/link";
 import { useSearchParameters } from "@/hooks/useSearchParameters";
@@ -109,11 +106,11 @@ const MarvelSeries: NextPage = () => {
 	return (
 		<Container maxW="1100px" p={4}>
 			<Box mb={4}>
-				<Button leftIcon={<ArrowBackIcon />} colorScheme="teal" variant="outline" onClick={handleBack}>
+				<Button  colorPalette="teal" variant="outline" onClick={handleBack}>
 					Back to Grid
 				</Button>
 			</Box>
-			<VStack spacing={2}>
+			<VStack gap={2}>
 				{/* Content Box */}
 				<Flex
 					bg={bgColor}
@@ -138,23 +135,23 @@ const MarvelSeries: NextPage = () => {
 						justifySelf={{ base: "center", md: "auto" }} // Center on mobile, default alignment on larger screens
 						mx={{ base: "auto", md: 0 }} // Horizontal margin auto for mobile to center the image
 					/>
-					<VStack spacing={4} align="start" maxW="1000px" marginLeft={4}>
-						{/* <Tag
+					<VStack gap={4} align="start" maxW="1000px" marginLeft={4}>
+						{/* <Tag.Root
 								size="lg"
-								colorScheme="blue"
-							>{`Issue #${result?.issueNumber}`}</Tag> */}
+								colorPalette="blue"
+							>{`Issue #${result?.issueNumber}`}</Tag.Root> */}
 						<Flex>
-							{/* <Tag size="lg" colorScheme="green">
+							{/* <Tag.Root size="lg" colorPalette="green">
 								START: {formatDate(
 									result?.start
 								)}
-							</Tag>
+							</Tag.Root>
 
-							<Tag size="lg" colorScheme="red" ml={2}>
+							<Tag.Root size="lg" colorPalette="red" ml={2}>
 									END: {formatDate(
 									result?.end
 								)}
-							</Tag> */}
+							</Tag.Root> */}
 						</Flex>
 						<Heading fontFamily="Bangers" letterSpacing="0.05em" color="tomato" size="lg">
 							{result?.title || "Unknown Event"}
@@ -169,9 +166,9 @@ const MarvelSeries: NextPage = () => {
 							{solicitationText}
 							<Flex wrap="wrap" mt={2}>
 								{result?.urls?.map((urlItem: UrlItem) => (
-									<Tag
+									<Tag.Root
 										key={urlItem.type}
-										colorScheme={getColorScheme(urlItem.type)}
+										colorPalette={getColorScheme(urlItem.type)}
 										mr={2}
 										mb={2}
 										minH="30px"
@@ -179,7 +176,7 @@ const MarvelSeries: NextPage = () => {
 										<a href={urlItem.url} target="_blank" rel="noopener noreferrer">
 											{urlItem.type.charAt(0).toUpperCase() + urlItem.type.slice(1)}
 										</a>
-									</Tag>
+									</Tag.Root>
 								))}
 							</Flex>
 						</Text>
@@ -196,12 +193,12 @@ const MarvelSeries: NextPage = () => {
 					justify="space-between"
 					width={{ base: "100%", md: "90%", lg: "1100px" }}
 				>
-					<VStack spacing={4} align="stretch">
+					<VStack gap={4} align="stretch">
 						<Box>
 							<Heading size="md" fontFamily="Bangers" letterSpacing="0.05em" color="orange">
 								Creators:
 							</Heading>
-							<SimpleGrid columns={{ base: 2, md: 3 }} spacing={1}>
+							<SimpleGrid columns={{ base: 2, md: 3 }} gap={1}>
 								{result?.creators?.items?.map((creator: CreatorItem) => {
 									const comicId = extractIdFromURI(creator.resourceURI);
 
@@ -230,7 +227,7 @@ const MarvelSeries: NextPage = () => {
 							<Heading size="md" fontFamily="Bangers" letterSpacing="0.05em" color="orange">
 								Characters:
 							</Heading>
-							<SimpleGrid columns={{ base: 2, md: 3 }} spacing={4}>
+							<SimpleGrid columns={{ base: 2, md: 3 }} gap={4}>
 								{" "}
 								{result?.characters?.items?.map((charactersItem: CharacterItem) => {
 									// Extract the ID inside the map callback function
@@ -261,7 +258,7 @@ const MarvelSeries: NextPage = () => {
 							<Heading size="md" fontFamily="Bangers" letterSpacing="0.05em" color="orange">
 								Comics:
 							</Heading>
-							<SimpleGrid columns={{ base: 2, md: 3 }} spacing={1}>
+							<SimpleGrid columns={{ base: 2, md: 3 }} gap={1}>
 								{result?.comics?.items?.map((comicItem: ComicItem) => {
 									// Extract the ID inside the map callback function
 									const comicId = extractIdFromURI(comicItem.resourceURI);
@@ -291,7 +288,7 @@ const MarvelSeries: NextPage = () => {
 							<Heading size="md" fontFamily="Bangers" letterSpacing="0.05em" color="orange">
 								Series:
 							</Heading>
-							<SimpleGrid columns={{ base: 2, md: 3 }} spacing={1}>
+							<SimpleGrid columns={{ base: 2, md: 3 }} gap={1}>
 								{result?.comics?.items?.map((seriesItem: SeriesItem) => {
 									// Extract the ID inside the map callback function
 									const comicId = extractIdFromURI(seriesItem.resourceURI);
@@ -321,7 +318,7 @@ const MarvelSeries: NextPage = () => {
 							<Heading size="md" fontFamily="Bangers" letterSpacing="0.05em" color="orange">
 								Events:
 							</Heading>
-							<SimpleGrid columns={{ base: 2, md: 3 }} spacing={1}>
+							<SimpleGrid columns={{ base: 2, md: 3 }} gap={1}>
 								{result?.events?.items?.map((eventItem: EventItem) => {
 									// Extract the ID inside the map callback function
 									const comicId = extractIdFromURI(eventItem.resourceURI);
@@ -351,7 +348,7 @@ const MarvelSeries: NextPage = () => {
 							<Heading size="md" fontFamily="Bangers" letterSpacing="0.05em" color="orange">
 								Stories:
 							</Heading>
-							<SimpleGrid columns={{ base: 2, md: 3 }} spacing={1}>
+							<SimpleGrid columns={{ base: 2, md: 3 }} gap={1}>
 								{result?.stories?.items?.map((storyItem: StoryItems) => {
 									// Extract the ID inside the map callback function
 									const comicId = extractIdFromURI(storyItem.resourceURI);

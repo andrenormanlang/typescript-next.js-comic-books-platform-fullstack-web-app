@@ -1,6 +1,6 @@
 import React from "react";
 import parse, { DOMNode, HTMLReactParserOptions, domToReact  } from "html-react-parser";
-import { Box, Heading, Link, ListItem, Text, UnorderedList, useBreakpointValue } from "@chakra-ui/react";
+import {List,  Box, Heading, Link, Text, useBreakpointValue } from "@chakra-ui/react";
 import { LazyLoadImage, ScrollPosition } from "react-lazy-load-image-component";
 import "react-lazy-load-image-component/src/effects/blur.css";
 
@@ -99,7 +99,7 @@ if (!href.startsWith('http') && !href.startsWith('//')) {
   href = `https://comicvine.gamespot.com${href}`;
 }
             return (
-              <Link href={href} isExternal color="blue.500" fontWeight="bold" style={{width:"300px"}}>
+              <Link href={href} target="_blank" rel="noopener noreferrer" color="blue.500" fontWeight="bold" style={{width:"300px"}}>
                 {domToReact(children as unknown as DOMNode[], options)}
               </Link>
             );
@@ -112,15 +112,15 @@ if (!href.startsWith('http') && !href.startsWith('//')) {
           case 'ul':
             // Handling unordered lists
 			return (
-				<UnorderedList mb={4}>
+				<List.Root mb={4}>
 				  {domToReact(children as DOMNode[], options)}
-				</UnorderedList>
+				</List.Root>
 			  );
 			  case 'li':
 				return (
-				  <ListItem>
+				  <List.Item>
 					{domToReact(children as DOMNode[], options)}
-				  </ListItem>
+				  </List.Item>
 				);
 
           // Add more cases as needed

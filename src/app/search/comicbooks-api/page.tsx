@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { SimpleGrid, Box, Image, Text, Container, Center, Spinner, Button, VStack } from "@chakra-ui/react";
-import { DownloadIcon, LinkIcon } from "@chakra-ui/icons";
+import { Download, Link2 } from "lucide-react";
 import { motion } from "framer-motion";
 import NextLink from "next/link";
 import type { NextPage } from "next";
@@ -131,15 +131,15 @@ const CBAPI: NextPage = () => {
 						display: "flex",
 						justifyContent: "center",
 						alignItems: "center",
-						height: "100vh", // Full viewport height
-						fontFamily: '"Bangers", cursive', // Assuming "Bangers" font is loaded
-						fontSize: "1.5rem", // Larger font size
-						color: "red", // Red color for the error message
+						height: "100vh",
+						fontFamily: '"Bangers", cursive',
+						fontSize: "1.5rem",
+						color: "red",
 						textAlign: "center",
 						padding: "20px",
-						backgroundColor: "#f0f0f0", // Light background for visibility
+						backgroundColor: "#f0f0f0",
 						borderRadius: "10px",
-						boxShadow: "0 4px 8px rgba(0, 0, 0, 0.15)", // Optional shadow for better appearance
+						boxShadow: "0 4px 8px rgba(0, 0, 0, 0.15)",
 					}}
 				>
 					Loading...
@@ -148,7 +148,7 @@ const CBAPI: NextPage = () => {
 		>
 			<Container maxW="container.xl" centerContent p={4}>
 				<SearchBox onSearch={handleSearchTerm} />
-				<SimpleGrid columns={{ base: 1, md: 2 }} spacing={10} width="100%">
+				<SimpleGrid columns={{ base: 1, md: 2 }} gap={10} width="100%">
 					{data?.map((comic: ComicBooksAPI, index: number) => {
 						return (
 							<motion.div
@@ -184,7 +184,7 @@ const CBAPI: NextPage = () => {
 									<Text fontSize="sm" color="gray.500" textAlign="left" mt={1} p={2}>
 										{comic.description}
 									</Text>
-									<VStack spacing={4} align="stretch" mt={"1rem"}>
+									<VStack gap={4} align="stretch" mt={"1rem"}>
 										{Object.entries(groupDownloadLinks(comic.downloadLinks)).map(
 											([service, links]) => (
 												<Box key={`${comic.id}-${service}`}>
@@ -195,36 +195,32 @@ const CBAPI: NextPage = () => {
 															</Text>
 															{Object.entries(links).map(([part, url]) => (
 																<Button
-																	as="a"
-																	href={url}
-																	target="_blank"
-																	rel="noopener noreferrer"
+																	asChild
 																	key={`${comic.id}-${service}-${part}`}
-																	leftIcon={<DownloadIcon />}
-																	colorScheme={getColorScheme(service)}
+																	colorPalette={getColorScheme(service)}
 																	_hover={{ transform: "scale(1.05)" }}
 																	aria-label={`Download ${service} ${part}`}
 																	w="full"
 																	mb={2}
 																>
-																	{service} {part !== "SINGLE" ? part : ""}
+																	<a href={url} target="_blank" rel="noopener noreferrer">
+																		{service} {part !== "SINGLE" ? part : ""}
+																	</a>
 																</Button>
 															))}
 														</>
 													) : (
 														<Button
-															as="a"
-															href={Object.values(links)[0]}
-															target="_blank"
-															rel="noopener noreferrer"
+															asChild
 															key={`${comic.id}-${service}`}
-															leftIcon={<DownloadIcon />}
-															colorScheme={getColorScheme(service)}
+															colorPalette={getColorScheme(service)}
 															_hover={{ transform: "scale(1.05)" }}
 															aria-label={`Download from ${service}`}
 															w="full"
 														>
-															{service}
+															<a href={Object.values(links)[0]} target="_blank" rel="noopener noreferrer">
+																{service}
+															</a>
 														</Button>
 													)}
 												</Box>

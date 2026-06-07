@@ -7,7 +7,7 @@ import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { postSchema, type PostFormData } from "@/lib/validations/blog";
 import { createClient } from "@/utils/supabase/client";
-import { Box, Button, Container, FormControl, FormLabel, Input, VStack, useToast, Text } from "@chakra-ui/react";
+import { Box, Button, Container, Field, Input, VStack, Text } from "@chakra-ui/react";
 import ImageUpload from "@/components/ImageUpload";
 
 const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), { ssr: false });
@@ -18,7 +18,6 @@ interface EditBlogPostProps {
 
 export default function EditBlogPost({ initialBlog }: EditBlogPostProps) {
 	const router = useRouter();
-	const toast = useToast();
 	const supabase = createClient();
 
 	const methods = useForm<PostFormData>({
@@ -36,10 +35,10 @@ export default function EditBlogPost({ initialBlog }: EditBlogPostProps) {
 		<Container maxW="container.md" py={8}>
 			<FormProvider {...methods}>
 				<form>
-					<FormControl isRequired>
-						<FormLabel>Content</FormLabel>
+					<Field.Root required>
+						<Field.Label>Content</Field.Label>
 						<Box
-							sx={{
+							css={{
 								".tox-tinymce": {
 									resize: "vertical",
 									minHeight: "300px",
@@ -55,7 +54,7 @@ export default function EditBlogPost({ initialBlog }: EditBlogPostProps) {
 							/>
 						</Box>
 						{errors.content && <Text color="red.500">{errors.content.message}</Text>}
-					</FormControl>
+					</Field.Root>
 				</form>
 			</FormProvider>
 		</Container>

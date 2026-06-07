@@ -1,3 +1,5 @@
+"use client";
+
 // import { createClient } from "@/utils/supabase/server";
 // import { notFound } from "next/navigation";
 // import EditBlogPost from "./_components/EditBlogPost";
@@ -25,8 +27,6 @@
 // 	return <EditBlogPost initialBlog={blog} />;
 // }
 
-"use client";
-
 import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -38,14 +38,13 @@ import {
 	Box,
 	Button,
 	Container,
-	FormControl,
-	FormLabel,
+	Field,
 	Input,
 	VStack,
-	useToast,
 	Center,
 	Spinner,
 } from "@chakra-ui/react";
+import { toaster } from "@/components/ui/toaster";
 import ImageUpload from "@/components/ImageUpload";
 
 // Dynamically import RichTextEditor to disable SSR (so it only runs on the client)
@@ -64,7 +63,6 @@ const EditBlogPost = () => {
 	const id = Array.isArray(params.id) ? params.id[0] : params.id;
 	const supabase = createClient();
 	const router = useRouter();
-	const toast = useToast();
 
 	// Create the form methods object.
 	const methods = useForm<PostFormData>({
@@ -83,83 +81,78 @@ const EditBlogPost = () => {
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
-		if (id) {
-			fetchPostData(id);
-			checkAdmin();
-		}
-	}, [id]);
+		if (!id) return;
 
-	const fetchPostData = async (postId: string) => {
-		const { data, error } = await supabase.from("blog_posts").select("*").eq("id", postId).single();
+		const fetchPostData = async () => {
+			const { data, error } = await supabase.from("blog_posts").select("*").eq("id", id).single();
 
-		if (data) {
-			setValue("title", data.title);
-			setValue("content", data.content);
-			setValue("imageUrl", data.imageUrl);
-			setImageUrl(data.imageUrl);
-		} else {
-			toast({
-				title: "Error",
-				description: error?.message,
-				status: "error",
-				duration: 5000,
-				isClosable: true,
-			});
-		}
-		setLoading(false);
-	};
+			if (data) {
+				setValue("title", data.title);
+				setValue("content", data.content);
+				setValue("imageUrl", data.imageUrl);
+				setImageUrl(data.imageUrl);
+			} else {
+				toaster.create({
+					title: "Error",
+					description: error?.message,
+					type: "error",
+					duration: 5000,
+				});
+			}
+			setLoading(false);
+		};
 
-	const checkAdmin = async () => {
-		const {
-			data: { user },
-		} = await supabase.auth.getUser();
+		const checkAdmin = async () => {
+			const {
+				data: { user },
+			} = await supabase.auth.getUser();
 
-		if (!user) {
-			toast({
-				title: "Error",
-				description: "User not authenticated.",
-				status: "error",
-				duration: 5000,
-				isClosable: true,
-			});
-			return;
-		}
+			if (!user) {
+				toaster.create({
+					title: "Error",
+					description: "User not authenticated.",
+					type: "error",
+					duration: 5000,
+				});
+				return;
+			}
 
-		const { data, error } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
+			const { data, error } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
 
-		if (error) {
-			toast({
-				title: "Error",
-				description: "Error fetching profile data.",
-				status: "error",
-				duration: 5000,
-				isClosable: true,
-			});
-			return;
-		}
+			if (error) {
+				toaster.create({
+					title: "Error",
+					description: "Error fetching profile data.",
+					type: "error",
+					duration: 5000,
+				});
+				return;
+			}
 
-		if (data?.is_admin) {
-			setIsAdmin(true);
-		} else {
-			toast({
-				title: "Error",
-				description: "Only admin users can edit blog posts.",
-				status: "error",
-				duration: 5000,
-				isClosable: true,
-			});
-			router.push(`/blog/${id}`);
-		}
-	};
+			if (data?.is_admin) {
+				setIsAdmin(true);
+			} else {
+				toaster.create({
+					title: "Error",
+					description: "Only admin users can edit blog posts.",
+					type: "error",
+					duration: 5000,
+				});
+				router.push(`/blog/${id}`);
+			}
+		};
+
+		fetchPostData();
+		checkAdmin();
+	}, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const onSubmit: SubmitHandler<PostFormData> = async (data) => {
 		if (!isAdmin) {
-			toast({
+			toaster.create({
 				title: "Error",
 				description: "Only admin users can edit blog posts.",
-				status: "error",
+				type: "error",
 				duration: 5000,
-				isClosable: true,
 			});
 			return;
 		}
@@ -172,21 +165,19 @@ const EditBlogPost = () => {
 		const { error } = await supabase.from("blog_posts").update(postData).eq("id", id);
 
 		if (error) {
-			toast({
+			toaster.create({
 				title: "Error",
 				description: error.message,
-				status: "error",
+				type: "error",
 				duration: 5000,
-				isClosable: true,
 			});
 		} else {
-			toast({
+			toaster.create({
 				title: "Success",
 				description:
 					"Blog post updated successfully.",
-				status: "success",
+				type: "success",
 				duration: 5000,
-				isClosable: true,
 			});
 			// Removed automatic redirect to avoid unexpected navigation.
 			// If you still want to navigate automatically, uncomment the next line.
@@ -220,12 +211,12 @@ const EditBlogPost = () => {
 			</Box>
 			<FormProvider {...methods}>
 				<form onSubmit={methods.handleSubmit(onSubmit)}>
-					<VStack spacing={4} align="stretch">
-						<FormControl isInvalid={!!errors.title}>
-							<FormLabel>Title</FormLabel>
+					<VStack gap={4} align="stretch">
+						<Field.Root invalid={!!errors.title}>
+							<Field.Label>Title</Field.Label>
 							<Input {...register("title")} />
 							{errors.title && <p style={{ color: "red" }}>{errors.title.message}</p>}
-						</FormControl>
+						</Field.Root>
 
 						<ImageUpload
 							onUpload={(url) => {
@@ -234,8 +225,8 @@ const EditBlogPost = () => {
 							}}
 						/>
 
-						<FormControl isInvalid={!!errors.content}>
-							<FormLabel>Content</FormLabel>
+						<Field.Root invalid={!!errors.content}>
+							<Field.Label>Content</Field.Label>
 							<Box maxH="500px" overflowY="auto" border="1px solid #ccc" borderRadius="6px">
 								<RichTextEditor
 									value={watch("content")}
@@ -244,7 +235,7 @@ const EditBlogPost = () => {
 								/>
 							</Box>
 							{errors.content && <p style={{ color: "red" }}>{errors.content.message}</p>}
-						</FormControl>
+						</Field.Root>
 
 						<Button type="submit">Save</Button>
 					</VStack>

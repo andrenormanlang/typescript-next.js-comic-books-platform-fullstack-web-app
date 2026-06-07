@@ -1,5 +1,6 @@
 'use client';
 
+import { useColorModeValue } from "@/components/ui/color-mode";
 import React from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -8,9 +9,7 @@ import {
   Text,
   Heading,
   VStack,
-  Divider,
-  useColorModeValue,
-} from "@chakra-ui/react";
+  Separator } from "@chakra-ui/react";
 
 export default function ConfirmForm() {
   const searchParams = useSearchParams();
@@ -31,11 +30,11 @@ export default function ConfirmForm() {
         borderRadius="lg"
         bg={useColorModeValue("white", "gray.700")}
       >
-        <VStack spacing={4}>
+        <VStack gap={4}>
           <Heading as="h1" size="lg" color="green.600" textAlign="center">
             Confirmation Required
           </Heading>
-          <Divider />
+          <Separator />
           <Text textAlign="center" fontSize="md" color="green.600">
             Check your email{" "}
             <span style={{ fontWeight: "bold" }}>{email}</span> to continue the sign-in process

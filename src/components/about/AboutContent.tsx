@@ -1,6 +1,7 @@
 "use client";
 
-import { Container, SimpleGrid, Box, Heading, Text, Image, useColorModeValue } from "@chakra-ui/react";
+import { useColorModeValue } from "@/components/ui/color-mode";
+import { Container, SimpleGrid, Box, Heading, Text, Image } from "@chakra-ui/react";
 import AboutFeatureCard from "./AboutFeatureCard";
 
 const features = [
@@ -84,7 +85,7 @@ export default function AboutContent() {
 				</Box>
 
 				{/* Features Grid */}
-				<SimpleGrid columns={{ base: 1, md: 2 }} spacing={{ base: 8, lg: 12 }} mb={20}>
+				<SimpleGrid columns={{ base: 1, md: 2 }} gap={{ base: 8, lg: 12 }} mb={20}>
 					{features.map((feature, index) => (
 						<AboutFeatureCard key={index} {...feature} />
 					))}

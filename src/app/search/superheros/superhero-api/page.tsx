@@ -2,7 +2,7 @@
 
 import { useEffect, Suspense } from "react";
 import { SimpleGrid, Box, Image, Text, Container, Center, Spinner } from "@chakra-ui/react";
-import { SearchIcon } from "@chakra-ui/icons";
+import { Search } from "lucide-react";
 import { motion } from "framer-motion";
 import NextLink from "next/link";
 import type { NextPage } from "next";
@@ -76,7 +76,7 @@ const Superheroes: NextPage = () => {
 
 	console.log('data', data);
 	return (
-		<Suspense fallback={<div>Loading...</div>}>
+		<Suspense>
 			<Container maxW="container.xl" centerContent p={4}>
 				<SearchBox onSearch={handleSearchTerm} />
 				{data && (
@@ -88,7 +88,7 @@ const Superheroes: NextPage = () => {
 </Text>
 					</Box>
 				)}
-				<SimpleGrid columns={{ base: 1, md: 2 }} spacing={30} width="100%">
+				<SimpleGrid columns={{ base: 1, md: 2 }} gap={30} width="100%">
 					{data &&
 						(isSearchMode
 							? data.superheroes.results
@@ -126,7 +126,7 @@ const Superheroes: NextPage = () => {
 														<Text
 															fontWeight="bold"
 															fontSize="1.5rem"
-															noOfLines={1}
+															lineClamp={1}
 															textAlign="center"
 														>
 															{hero.name}
@@ -134,7 +134,7 @@ const Superheroes: NextPage = () => {
 														<Text
 															fontWeight="bold"
 															fontSize="1.2rem"
-															noOfLines={1}
+															lineClamp={1}
 															textAlign="center"
 														>
 															first appearance: {hero.biography["first-appearance"]}
@@ -142,7 +142,7 @@ const Superheroes: NextPage = () => {
 														<Text
 															fontWeight="bold"
 															fontSize="1.2rem"
-															noOfLines={1}
+															lineClamp={1}
 															textAlign="center"
 														>
 															publisher: {hero.biography.publisher}
@@ -185,7 +185,7 @@ const Superheroes: NextPage = () => {
 												<Text
 													fontWeight="bold"
 													fontSize="1.5rem"
-													noOfLines={1}
+													lineClamp={1}
 													textAlign="center"
 												>
 													{hero.name}
@@ -193,7 +193,7 @@ const Superheroes: NextPage = () => {
 												<Text
 													fontWeight="bold"
 													fontSize="1.2rem"
-													noOfLines={1}
+													lineClamp={1}
 													textAlign="center"
 												>
 													first appearance: {hero.biography.firstAppearance}
@@ -201,7 +201,7 @@ const Superheroes: NextPage = () => {
 												<Text
 													fontWeight="bold"
 													fontSize="1.2rem"
-													noOfLines={1}
+													lineClamp={1}
 													textAlign="center"
 												>
 													publisher: {hero.biography.publisher}

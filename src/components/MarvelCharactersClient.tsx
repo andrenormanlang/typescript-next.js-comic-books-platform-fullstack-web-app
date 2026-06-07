@@ -121,7 +121,7 @@ const MarvelCharactersClient = () => {
 					</Text>
 				</Box>
 			)}
-			<SimpleGrid columns={{ base: 1, md: 3 }} spacing={30} width="100%">
+			<SimpleGrid columns={{ base: 1, md: 3 }} gap={30} width="100%">
 				{data.data &&
 					Array.isArray(data.data.results) &&
 					data.data.results.map((marvelCharacter: MarvelCharacter) => (

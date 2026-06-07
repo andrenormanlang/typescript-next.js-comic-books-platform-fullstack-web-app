@@ -1,22 +1,18 @@
-// components/auth/ReceiptForm.tsx
+"use client";
 
-'use client';
+import { useColorModeValue } from "@/components/ui/color-mode";
+// components/auth/ReceiptForm.tsx
 
 import React, { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import {
+import {List, 
   Box,
   Text,
   Spinner,
-  Center,
-  List,
-  ListItem,
-  Heading,
+  Center, Heading,
   Stack,
-  Divider,
-  Image,
-  useColorModeValue,
-} from '@chakra-ui/react';
+  Separator,
+  Image } from '@chakra-ui/react';
 
 const Receipt = () => {
   const router = useRouter();
@@ -89,18 +85,18 @@ const Receipt = () => {
         <Heading size="lg" mb={4} textAlign="center" color={headingColor}>
           Thank you for your purchase!
         </Heading>
-        <Divider mb={4} />
-        <Stack spacing={2} mb={4} color={textColor}>
+        <Separator mb={4} />
+        <Stack gap={2} mb={4} color={textColor}>
           <Text fontWeight="bold">Order ID:</Text>
           <Text>{order.order_id}</Text>
         </Stack>
-        <Divider my={4} />
+        <Separator my={4} />
         <Heading size="md" mb={2} color={headingColor}>
           Items:
         </Heading>
-        <List spacing={3}>
+        <List.Root gap={3}>
           {order.items.map((item: any, index: number) => (
-            <ListItem key={index} display="flex" alignItems="center" color={textColor}>
+            <List.Item key={index} display="flex" alignItems="center" color={textColor}>
               <Image
                 src={item.image}
                 alt={item.title}
@@ -113,10 +109,10 @@ const Receipt = () => {
                 <Text>${(item.price / 100).toFixed(2)} x {item.quantity}</Text>
                 <Text>Total: ${(item.price * item.quantity / 100).toFixed(2)}</Text>
               </Box>
-            </ListItem>
+            </List.Item>
           ))}
-        </List>
-        <Divider my={4} />
+        </List.Root>
+        <Separator my={4} />
         <Center>
           <Text fontWeight="bold" fontSize="2xl" color={totalColor}>
             Total Amount: ${(order.total_amount / 100).toFixed(2)}

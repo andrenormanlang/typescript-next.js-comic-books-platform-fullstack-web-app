@@ -1,24 +1,11 @@
 "use client";
 
-import {
-	Table,
-	Thead,
-	Tbody,
-	Tr,
-	Th,
-	Td,
-	TableContainer,
-	Avatar,
-	Heading,
+import {Avatar, 
+	Table, Heading,
 	Spinner,
 	Center,
 	Alert,
-	AlertIcon,
 	Accordion,
-	AccordionItem,
-	AccordionButton,
-	AccordionPanel,
-	AccordionIcon,
 	Box,
 } from "@chakra-ui/react";
 import { useGetUsers } from "@/hooks/fetch-users/useGetUsers";
@@ -88,81 +75,78 @@ const UserListTable = () => {
 	if (isError) {
 		return (
 			<Center h="100vh">
-				<Alert status="error">
-					<AlertIcon />
-					{error instanceof Error ? error.message : "An error occurred"}
-				</Alert>
+				<Alert.Root status="error">
+					<Alert.Indicator />
+					<Alert.Description>{error instanceof Error ? error.message : "An error occurred"}</Alert.Description>
+				</Alert.Root>
 			</Center>
 		);
 	}
 
 	return (
 		<Box maxW="1300px" mx="auto" p={4}>
-			<Accordion allowToggle>
-				<AccordionItem>
-					<AccordionButton>
+			<Accordion.Root >
+				<Accordion.Item value="users-list">
+					<Accordion.ItemTrigger>
 						<Heading as="h1" size="xl" mb={6} flex="1" textAlign="left">
 							Users List
 						</Heading>
-						<AccordionIcon />
-					</AccordionButton>
-					<AccordionPanel pb={4}>
+						<Accordion.ItemIndicator />
+					</Accordion.ItemTrigger>
+					<Accordion.ItemContent pb={4}>
 						<SearchBar
 							onSearch={setSearchQuery}
 							searchQuery={searchQuery}
 							totalResults={sortedAndFilteredUsers.length}
 						/>
 
-						<TableContainer>
-							<Table variant="simple">
-								<Thead>
-									<Tr>
-										<Th textAlign="center" onClick={() => requestSort("avatar_url")}>
+						<Box overflowX="auto">
+							<Table.Root variant="outline">
+								<Table.Header>
+									<Table.Row>
+										<Table.ColumnHeader textAlign="center" onClick={() => requestSort("avatar_url")}>
 											Avatar
-										</Th>
-										<Th textAlign="center" onClick={() => requestSort("created")}>
+										</Table.ColumnHeader>
+										<Table.ColumnHeader textAlign="center" onClick={() => requestSort("created")}>
 											Registration Date
-										</Th>
-										<Th textAlign="center" onClick={() => requestSort("full_name")}>
+										</Table.ColumnHeader>
+										<Table.ColumnHeader textAlign="center" onClick={() => requestSort("full_name")}>
 											Full Name
-										</Th>
-										<Th textAlign="center" onClick={() => requestSort("username")}>
+										</Table.ColumnHeader>
+										<Table.ColumnHeader textAlign="center" onClick={() => requestSort("username")}>
 											Username
-										</Th>
-										<Th textAlign="center" onClick={() => requestSort("email")}>
+										</Table.ColumnHeader>
+										<Table.ColumnHeader textAlign="center" onClick={() => requestSort("email")}>
 											Email
-										</Th>
-										<Th textAlign="center" onClick={() => requestSort("last_sign_in")}>
+										</Table.ColumnHeader>
+										<Table.ColumnHeader textAlign="center" onClick={() => requestSort("last_sign_in")}>
 											Last Signed In
-										</Th>
-										<Th textAlign="center" onClick={() => requestSort("is_admin")}>
+										</Table.ColumnHeader>
+										<Table.ColumnHeader textAlign="center" onClick={() => requestSort("is_admin")}>
 											Admin Status
-										</Th>
-									</Tr>
-								</Thead>
-								<Tbody>
+										</Table.ColumnHeader>
+									</Table.Row>
+								</Table.Header>
+								<Table.Body>
 									{sortedAndFilteredUsers.map((user: User) => (
-										<Tr key={user.id}>
-											<Td textAlign="center">
-												<Avatar
-													src={user.avatar_url || undefined}
-													name={user.username || "N/A"}
-												/>
-											</Td>
-											<Td textAlign="center">{formatDate(user.created)}</Td>
-											<Td textAlign="center">{user.full_name || "No Name Provided"}</Td>
-											<Td textAlign="center">{user.username || "No Username"}</Td>
-											<Td textAlign="center">{user.email || "No Email"}</Td>
-											<Td textAlign="center">{formatDate(user.last_sign_in)}</Td>
-											<Td textAlign="center">{user.is_admin ? "Yes" : "No"}</Td>
-										</Tr>
+										<Table.Row key={user.id}>
+											<Table.Cell textAlign="center">
+												<Avatar.Root><Avatar.Image src={user.avatar_url || undefined} /><Avatar.Fallback /></Avatar.Root>
+											</Table.Cell>
+											<Table.Cell textAlign="center">{formatDate(user.created)}</Table.Cell>
+											<Table.Cell textAlign="center">{user.full_name || "No Name Provided"}</Table.Cell>
+											<Table.Cell textAlign="center">{user.username || "No Username"}</Table.Cell>
+											<Table.Cell textAlign="center">{user.email || "No Email"}</Table.Cell>
+											<Table.Cell textAlign="center">{formatDate(user.last_sign_in)}</Table.Cell>
+											<Table.Cell textAlign="center">{user.is_admin ? "Yes" : "No"}</Table.Cell>
+										</Table.Row>
 									))}
-								</Tbody>
-							</Table>
-						</TableContainer>
-					</AccordionPanel>
-				</AccordionItem>
-			</Accordion>
+								</Table.Body>
+							</Table.Root>
+						</Box>
+					</Accordion.ItemContent>
+				</Accordion.Item>
+			</Accordion.Root>
 		</Box>
 	);
 };

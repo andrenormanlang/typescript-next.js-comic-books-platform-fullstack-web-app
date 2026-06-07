@@ -1,3 +1,4 @@
+import { useColorModeValue } from "@/components/ui/color-mode";
 import React, { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { createClient } from '@supabase/supabase-js';
@@ -100,15 +101,11 @@ const Avatar: React.FC<AvatarProps> = ({ uid, url, size, onUpload }) => {
         </Box>
       )}
       <Box mt={4}>
-        <Button
-          as="label"
-          htmlFor="single"
-          colorScheme="teal"
-          isLoading={uploading}
-          loadingText="Uploading"
-        >
+        <Button asChild
+          colorPalette="teal"
+        ><label htmlFor="single">
           Upload
-        </Button>
+        </label></Button>
         <input
           style={{
             visibility: 'hidden',
@@ -133,7 +130,7 @@ export default Avatar;
 // components/Avatar.tsx
 // import React, { useEffect, useState } from 'react'
 // import { createClient } from '@/utils/supabase/client'
-// import { Image, Box, Button, Spinner, useColorModeValue } from "@chakra-ui/react";
+// import { Image, Box, Button, Spinner } from "@chakra-ui/react";
 
 // export default function Avatar({
 //   uid,
@@ -230,8 +227,8 @@ export default Avatar;
 //         <Button
 //           as="label"
 //           htmlFor="single"
-//           colorScheme="teal"
-//           isLoading={uploading}
+//           colorPalette="teal"
+//           loading={uploading}
 //           loadingText="Uploading"
 //         >
 //           Upload

@@ -1,14 +1,11 @@
+import { useColorModeValue } from "@/components/ui/color-mode";
 import React, { Suspense } from "react";
 import SignupForm from "@/components/auth/SignupServer";
-import { Spinner, Center } from "@chakra-ui/react";
+import {InputElement, Field,  Spinner, Center } from "@chakra-ui/react";
 
 export default function Signup() {
   return (
-    <Suspense fallback={
-      <Center minH="100vh">
-        <Spinner size="xl" />
-      </Center>
-    }>
+    <Suspense>
       <SignupForm />
     </Suspense>
   );
@@ -25,18 +22,14 @@ export default function Signup() {
 // import {
 //   Box,
 //   Heading,
-//   FormControl,
-//   FormLabel,
-//   Input,
+//, //, //   Input,
 //   Button,
 //   Text,
 //   Center,
-//   useColorModeValue,
-//   Spinner,
+//, //   Spinner,
 //   useToast,
 //   InputGroup,
-//   InputRightElement,
-//   IconButton,
+//, //   IconButton,
 // } from "@chakra-ui/react";
 // import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
 // import Link from "next/link";
@@ -172,13 +165,13 @@ export default function Signup() {
 //           Sign Up
 //         </Heading>
 //         <form onSubmit={handleSubmit(signUp)}>
-//           <FormControl id="email" mb={4} isInvalid={!!errors.email}>
-//             <FormLabel>Email</FormLabel>
+//           <Field.Root id="email" mb={4} invalid={!!errors.email}>
+//             <Field.Label>Email</Field.Label>
 //             <Input type="email" {...register('email', { required: true })} />
 //             {errors.email && <Text color="red.500">{errors.email.message}</Text>}
-//           </FormControl>
-//           <FormControl id="password" mb={4} isInvalid={!!errors.password}>
-//             <FormLabel>Password</FormLabel>
+//           </Field.Root>
+//           <Field.Root id="password" mb={4} invalid={!!errors.password}>
+//             <Field.Label>Password</Field.Label>
 //             <InputGroup>
 //               <Input
 //                 type={showPassword ? 'text' : 'password'}
@@ -186,19 +179,19 @@ export default function Signup() {
 //                 name="password"
 //                 required
 //               />
-//               <InputRightElement>
+//               <InputElement placement="end">
 //                 <IconButton
-//                   icon={showPassword ? <ViewOffIcon /> : <ViewIcon />}
+//
 //                   onClick={() => setShowPassword(!showPassword)}
 //                   variant="ghost"
 //                   aria-label="Toggle Password Visibility"
-//                 />
-//               </InputRightElement>
+//>showPassword ? <ViewOffIcon /> : <ViewIcon /></IconButton>
+//               </InputElement>
 //             </InputGroup>
 //             {errors.password && <Text color="red.500">{errors.password.message}</Text>}
-//           </FormControl>
-//           <FormControl id="confirmPassword" mb={4} isInvalid={!!errors.confirmPassword}>
-//             <FormLabel>Confirm Password</FormLabel>
+//           </Field.Root>
+//           <Field.Root id="confirmPassword" mb={4} invalid={!!errors.confirmPassword}>
+//             <Field.Label>Confirm Password</Field.Label>
 //             <InputGroup>
 //               <Input
 //                 type={showConfirmPassword ? 'text' : 'password'}
@@ -206,18 +199,18 @@ export default function Signup() {
 //                 name="confirmPassword"
 //                 required
 //               />
-//               <InputRightElement>
+//               <InputElement placement="end">
 //                 <IconButton
-//                   icon={showConfirmPassword ? <ViewOffIcon /> : <ViewIcon />}
+//
 //                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
 //                   variant="ghost"
 //                   aria-label="Toggle Confirm Password Visibility"
-//                 />
-//               </InputRightElement>
+//>showConfirmPassword ? <ViewOffIcon /> : <ViewIcon /></IconButton>
+//               </InputElement>
 //             </InputGroup>
 //             {errors.confirmPassword && <Text color="red.500">{errors.confirmPassword.message}</Text>}
-//           </FormControl>
-//           <Button type="submit" colorScheme="teal" width="full" mb={4}>
+//           </Field.Root>
+//           <Button type="submit" colorPalette="teal" width="full" mb={4}>
 //             Sign Up
 //           </Button>
 //           {message && (
@@ -227,7 +220,7 @@ export default function Signup() {
 //           )}
 //         </form>
 //         <Link href="/auth/login" passHref>
-//           <Button type="button" variant="link" colorScheme="teal" width="full">
+//           <Button type="button" variant="plain" colorPalette="teal" width="full">
 //             Already have an account? Sign In
 //           </Button>
 //         </Link>

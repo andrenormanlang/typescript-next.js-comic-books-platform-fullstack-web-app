@@ -5,7 +5,7 @@ import Image from "next/image";
 export default function NotFound() {
 	return (
 		<Center h="100vh">
-			<VStack spacing={6}>
+			<VStack gap={6}>
 				<Image
 					src="/toilet-not-found.jpg"
 					alt="Toilet Not Found"
@@ -19,7 +19,7 @@ export default function NotFound() {
 				<Text fontSize="xl">Page Not Found</Text>
 				<Text>We couldn&apos;t find the page you were looking for.</Text>
 				<Link href="/" passHref>
-					<Button colorScheme="blue">Return Home</Button>
+					<Button colorPalette="blue">Return Home</Button>
 				</Link>
 			</VStack>
 		</Center>

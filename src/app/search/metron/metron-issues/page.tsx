@@ -5,11 +5,6 @@ import MetronIssuesClient from "@/components/MetronIssuesClient";
 const MetronIssues = () => {
 	return (
 		<Suspense
-			fallback={
-				<Center height="100vh">
-					<Spinner size="xl" />
-				</Center>
-			}
 		>
 			<MetronIssuesClient />
 		</Suspense>

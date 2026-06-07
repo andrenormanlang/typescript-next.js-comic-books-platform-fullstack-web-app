@@ -1,6 +1,6 @@
 import React from "react";
 import parse, { HTMLReactParserOptions } from "html-react-parser";
-import { Box, Heading, ListItem, Text, UnorderedList, useBreakpointValue } from "@chakra-ui/react";
+import {List,  Box, Heading, Text, useBreakpointValue } from "@chakra-ui/react";
 import { LazyLoadImage, trackWindowScroll, ScrollPosition } from "react-lazy-load-image-component";
 import "react-lazy-load-image-component/src/effects/blur.css";
 import domNodeToString, { DomNodeOrChild } from "./domNodeToString";
@@ -64,7 +64,7 @@ const ComicVineCharacterDescription: React.FC<ComicVineCharacterDescriptionProps
 		color: "teal",
 		ml: 2,
 	};
-	const maxWidth = useBreakpointValue({ base: "300px", objectFit: "contain" });
+	const maxWidth = useBreakpointValue({ base: "300px", md: "600px" });
 
 	const ImageLinkWrapper: React.FC<ImageLinkWrapperProps> = ({ href, children }) => (
 		<a href={href} target="_blank" rel="noopener noreferrer">
@@ -108,7 +108,7 @@ const ComicVineCharacterDescription: React.FC<ComicVineCharacterDescriptionProps
 							}}
 							srcSet={srcSet}
 							// borderRadius="md"
-							// 	boxSize={{ base: "100%", md: "600px" }}
+							// 	size={{ base: "100%", md: "600px" }}
 							// 	objectFit="contain"
 							// 	p={2}
 
@@ -189,17 +189,15 @@ const ComicVineCharacterDescription: React.FC<ComicVineCharacterDescriptionProps
 									href = `https://comicvine.gamespot.com/${href}`;
 								}
 								return (
-									<Box
-										as="a"
+									<a
 										href={href}
-										style={linkStyle}
+										style={{ ...linkStyle, display: "block", marginBottom: "1rem" }}
 										key={index}
 										target="_blank"
 										rel="noopener noreferrer"
-										mb="1rem"
 									>
 										{linkText}
-									</Box>
+									</a>
 								);
 							}  else if (child.type === "tag" && child.name === "b" && child.attribs && child.children) {
 								// Ensure that child.children[0].data is a string and that child.attribs.href exists
@@ -225,13 +223,13 @@ const ComicVineCharacterDescription: React.FC<ComicVineCharacterDescriptionProps
 			}
 			if (domNode.name === "ul") {
 				return (
-				  <UnorderedList style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '' }} mb="1rem">
+				  <List.Root style={{ fontWeight: 'bold', fontSize: '1.2rem' }} mb="1rem">
 					{domNode.children.map((child, index) => {
 					  // Check if 'child' is an object representing an 'li' element and handle it
 					  if (child.type === "tag" && child.name === "li") {
 						// Check if the 'li' element has children that need to be parsed
 						return (
-						  <ListItem key={index}>
+						  <List.Item key={index}>
 							{child.children?.map((nestedChild, nestedIndex) => {
 							  // If 'nestedChild' has a 'data' property, it is a text node
 							  if (nestedChild.type === "text" && nestedChild.data) {
@@ -246,12 +244,12 @@ const ComicVineCharacterDescription: React.FC<ComicVineCharacterDescriptionProps
 							  }
 							  return null;
 							})}
-						  </ListItem>
+						  </List.Item>
 						);
 					  }
 					  return null;
 					})}
-				  </UnorderedList>
+				  </List.Root>
 				);
 			  }
 

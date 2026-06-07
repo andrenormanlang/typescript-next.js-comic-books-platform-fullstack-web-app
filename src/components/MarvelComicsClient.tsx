@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, Suspense, useState } from "react";
-import { SimpleGrid, Box, Image, Text, Container, Center, Spinner, Button, Tag } from "@chakra-ui/react";
+import {Tag,  SimpleGrid, Box, Image, Text, Container, Center, Spinner, Button } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 import NextLink from "next/link";
 import type { NextPage } from "next";
@@ -126,7 +126,7 @@ const MarvelComicsClient: NextPage = () => {
 	}
 
 	return (
-		<Suspense fallback={<div>Loading...</div>}>
+		<Suspense>
 			<Container maxW="container.xl" centerContent p={4}>
 				<SearchBox onSearch={(value) => handleSearchTerm(value)} />
 				{data && data.data && (
@@ -142,7 +142,7 @@ const MarvelComicsClient: NextPage = () => {
 						</Text>
 					</Box>
 				)}
-				<SimpleGrid columns={{ base: 1, md: 2 }} spacing={30} width="100%">
+				<SimpleGrid columns={{ base: 1, md: 2 }} gap={30} width="100%">
 					{data.data &&
 						Array.isArray(data.data.results) &&
 						data.data.results.map((marvelComics: MarvelComicsTypes) => (
@@ -174,9 +174,9 @@ const MarvelComicsClient: NextPage = () => {
 										<Text mt={4} fontWeight="bold" fontSize="1rem" textAlign="center">
 											{marvelComics.title}
 										</Text>{" "}
-										<Tag size="sm" colorScheme="green" mt={2}>
+										<Tag.Root size="sm" colorPalette="green" mt={2}>
 											{formatDate(marvelComics.dates?.find((d) => d.type === "onsaleDate")?.date)}
-										</Tag>{" "}
+										</Tag.Root>{" "}
 									</Box>
 								</motion.div>
 							</NextLink>

@@ -1,8 +1,9 @@
 "use client";
 
+import { useColorModeValue } from "@/components/ui/color-mode";
 import { useEffect, useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import {
+import {Tag, 
 	Box,
 	Image,
 	Text,
@@ -10,21 +11,15 @@ import {
 	Container,
 	Button,
 	Center,
-	Spinner,
-	useColorModeValue,
-	Heading,
+	Spinner, Heading,
 	Flex,
-	Alert,
-	AlertIcon,
-	Badge,
+	Alert, Badge,
 	Grid,
 	GridItem,
-	Divider,
-	Tag,
-	HStack,
+	Separator, HStack,
 	Icon,
 } from "@chakra-ui/react";
-import { ArrowBackIcon, CalendarIcon, InfoIcon, StarIcon } from "@chakra-ui/icons";
+import { ArrowLeft, Calendar, Info, Star } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParameters } from "@/hooks/useSearchParameters";
 import { format } from "date-fns";
@@ -79,7 +74,7 @@ const MetronIssuePage = () => {
 	if (error) {
 		return (
 			<Center height="100vh" p={4}>
-				<Alert
+				<Alert.Root
 					status="error"
 					variant="subtle"
 					flexDirection="column"
@@ -88,12 +83,12 @@ const MetronIssuePage = () => {
 					textAlign="center"
 					height="200px"
 				>
-					<AlertIcon boxSize="40px" mr={0} />
+					<Alert.Indicator />
 					<Text mt={4}>{error instanceof Error ? error.message : "Failed to load issue details"}</Text>
-					<Button onClick={handleBack} mt={4} colorScheme="blue">
+					<Button onClick={handleBack} mt={4} colorPalette="blue">
 						Back to Issues
 					</Button>
-				</Alert>
+				</Alert.Root>
 			</Center>
 		);
 	}
@@ -101,9 +96,9 @@ const MetronIssuePage = () => {
 	if (!issue) {
 		return (
 			<Center height="100vh">
-				<VStack spacing={4}>
+				<VStack gap={4}>
 					<Text>Issue not found</Text>
-					<Button onClick={handleBack} colorScheme="blue">
+					<Button onClick={handleBack} colorPalette="blue">
 						Back to Issues
 					</Button>
 				</VStack>
@@ -131,7 +126,7 @@ const MetronIssuePage = () => {
 
 	return (
 		<Container maxW="1200px" py={8}>
-			<Button leftIcon={<ArrowBackIcon />} onClick={handleBack} mb={6} colorScheme="blue">
+			<Button  onClick={handleBack} mb={6} colorPalette="blue">
 				Back to Issues
 			</Button>
 
@@ -150,7 +145,7 @@ const MetronIssuePage = () => {
 					</Box>
 
 					<Box bg={bgColor} p={6} borderRadius="lg" borderWidth="1px" borderColor={borderColor}>
-						<VStack align="stretch" spacing={6}>
+						<VStack align="stretch" gap={6}>
 							{/* Title Section */}
 							<Box>
 								<Heading size="xl" color={textColor} mb={2}>
@@ -166,18 +161,18 @@ const MetronIssuePage = () => {
 							<Text fontWeight="bold" color={textColor} mb={2}>
 								Publisher Details
 							</Text>
-							<HStack spacing={1} mb={1}>
-								<Badge colorScheme="purple">{issue.publisher.name}</Badge>
-								{issue.imprint && <Badge colorScheme="blue">{issue.imprint.name}</Badge>}
+							<HStack gap={1} mb={1}>
+								<Badge colorPalette="purple">{issue.publisher.name}</Badge>
+								{issue.imprint && <Badge colorPalette="blue">{issue.imprint.name}</Badge>}
 							</HStack>
 							{issue.series.genres.length > 0 && (
 								<>
 									<Text fontWeight="bold" fontSize="sm" color={mutedColor} mb={1}>
 										Genres:
 									</Text>
-									<HStack spacing={2} wrap="wrap">
+									<HStack gap={2} wrap="wrap">
 										{issue.series.genres.map((genre) => (
-											<Badge key={genre.id} colorScheme="green">
+											<Badge key={genre.id} colorPalette="green">
 												{genre.name}
 											</Badge>
 										))}
@@ -185,13 +180,13 @@ const MetronIssuePage = () => {
 								</>
 							)}
 
-							<Divider />
+							<Separator />
 
 							{/* Key Details */}
 							<Grid templateColumns={{ base: "1fr", sm: "1fr 1fr" }} gap={4}>
 								<Box>
-									<HStack spacing={2} mb={2}>
-										<Icon as={CalendarIcon} color={accentColor} />
+									<HStack gap={2} mb={2}>
+										<Calendar color={accentColor} />
 										<Text fontWeight="bold" color={textColor}>
 											Release Date:
 										</Text>
@@ -202,8 +197,8 @@ const MetronIssuePage = () => {
 								</Box>
 
 								<Box>
-									<HStack spacing={2} mb={2}>
-										<Icon as={CalendarIcon} color={accentColor} />
+									<HStack gap={2} mb={2}>
+										<Calendar color={accentColor} />
 										<Text fontWeight="bold" color={textColor}>
 											Cover Date:
 										</Text>
@@ -214,8 +209,8 @@ const MetronIssuePage = () => {
 								</Box>
 
 								<Box>
-									<HStack spacing={2} mb={2}>
-										<Icon as={InfoIcon} color={accentColor} />
+									<HStack gap={2} mb={2}>
+										<Info color={accentColor} />
 										<Text fontWeight="bold" color={textColor}>
 											Series Info:
 										</Text>
@@ -226,8 +221,8 @@ const MetronIssuePage = () => {
 
 								{issue.price && (
 									<Box>
-										<HStack spacing={2} mb={2}>
-											<Icon as={StarIcon} color={accentColor} />
+										<HStack gap={2} mb={2}>
+											<Star color={accentColor} />
 											<Text fontWeight="bold" color={textColor}>
 												Price:
 											</Text>
@@ -237,7 +232,7 @@ const MetronIssuePage = () => {
 								)}
 							</Grid>
 
-							<Divider />
+							<Separator />
 
 							{/* Characters Section */}
 							{issue.characters.length > 0 && (
@@ -245,17 +240,17 @@ const MetronIssuePage = () => {
 									<Text fontWeight="bold" color={textColor} mb={4}>
 										Featured Characters
 									</Text>
-									<HStack spacing={2} wrap="wrap">
+									<HStack gap={2} wrap="wrap">
 										{issue.characters.map((character) => (
-											<Tag
+											<Tag.Root
 												key={character.id}
 												size="md"
 												variant="subtle"
-												colorScheme="blue"
+												colorPalette="blue"
 												borderRadius="full"
 											>
 												{character.name}
-											</Tag>
+											</Tag.Root>
 										))}
 									</HStack>
 								</Box>
@@ -316,7 +311,7 @@ const MetronIssuePage = () => {
 									)}
 								</Grid>
 							</Box>
-							<Divider />
+							<Separator />
 							{/* Credits Section */}
 							{issue.credits.length > 0 && (
 								<Box>

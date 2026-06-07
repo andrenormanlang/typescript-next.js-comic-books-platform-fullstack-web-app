@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/utils/supabase/client";
-import {
+import {Switch, 
 	Box,
 	Button,
 	Image,
@@ -16,11 +16,9 @@ import {
 	VStack,
 	HStack,
 	SimpleGrid,
-	Flex,
-	Switch,
-	useToast,
-} from "@chakra-ui/react";
-import { ArrowBackIcon, AddIcon } from "@chakra-ui/icons";
+	Flex } from "@chakra-ui/react";
+import { toaster } from "@/components/ui/toaster";
+import { ArrowLeft, Plus } from "lucide-react";
 import { Comic } from "@/types/comics-store/comic-detail.type";
 import { useUser } from "@/contexts/UserContext";
 import { useDispatch, useSelector } from "react-redux";
@@ -38,7 +36,6 @@ const ComicDetail = () => {
 	const id = pathParts.pop(); // Extracts the last segment of the path as the id
 
 	const { user } = useUser();
-	const toast = useToast();
 	const [comic, setComic] = useState<Comic | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -111,12 +108,11 @@ const ComicDetail = () => {
 
 	const addToCartHandler = async (comicId: string) => {
 		if (!user) {
-			toast({
+			toaster.create({
 				title: "Login required.",
 				description: "You need to be logged in to add comics to your cart.",
-				status: "warning",
+				type: "warning",
 				duration: 5000,
-				isClosable: true,
 			});
 			return;
 		}
@@ -142,23 +138,21 @@ const ComicDetail = () => {
 			.single();
 
 		if (comicError || !comicData) {
-			toast({
+			toaster.create({
 				title: "Error updating stock.",
 				description: "There was an error updating the stock or insufficient stock available.",
-				status: "error",
+				type: "error",
 				duration: 5000,
-				isClosable: true,
 			});
 			return;
 		}
 
 		if (comicData.stock < quantity) {
-			toast({
+			toaster.create({
 				title: "Error updating stock.",
 				description: "Insufficient stock available.",
-				status: "error",
+				type: "error",
 				duration: 5000,
-				isClosable: true,
 			});
 			return;
 		}
@@ -173,21 +167,19 @@ const ComicDetail = () => {
 				.unwrap()
 				.then(() => {
 					updateStockMutation.mutate({ comicId, newStock: comicData.stock - stockDifference });
-					toast({
+					toaster.create({
 						title: "Cart updated.",
 						description: "The stock has been updated.",
-						status: "success",
+						type: "success",
 						duration: 5000,
-						isClosable: true,
 					});
 				})
 				.catch(() => {
-					toast({
+					toaster.create({
 						title: "Error updating cart.",
 						description: "There was an error updating the cart.",
-						status: "error",
+						type: "error",
 						duration: 5000,
-						isClosable: true,
 					});
 				});
 		} else {
@@ -208,21 +200,19 @@ const ComicDetail = () => {
 				.unwrap()
 				.then(() => {
 					updateStockMutation.mutate({ comicId, newStock: comicData.stock - stockDifference });
-					toast({
+					toaster.create({
 						title: "Added to cart.",
 						description: "The comic has been added to your cart.",
-						status: "success",
+						type: "success",
 						duration: 5000,
-						isClosable: true,
 					});
 				})
 				.catch(() => {
-					toast({
+					toaster.create({
 						title: "Error adding to cart.",
 						description: "There was an error adding the comic to your cart.",
-						status: "error",
+						type: "error",
 						duration: 5000,
-						isClosable: true,
 					});
 				});
 		}
@@ -240,22 +230,20 @@ const ComicDetail = () => {
 
 				setComic({ ...comic, is_approved: !comic.is_approved });
 
-				toast({
+				toaster.create({
 					title: comic.is_approved ? "Comic disapproved." : "Comic approved.",
 					description: comic.is_approved
 						? "The comic has been set to not approved."
 						: "The comic has been approved.",
-					status: "success",
+					type: "success",
 					duration: 5000,
-					isClosable: true,
 				});
 			} catch (error) {
-				toast({
+				toaster.create({
 					title: "Error updating comic.",
 					description: "There was an error updating the comic.",
-					status: "error",
+					type: "error",
 					duration: 5000,
-					isClosable: true,
 				});
 			}
 		}
@@ -299,8 +287,8 @@ const ComicDetail = () => {
 			<Container maxW="container.xl" p={4}>
 				<Box mb={4}>
 					<Button
-						leftIcon={<ArrowBackIcon />}
-						colorScheme="teal"
+						
+						colorPalette="teal"
 						variant="outline"
 						onClick={() => router.back()}
 						size={{ base: "sm", md: "md" }} // Responsive button size
@@ -326,21 +314,21 @@ const ComicDetail = () => {
 							height={{ base: "auto", md: "400px" }} // Responsive image height
 						/>
 					</Box>
-					<VStack flex="2" align="start" spacing={4} p={{ base: 2, md: 4 }}>
+					<VStack flex="2" align="start" gap={4} p={{ base: 2, md: 4 }}>
 						<Heading as="h1" size={{ base: "lg", md: "xl" }} color="tomato">
 							{comic.title}
 						</Heading>
-						<HStack spacing={4}>
-							<Badge colorScheme="green" fontSize={{ base: "0.8em", md: "1.2em" }}>
+						<HStack gap={4}>
+							<Badge colorPalette="green" fontSize={{ base: "0.8em", md: "1.2em" }}>
 								RELEASED {formatDate(comic.release_date)}
 							</Badge>
 						</HStack>
-						<HStack spacing={4}>
+						<HStack gap={4}>
 							<Text fontSize={{ base: "sm", md: "md" }} color="gray.400">
 								<strong>{comic.publisher}</strong>
 							</Text>
 						</HStack>
-						<HStack spacing={4}>
+						<HStack gap={4}>
 							<Text fontSize={{ base: "sm", md: "md" }} color="gray.400">
 								<strong>{comic.pages} pages</strong>
 							</Text>
@@ -354,7 +342,7 @@ const ComicDetail = () => {
 							<Heading as="h2" size={{ base: "sm", md: "md" }} color="orange" mb={2}>
 								Credits
 							</Heading>
-							<SimpleGrid columns={{ base: 1, md: 2 }} spacing={2}>
+							<SimpleGrid columns={{ base: 1, md: 2 }} gap={2}>
 								<Box>
 									<Text color="white">
 										<strong>Main Artist:</strong> {comic.main_artist}
@@ -368,11 +356,11 @@ const ComicDetail = () => {
 							</SimpleGrid>
 						</Box>
 						{isAdmin && (
-							<HStack spacing={4} align="center">
-								<Switch
+							<HStack gap={4} align="center">
+								<Switch.Root
 									size={{ base: "sm", md: "lg" }}
-									colorScheme="teal"
-									isChecked={comic.is_approved}
+									colorPalette="teal"
+									checked={comic.is_approved}
 									onChange={toggleApproval}
 								/>
 								<Text color="white" fontSize={{ base: "sm", md: "md" }}>
@@ -381,10 +369,10 @@ const ComicDetail = () => {
 							</HStack>
 						)}
 						<Button
-							leftIcon={<AddIcon />}
-							colorScheme="yellow"
+							
+							colorPalette="yellow"
 							onClick={() => addToCartHandler(comic.id)}
-							isDisabled={comic.stock === 0}
+							disabled={comic.stock === 0}
 							size={{ base: "sm", md: "md" }} // Responsive button size
 						>
 							Add to Cart

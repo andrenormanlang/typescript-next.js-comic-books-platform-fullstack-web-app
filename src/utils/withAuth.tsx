@@ -47,7 +47,7 @@ const withAuth = (WrappedComponent: React.ComponentType) => {
     if (isLoading) {
       return (
         <Center height="100vh">
-          <VStack spacing={4}>
+          <VStack gap={4}>
             <Spinner size="xl" />
             <Text>Checking authentication...</Text>
           </VStack>

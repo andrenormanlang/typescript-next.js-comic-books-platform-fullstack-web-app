@@ -128,7 +128,7 @@ const ComicVinePublishersClient = () => {
           </Text>
         </Box>
       )}
-      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={10} width="100%">
+      <SimpleGrid columns={{ base: 1, md: 3 }} gap={10} width="100%">
         {validData?.map((publisher: PublisherType) => {
           const plainDescription = htmlToText(publisher.deck || "", {
             wordwrap: 130,
@@ -174,7 +174,7 @@ const ComicVinePublishersClient = () => {
                     fontWeight="bold"
                     fontSize="lg"
                     color="red"
-                    noOfLines={1}
+                    lineClamp={1}
                     textAlign="center"
                     mt={4}
                   >

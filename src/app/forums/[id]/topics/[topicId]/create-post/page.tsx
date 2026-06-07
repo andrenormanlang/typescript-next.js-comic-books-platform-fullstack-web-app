@@ -4,18 +4,14 @@ import React, { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { supabase } from "@/utils/supabaseClient";
-import {
+import {Field, 
   Box,
   Button,
   Container,
   Heading,
-  VStack,
-  useToast,
-  FormControl,
-  FormLabel,
-  FormErrorMessage,
-  Flex,
+  VStack, Flex,
 } from "@chakra-ui/react";
+import { toaster } from "@/components/ui/toaster";
 import { useUser } from "@/contexts/UserContext";
 import ImageUpload from "@/components/ImageUpload";
 import { useForm } from "react-hook-form";
@@ -38,7 +34,6 @@ const CreatePostPage = (props: { params: Promise<{ id: string; topicId: string }
   const { id, topicId } = params;
   const { user } = useUser();
   const router = useRouter();
-  const toast = useToast();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const { register, handleSubmit, setValue, formState: { errors }, watch } = useForm<PostFormData>({
@@ -47,12 +42,11 @@ const CreatePostPage = (props: { params: Promise<{ id: string; topicId: string }
 
   const onSubmit = async (data: PostFormData) => {
     if (!user) {
-      toast({
+      toaster.create({
         title: "Error",
         description: "You need to be signed in to create a post.",
-        status: "error",
+        type: "error",
         duration: 5000,
-        isClosable: true,
       });
       return;
     }
@@ -63,20 +57,18 @@ const CreatePostPage = (props: { params: Promise<{ id: string; topicId: string }
 
     if (error) {
       console.error(error);
-      toast({
+      toaster.create({
         title: "Error",
         description: error.message,
-        status: "error",
+        type: "error",
         duration: 5000,
-        isClosable: true,
       });
     } else {
-      toast({
+      toaster.create({
         title: "Success",
         description: "Post created successfully.",
-        status: "success",
+        type: "success",
         duration: 5000,
-        isClosable: true,
       });
       router.push(`/forums/${id}/topics/${topicId}`);
     }
@@ -86,7 +78,7 @@ const CreatePostPage = (props: { params: Promise<{ id: string; topicId: string }
     <Container maxW="container.md" py={8}>
       <Flex justifyContent="space-between" mb={4}>
         <Button
-          colorScheme="teal"
+          colorPalette="teal"
           onClick={() => router.push(`/forums/${id}/topics/${topicId}`)}
         >
           Back to Posts
@@ -94,25 +86,25 @@ const CreatePostPage = (props: { params: Promise<{ id: string; topicId: string }
       </Flex>
       <Heading mb={4}>Create Post</Heading>
       <form onSubmit={handleSubmit(onSubmit)}>
-        <VStack spacing={4} align="stretch">
-          <FormControl isInvalid={!!errors.content}>
-            <FormLabel>Content</FormLabel>
+        <VStack gap={4} align="stretch">
+          <Field.Root invalid={!!errors.content}>
+            <Field.Label>Content</Field.Label>
             <RichTextEditor
               value={watch("content")}
               onChange={(value) => setValue("content", value)}
               style={{ height: "400px" }}
             />
-            <FormErrorMessage>
+            <Field.ErrorText>
               {errors.content && errors.content.message}
-            </FormErrorMessage>
-          </FormControl>
+            </Field.ErrorText>
+          </Field.Root>
           <ImageUpload
             onUpload={(url) => {
               setImageUrl(url);
               setValue("imageUrl", url);
             }}
           />
-          <Button colorScheme="teal" type="submit">
+          <Button colorPalette="teal" type="submit">
             Create Post
           </Button>
         </VStack>

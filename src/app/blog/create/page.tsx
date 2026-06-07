@@ -7,7 +7,8 @@ import { FormProvider, useForm, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createClient } from "@/utils/supabase/client";
-import { Button, Center, Container, FormControl, FormLabel, Input, VStack, useToast, Box } from "@chakra-ui/react";
+import { Button, Center, Container, Field, Input, VStack, Box } from "@chakra-ui/react";
+import { toaster } from "@/components/ui/toaster";
 import ImageUpload from "@/components/ImageUpload";
 import { useUser } from "@/contexts/UserContext";
 import ComicSpinner from "@/helpers/ComicSpinner";
@@ -30,7 +31,6 @@ const CreateBlogPostPage = () => {
 	const [loading, setLoading] = useState(false);
 	const { user } = useUser();
 	const router = useRouter();
-	const toast = useToast();
 	const supabase = createClient();
 
 	// Set up react-hook-form with validation
@@ -49,12 +49,11 @@ const CreateBlogPostPage = () => {
 
 	const onSubmit: SubmitHandler<PostFormData> = async (data) => {
 		if (!user) {
-			toast({
+			toaster.create({
 				title: "Error",
 				description: "You must be signed in to create a post.",
-				status: "error",
+				type: "error",
 				duration: 5000,
-				isClosable: true,
 			});
 			return;
 		}
@@ -74,20 +73,18 @@ const CreateBlogPostPage = () => {
 		setLoading(false);
 
 		if (error) {
-			toast({
+			toaster.create({
 				title: "Error",
 				description: error.message,
-				status: "error",
+				type: "error",
 				duration: 5000,
-				isClosable: true,
 			});
 		} else {
-			toast({
+			toaster.create({
 				title: "Success",
 				description: "Post created successfully.",
-				status: "success",
+				type: "success",
 				duration: 5000,
-				isClosable: true,
 			});
 			router.push("/blog");
 		}
@@ -113,12 +110,12 @@ const CreateBlogPostPage = () => {
 
 			<FormProvider {...methods}>
 				<form onSubmit={handleSubmit(onSubmit)}>
-					<VStack spacing={4} align="stretch">
-						<FormControl isInvalid={!!errors.title}>
-							<FormLabel>Title</FormLabel>
+					<VStack gap={4} align="stretch">
+						<Field.Root invalid={!!errors.title}>
+							<Field.Label>Title</Field.Label>
 							<Input {...register("title")} />
 							{errors.title && <p style={{ color: "red" }}>{errors.title.message}</p>}
-						</FormControl>
+						</Field.Root>
 
 						<ImageUpload
 							onUpload={(url) => {
@@ -127,8 +124,8 @@ const CreateBlogPostPage = () => {
 							}}
 						/>
 
-						<FormControl isInvalid={!!errors.content}>
-							<FormLabel>Content</FormLabel>
+						<Field.Root invalid={!!errors.content}>
+							<Field.Label>Content</Field.Label>
 							<Box maxH="500px" overflowY="auto" border="1px solid #ccc" borderRadius="6px">
 								<RichTextEditor
 									value={watch("content")}
@@ -137,9 +134,9 @@ const CreateBlogPostPage = () => {
 								/>
 							</Box>
 							{errors.content && <p style={{ color: "red" }}>{errors.content.message}</p>}
-						</FormControl>
+						</Field.Root>
 
-						<Button colorScheme="teal" type="submit">
+						<Button colorPalette="teal" type="submit">
 							Create Post
 						</Button>
 					</VStack>

@@ -7,11 +7,6 @@ import { Spinner, Center } from "@chakra-ui/react";
 const MarvelCharacters = () => {
 	return (
 		<Suspense
-			fallback={
-				<Center height="100vh">
-					<Spinner size="xl" />
-				</Center>
-			}
 		>
 			<MarvelCharactersClient />
 		</Suspense>
@@ -157,7 +152,7 @@ export default MarvelCharacters;
 // 	}
 
 // 	return (
-// 		<Suspense fallback={<div>Loading...</div>}>
+// 		<Suspense>
 // 			<Container maxW="container.xl" centerContent p={4}>
 // 				<SearchBox onSearch={(value) => handleSearchTerm(value)} />
 // 				{data && data.data && (
@@ -179,7 +174,7 @@ export default MarvelCharacters;
 // 				)}
 // 				<SimpleGrid
 // 					columns={{ base: 1, md: 3 }}
-// 					spacing={30}
+// 					gap={30}
 // 					width="100%"
 // 				>
 // 					{data.data &&

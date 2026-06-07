@@ -1,26 +1,20 @@
-'use client';
+"use client";
 
+import { useColorModeValue } from "@/components/ui/color-mode";
 import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { z } from 'zod';
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
+import {Field,
   Box,
-  Heading,
-  FormControl,
-  FormLabel,
-  Input,
+  Heading, Input,
   Button,
   Text,
-  Center,
-  useColorModeValue,
-  Spinner,
-  useToast,
-  InputGroup,
-  InputRightElement,
-  IconButton,
+  Center, Spinner,
+  InputGroup, IconButton,
 } from "@chakra-ui/react";
-import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
+import { toaster } from "@/components/ui/toaster";
+import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useForm, SubmitHandler } from "react-hook-form";
@@ -50,7 +44,6 @@ export default function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const message = searchParams?.get("message");
-  const toast = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -109,20 +102,18 @@ export default function SignupForm() {
     });
 
     if (error) {
-      toast({
+      toaster.create({
         title: "Sign up error",
         description: error.message,
-        status: "error",
+        type: "error",
         duration: 9000,
-        isClosable: true,
       });
     } else {
-      toast({
+      toaster.create({
         title: "Sign up success",
         description: `Check your email (${email}) to continue sign in process`,
-        status: "success",
+        type: "success",
         duration: 9000,
-        isClosable: true,
       });
       // router.push(`/auth/confirm?message=Check email(${email}) to continue sign in process`);
     }
@@ -155,52 +146,50 @@ export default function SignupForm() {
           Sign Up
         </Heading>
         <form onSubmit={handleSubmit(signUp)}>
-          <FormControl id="email" mb={4} isInvalid={!!errors.email}>
-            <FormLabel>Email</FormLabel>
+          <Field.Root id="email" mb={4} invalid={!!errors.email}>
+            <Field.Label>Email</Field.Label>
             <Input type="email" {...register('email', { required: true })} />
             {errors.email && <Text color="red.500">{errors.email.message}</Text>}
-          </FormControl>
-          <FormControl id="password" mb={4} isInvalid={!!errors.password}>
-            <FormLabel>Password</FormLabel>
-            <InputGroup>
+          </Field.Root>
+          <Field.Root id="password" mb={4} invalid={!!errors.password}>
+            <Field.Label>Password</Field.Label>
+            <InputGroup endElement={
+              <IconButton
+                onClick={() => setShowPassword(!showPassword)}
+                variant="ghost"
+                aria-label="Toggle Password Visibility">
+                {showPassword ? <EyeOff /> : <Eye />}
+              </IconButton>
+            }>
               <Input
                 type={showPassword ? 'text' : 'password'}
                 {...register('password')}
                 name="password"
                 required
               />
-              <InputRightElement>
-                <IconButton
-                  icon={showPassword ? <ViewOffIcon /> : <ViewIcon />}
-                  onClick={() => setShowPassword(!showPassword)}
-                  variant="ghost"
-                  aria-label="Toggle Password Visibility"
-                />
-              </InputRightElement>
             </InputGroup>
             {errors.password && <Text color="red.500">{errors.password.message}</Text>}
-          </FormControl>
-          <FormControl id="confirmPassword" mb={4} isInvalid={!!errors.confirmPassword}>
-            <FormLabel>Confirm Password</FormLabel>
-            <InputGroup>
+          </Field.Root>
+          <Field.Root id="confirmPassword" mb={4} invalid={!!errors.confirmPassword}>
+            <Field.Label>Confirm Password</Field.Label>
+            <InputGroup endElement={
+              <IconButton
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                variant="ghost"
+                aria-label="Toggle Confirm Password Visibility">
+                {showConfirmPassword ? <EyeOff /> : <Eye />}
+              </IconButton>
+            }>
               <Input
                 type={showConfirmPassword ? 'text' : 'password'}
                 {...register('confirmPassword')}
                 name="confirmPassword"
                 required
               />
-              <InputRightElement>
-                <IconButton
-                  icon={showConfirmPassword ? <ViewOffIcon /> : <ViewIcon />}
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  variant="ghost"
-                  aria-label="Toggle Confirm Password Visibility"
-                />
-              </InputRightElement>
             </InputGroup>
             {errors.confirmPassword && <Text color="red.500">{errors.confirmPassword.message}</Text>}
-          </FormControl>
-          <Button type="submit" colorScheme="teal" width="full" mb={4}>
+          </Field.Root>
+          <Button type="submit" colorPalette="teal" width="full" mb={4}>
             Sign Up
           </Button>
           {message && (
@@ -210,7 +199,7 @@ export default function SignupForm() {
           )}
         </form>
         <Link href="/auth/login" passHref>
-          <Button type="button" variant="link" colorScheme="teal" width="full">
+          <Button type="button" variant="plain" colorPalette="teal" width="full">
             Already have an account? Sign In
           </Button>
         </Link>

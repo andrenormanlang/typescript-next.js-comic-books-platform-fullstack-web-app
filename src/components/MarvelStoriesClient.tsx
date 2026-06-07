@@ -119,7 +119,7 @@ const MarvelStoriesClient: NextPage = () => {
 	const result = data?.data?.results[0];
 
 	return (
-		<Suspense fallback={<div>Loading...</div>}>
+		<Suspense>
 			<Container maxW="container.xl" centerContent p={4}>
 				<SearchBox onSearch={(value) => handleSearchTerm(value)} />
 				{data && data.data && (
@@ -135,7 +135,7 @@ const MarvelStoriesClient: NextPage = () => {
 						</Text>
 					</Box>
 				)}
-				<SimpleGrid columns={{ base: 1, md: 2 }} spacing={30} width="100%">
+				<SimpleGrid columns={{ base: 1, md: 2 }} gap={30} width="100%">
 					{data.data &&
 						Array.isArray(data.data.results) &&
 						data.data.results.map((marvelStories: MarvelStory) => (

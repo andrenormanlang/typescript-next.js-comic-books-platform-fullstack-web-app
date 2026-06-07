@@ -1,23 +1,20 @@
 "use client";
 
+import { useColorModeValue } from "@/components/ui/color-mode";
 import React, { Suspense, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import {
+import {Tag, 
 	Box,
 	Image,
 	Text,
-	VStack,
-	Tag,
-	Flex,
-	Container,
-	useColorModeValue,
-	Heading,
+	VStack, Flex,
+	Container, Heading,
 	Button,
 	Center,
 	Spinner,
 	SimpleGrid,
 } from "@chakra-ui/react";
-import { ArrowBackIcon } from "@chakra-ui/icons";
+import { ArrowLeft } from "lucide-react";
 import NextLink from "next/link";
 import { NextPage } from "next";
 import { useSearchParams } from "next/navigation";
@@ -115,15 +112,15 @@ const MarvelComic: NextPage = () => {
 						display: "flex",
 						justifyContent: "center",
 						alignItems: "center",
-						height: "100vh", // Full viewport height
-						fontFamily: '"Bangers", cursive', // Assuming "Bangers" font is loaded
-						fontSize: "1.5rem", // Larger font size
-						color: "red", // Red color for the error message
+						height: "100vh",
+						fontFamily: '"Bangers", cursive',
+						fontSize: "1.5rem",
+						color: "red",
 						textAlign: "center",
 						padding: "20px",
-						backgroundColor: "#f0f0f0", // Light background for visibility
+						backgroundColor: "#f0f0f0",
 						borderRadius: "10px",
-						boxShadow: "0 4px 8px rgba(0, 0, 0, 0.15)", // Optional shadow for better appearance
+						boxShadow: "0 4px 8px rgba(0, 0, 0, 0.15)",
 					}}
 				>
 					Loading...
@@ -133,8 +130,8 @@ const MarvelComic: NextPage = () => {
             <Container maxW="1100px" p={4}>
 				<Box mb={4}>
 					<Button
-						leftIcon={<ArrowBackIcon />}
-						colorScheme="teal"
+						
+						colorPalette="teal"
 						variant="outline"
 						onClick={handleBack}
 					>
@@ -142,7 +139,7 @@ const MarvelComic: NextPage = () => {
 					</Button>
 				</Box>
 
-				<VStack spacing={2}>
+				<VStack gap={2}>
 					{/* Content Box */}
 					<Flex
 						bg={bgColor}
@@ -169,27 +166,27 @@ const MarvelComic: NextPage = () => {
 						/>
 
 						<VStack
-							spacing={4}
+							gap={4}
 							align="start"
 							maxW="1000px"
 							marginLeft={4}
 
 						>
 							<Flex>
-							<Tag
+							<Tag.Root
 								size="lg"
-								colorScheme="blue"
+								colorPalette="blue"
 								mt={4}
 								mr={4}
-							>{`Issue #${result?.issueNumber}`}</Tag>
-							<Tag size="lg" colorScheme="green" mt={4}>
+							>{`Issue #${result?.issueNumber}`}</Tag.Root>
+							<Tag.Root size="lg" colorPalette="green" mt={4}>
 								{formatDate(
 									result?.dates?.find(
 										(date: { type: string }) =>
 											date.type === "onsaleDate"
 									)?.date || new Date()
 								)}
-							</Tag>
+							</Tag.Root>
 
 							</Flex>
 							<Heading
@@ -222,7 +219,7 @@ const MarvelComic: NextPage = () => {
 					justify="space-between"
 					width={{ base: "100%", md: "90%", lg: "1100px" }}
 				>
-					<VStack spacing={4} align="stretch">
+					<VStack gap={4} align="stretch">
 						<Box>
 							<Heading
 								size="md"
@@ -234,7 +231,7 @@ const MarvelComic: NextPage = () => {
 							</Heading>
 							<SimpleGrid
 								columns={{ base: 2, md: 3 }}
-								spacing={1}
+								gap={1}
 							>
 								{result?.creators?.items?.map(
 									(creator: CreatorItem) => {
@@ -269,7 +266,7 @@ const MarvelComic: NextPage = () => {
 							</Heading>
 							<SimpleGrid
 								columns={{ base: 2, md: 3 }}
-								spacing={4}
+								gap={4}
 							>	{result?.characters?.items?.map(
 								(charactersItem: CharacterItem) => {
 									// Extract the ID inside the map callback function
@@ -307,7 +304,7 @@ const MarvelComic: NextPage = () => {
 							</Heading>
 							<SimpleGrid
 								columns={{ base: 2, md: 3 }}
-								spacing={1}
+								gap={1}
 
 							>
 								{result?.comics?.items?.map(
@@ -346,7 +343,7 @@ const MarvelComic: NextPage = () => {
 							</Heading>
 							<SimpleGrid
 								columns={{ base: 2, md: 3 }}
-								spacing={1}
+								gap={1}
 							>
 								{result?.events?.items?.map(
 									(eventItem: EventItem) => {
@@ -384,7 +381,7 @@ const MarvelComic: NextPage = () => {
 							</Heading>
 							<SimpleGrid
 								columns={{ base: 2, md: 3 }}
-								spacing={1}
+								gap={1}
 							>
 								{result?.stories?.items?.map(
 									(storyItem: StoryItems) => {

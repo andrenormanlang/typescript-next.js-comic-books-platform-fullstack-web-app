@@ -1,28 +1,24 @@
-// components/comics/ComicFormClient.tsx
 "use client";
 
+// components/comics/ComicFormClient.tsx
 import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createClient } from "@/utils/supabase/client";
-import {
+import {NativeSelect, 
 	Box,
 	Button,
-	FormControl,
-	FormLabel,
+	Field,
 	Input,
 	VStack,
 	Heading,
 	Spinner,
 	Alert,
-	AlertIcon,
 	Center,
-	Text,
-	Select,
-	useToast,
-} from "@chakra-ui/react";
+	Text } from "@chakra-ui/react";
+import { toaster } from "@/components/ui/toaster";
 
 import { v4 as uuidv4 } from "uuid";
 import { useUser } from "@/contexts/UserContext";
@@ -63,8 +59,6 @@ export default function ComicFormClient() {
 
 	const { user, isLoading } = useUser();
 	const router = useRouter();
-
-	const toast = useToast();
 
 	// 3. Setup react-hook-form
 	const {
@@ -135,15 +129,13 @@ export default function ComicFormClient() {
 
 			if (insertError) throw insertError;
 
-			toast({
+			toaster.create({
 				title: approvedStatus ? "Comic book posted!" : "Comic book submitted for review!",
 				description: approvedStatus
 					? "Your comic book is now live."
 					: "Your comic book is pending admin approval.",
-				status: "success",
+				type: "success",
 				duration: 5000,
-				isClosable: true,
-				position: "top",
 			});
 
 			// Reset form
@@ -206,10 +198,10 @@ export default function ComicFormClient() {
 				</Heading>
 
 				{error && (
-					<Alert status="error" mb={4}>
-						<AlertIcon />
-						{error}
-					</Alert>
+					<Alert.Root status="error" mb={4}>
+						<Alert.Indicator />
+						<Alert.Description>{error}</Alert.Description>
+					</Alert.Root>
 				)}
 
 				{loading ? (
@@ -217,95 +209,95 @@ export default function ComicFormClient() {
 						<Spinner />
 					</Center>
 				) : (
-					<VStack spacing={4} as="form" onSubmit={handleSubmit(onSubmit)}>
-						<FormControl id="image" isInvalid={!!errors.image}>
-							<FormLabel>Image</FormLabel>
+					<VStack gap={4} as="form" onSubmit={handleSubmit(onSubmit)}>
+						<Field.Root id="image" invalid={!!errors.image}>
+							<Field.Label>Image</Field.Label>
 							<ImageUpload onUpload={(url) => setImageURL(url)} />
 							{errors.image && <Text color="red.500">{errors.image.message}</Text>}
-						</FormControl>
+						</Field.Root>
 
-						<FormControl id="title" isInvalid={!!errors.title}>
-							<FormLabel>Title</FormLabel>
+						<Field.Root id="title" invalid={!!errors.title}>
+							<Field.Label>Title</Field.Label>
 							<Input type="text" {...register("title")} />
 							{errors.title && <Text color="red.500">{errors.title.message}</Text>}
-						</FormControl>
+						</Field.Root>
 
-						<FormControl id="publisher" isInvalid={!!errors.publisher}>
-							<FormLabel>Publisher</FormLabel>
-							<Select placeholder="Select publisher" {...register("publisher")}>
+						<Field.Root id="publisher" invalid={!!errors.publisher}>
+							<Field.Label>Publisher</Field.Label>
+							<NativeSelect.Root><NativeSelect.Field placeholder="Select publisher" {...register("publisher")}>
 								{publishers.map((publisher) => (
 									<option key={publisher} value={publisher}>
 										{publisher}
 									</option>
 								))}
-							</Select>
+							</NativeSelect.Field></NativeSelect.Root>
 							{errors.publisher && <Text color="red.500">{errors.publisher.message}</Text>}
-						</FormControl>
+						</Field.Root>
 
-						<FormControl id="genre" isInvalid={!!errors.genre}>
-							<FormLabel>Genre</FormLabel>
-							<Select placeholder="Select genre" {...register("genre")}>
+						<Field.Root id="genre" invalid={!!errors.genre}>
+							<Field.Label>Genre</Field.Label>
+							<NativeSelect.Root><NativeSelect.Field placeholder="Select genre" {...register("genre")}>
 								{genres.map((genre) => (
 									<option key={genre} value={genre}>
 										{genre}
 									</option>
 								))}
-							</Select>
+							</NativeSelect.Field></NativeSelect.Root>
 							{errors.genre && <Text color="red.500">{errors.genre.message}</Text>}
-						</FormControl>
+						</Field.Root>
 
-						<FormControl id="release_date" isInvalid={!!errors.release_date}>
-							<FormLabel>Release Date</FormLabel>
+						<Field.Root id="release_date" invalid={!!errors.release_date}>
+							<Field.Label>Release Date</Field.Label>
 							<Input type="date" {...register("release_date")} />
 							{errors.release_date && <Text color="red.500">{errors.release_date.message}</Text>}
-						</FormControl>
+						</Field.Root>
 
-						<FormControl id="currency" isInvalid={!!errors.currency}>
-							<FormLabel>Currency</FormLabel>
-							<Select placeholder="Select currency" {...register("currency")}>
+						<Field.Root id="currency" invalid={!!errors.currency}>
+							<Field.Label>Currency</Field.Label>
+							<NativeSelect.Root><NativeSelect.Field placeholder="Select currency" {...register("currency")}>
 								{currencies.map((currency) => (
 									<option key={currency.value} value={currency.value}>
 										{currency.label}
 									</option>
 								))}
-							</Select>
+							</NativeSelect.Field></NativeSelect.Root>
 							{errors.currency && <Text color="red.500">{errors.currency.message}</Text>}
-						</FormControl>
+						</Field.Root>
 
-						<FormControl id="price" isInvalid={!!errors.price}>
-							<FormLabel>Price</FormLabel>
+						<Field.Root id="price" invalid={!!errors.price}>
+							<Field.Label>Price</Field.Label>
 							<Input type="number" step="0.01" {...register("price", { valueAsNumber: true })} />
 							{errors.price && <Text color="red.500">{errors.price.message}</Text>}
-						</FormControl>
+						</Field.Root>
 
-						<FormControl id="stock" isInvalid={!!errors.stock}>
-							<FormLabel>Quantity to Sell</FormLabel>
+						<Field.Root id="stock" invalid={!!errors.stock}>
+							<Field.Label>Quantity to Sell</Field.Label>
 							<Input type="number" {...register("stock", { valueAsNumber: true })} />
 							{errors.stock && <Text color="red.500">{errors.stock.message}</Text>}
-						</FormControl>
+						</Field.Root>
 
-						<FormControl id="pages" isInvalid={!!errors.pages}>
-							<FormLabel>Number of Pages</FormLabel>
+						<Field.Root id="pages" invalid={!!errors.pages}>
+							<Field.Label>Number of Pages</Field.Label>
 							<Input type="number" {...register("pages", { valueAsNumber: true })} />
 							{errors.pages && <Text color="red.500">{errors.pages.message}</Text>}
-						</FormControl>
+						</Field.Root>
 
-						<FormControl id="main_artist" isInvalid={!!errors.main_artist}>
-							<FormLabel>Main Artist</FormLabel>
+						<Field.Root id="main_artist" invalid={!!errors.main_artist}>
+							<Field.Label>Main Artist</Field.Label>
 							<Input type="text" {...register("main_artist")} />
 							{errors.main_artist && <Text color="red.500">{errors.main_artist.message}</Text>}
-						</FormControl>
+						</Field.Root>
 
-						<FormControl id="main_writer" isInvalid={!!errors.main_writer}>
-							<FormLabel>Main Writer</FormLabel>
+						<Field.Root id="main_writer" invalid={!!errors.main_writer}>
+							<Field.Label>Main Writer</Field.Label>
 							<Input type="text" {...register("main_writer")} />
 							{errors.main_writer && <Text color="red.500">{errors.main_writer.message}</Text>}
-						</FormControl>
+						</Field.Root>
 
-						<FormControl isInvalid={!!errors.description}>
-							<FormLabel>Description</FormLabel>
+						<Field.Root invalid={!!errors.description}>
+							<Field.Label>Description</Field.Label>
 							<Box
-								sx={{
+								css={{
 									".tox-tinymce": {
 										resize: "vertical",
 										minHeight: "300px",
@@ -321,9 +313,9 @@ export default function ComicFormClient() {
 								/>
 							</Box>
 							{errors.description && <Text color="red.500">{errors.description.message}</Text>}
-						</FormControl>
+						</Field.Root>
 
-						<Button colorScheme="teal" width="300px" type="submit" isDisabled={loading}>
+						<Button colorPalette="teal" width="300px" type="submit" disabled={loading}>
 							{loading ? "Loading ..." : "Post Comic"}
 						</Button>
 					</VStack>

@@ -1,11 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { SessionProvider } from "next-auth/react";
 
 export default function ReactQueryProvider({ children }) {
+	const [mounted, setMounted] = useState(false);
+
+	useEffect(() => {
+		setMounted(true);
+	}, []);
+
 	const [queryClient] = useState(
 		() =>
 			new QueryClient({
@@ -29,7 +35,7 @@ export default function ReactQueryProvider({ children }) {
 	return (
 		<SessionProvider refetchOnWindowFocus={false} refetchWhenOffline={false} refetchInterval={0}>
 			<QueryClientProvider client={queryClient}>
-				<ReactQueryDevtools />
+				{mounted && <ReactQueryDevtools />}
 				{children}
 			</QueryClientProvider>
 		</SessionProvider>

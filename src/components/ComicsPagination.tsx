@@ -25,7 +25,7 @@ const ComicsPagination: React.FC<ComicsPaginationProps> = ({ currentPage, totalP
 		<Box>This is the last page at the moment</Box>
 	  </Center>
 	)}
-    <Stack direction="row" spacing={2} align="center" justify="center" my="1rem">
+    <Stack direction="row" gap={2} align="center" justify="center" my="1rem">
       <Button onClick={() => onPageChange(1)} disabled={currentPage === 1}>
         First
       </Button>
