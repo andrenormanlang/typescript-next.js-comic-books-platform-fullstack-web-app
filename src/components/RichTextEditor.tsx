@@ -49,6 +49,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 	const { colorMode } = useColorMode();
 
 	const editor = useEditor({
+		immediatelyRender: false,
 		extensions: [
 			StarterKit.configure({
 				heading: {

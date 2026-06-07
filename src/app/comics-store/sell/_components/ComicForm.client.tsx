@@ -296,16 +296,8 @@ export default function ComicFormClient() {
 
 						<Field.Root invalid={!!errors.description}>
 							<Field.Label>Description</Field.Label>
-							<Box
-								css={{
-									".tox-tinymce": {
-										resize: "vertical",
-										minHeight: "300px",
-										maxHeight: "800px",
-										overflow: "auto",
-									},
-								}}
-							>
+							<Box>
+								<style>{`.tox-tinymce { resize: vertical; min-height: 300px; max-height: 800px; overflow: auto; }`}</style>
 								<RichTextEditor
 									value={watch("description")}
 									onChange={(value) => setValue("description", value)}
