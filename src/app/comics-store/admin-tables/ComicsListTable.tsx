@@ -10,6 +10,8 @@ import {Checkbox, Switch,
 	Button,
 	HStack,
 	Flex,
+	Text,
+	Separator,
 } from "@chakra-ui/react";
 import { toaster } from "@/components/ui/toaster";
 import { useGetComics } from "@/hooks/comic-table/useGetComics";
@@ -196,35 +198,57 @@ const ComicsListTable = () => {
 							<Table.Root variant="outline">
 								<Table.Header>
 									<Table.Row>
-										<Table.ColumnHeader colSpan={9}>
-											<HStack gap={4} flexWrap="wrap">
-												{(["title", "release_date", "profiles.username", "profiles.email", "created_at", "updated_at", "stock", "price", "is_approved"] as const).map((col) => {
-													const label: Record<string, string> = {
-														title: "Title",
-														release_date: "Release Date",
-														"profiles.username": "User",
-														"profiles.email": "Email",
-														created_at: "Date / Time Added",
-														updated_at: "Date / Time Updated",
-														stock: "Stock",
-														price: "Price",
-														is_approved: "Approve",
-													};
-													return (
-														<Checkbox.Root
-															key={col}
-															checked={visibleColumns.includes(col)}
-															onCheckedChange={() => toggleColumnVisibility(col)}
-														>
-															<Checkbox.HiddenInput />
-															<Checkbox.Control>
-																<Checkbox.Indicator />
-															</Checkbox.Control>
-															<Checkbox.Label>{label[col]}</Checkbox.Label>
-														</Checkbox.Root>
-													);
-												})}
-											</HStack>
+										<Table.ColumnHeader colSpan={9} px={4} py={3}>
+											<Flex align="center" gap={3} flexWrap="wrap" rowGap={2}>
+												<Text fontSize="xs" fontWeight="semibold" color="fg.muted" textTransform="uppercase" letterSpacing="widest" whiteSpace="nowrap">
+													Columns
+												</Text>
+												<Separator orientation="vertical" h="4" />
+												{([
+													{ col: "title", label: "Title" },
+													{ col: "release_date", label: "Release Date" },
+												] as const).map(({ col, label }) => (
+													<Checkbox.Root key={col} checked={visibleColumns.includes(col)} onCheckedChange={() => toggleColumnVisibility(col)} size="sm">
+														<Checkbox.HiddenInput />
+														<Checkbox.Control><Checkbox.Indicator /></Checkbox.Control>
+														<Checkbox.Label>{label}</Checkbox.Label>
+													</Checkbox.Root>
+												))}
+												<Separator orientation="vertical" h="4" />
+												{([
+													{ col: "profiles.username", label: "User" },
+													{ col: "profiles.email", label: "Email" },
+												] as const).map(({ col, label }) => (
+													<Checkbox.Root key={col} checked={visibleColumns.includes(col)} onCheckedChange={() => toggleColumnVisibility(col)} size="sm">
+														<Checkbox.HiddenInput />
+														<Checkbox.Control><Checkbox.Indicator /></Checkbox.Control>
+														<Checkbox.Label>{label}</Checkbox.Label>
+													</Checkbox.Root>
+												))}
+												<Separator orientation="vertical" h="4" />
+												{([
+													{ col: "created_at", label: "Date Added" },
+													{ col: "updated_at", label: "Date Updated" },
+												] as const).map(({ col, label }) => (
+													<Checkbox.Root key={col} checked={visibleColumns.includes(col)} onCheckedChange={() => toggleColumnVisibility(col)} size="sm">
+														<Checkbox.HiddenInput />
+														<Checkbox.Control><Checkbox.Indicator /></Checkbox.Control>
+														<Checkbox.Label>{label}</Checkbox.Label>
+													</Checkbox.Root>
+												))}
+												<Separator orientation="vertical" h="4" />
+												{([
+													{ col: "stock", label: "Stock" },
+													{ col: "price", label: "Price" },
+													{ col: "is_approved", label: "Approve" },
+												] as const).map(({ col, label }) => (
+													<Checkbox.Root key={col} checked={visibleColumns.includes(col)} onCheckedChange={() => toggleColumnVisibility(col)} size="sm">
+														<Checkbox.HiddenInput />
+														<Checkbox.Control><Checkbox.Indicator /></Checkbox.Control>
+														<Checkbox.Label>{label}</Checkbox.Label>
+													</Checkbox.Root>
+												))}
+											</Flex>
 										</Table.ColumnHeader>
 									</Table.Row>
 									<Table.Row>

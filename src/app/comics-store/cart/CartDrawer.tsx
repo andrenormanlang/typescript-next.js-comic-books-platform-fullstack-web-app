@@ -13,6 +13,7 @@ import {
 	Input,
 	Dialog,
 	Portal,
+	CloseButton,
 } from "@chakra-ui/react";
 import { toaster } from "@/components/ui/toaster";
 import { Trash2 } from "lucide-react";
@@ -283,7 +284,9 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 				<Drawer.Backdrop />
 				<Drawer.Positioner>
 					<Drawer.Content>
-						<Drawer.CloseTrigger />
+						<Drawer.CloseTrigger asChild position="absolute" top="3" insetEnd="4">
+							<CloseButton size="sm" />
+						</Drawer.CloseTrigger>
 						<Drawer.Header><Drawer.Title>Your Cart</Drawer.Title></Drawer.Header>
 						<Drawer.Body>
 							{loading ? (
@@ -412,7 +415,9 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 					<Drawer.Backdrop />
 					<Drawer.Positioner>
 						<Drawer.Content>
-							<Drawer.CloseTrigger />
+							<Drawer.CloseTrigger asChild position="absolute" top="3" insetEnd="4">
+								<CloseButton size="sm" />
+							</Drawer.CloseTrigger>
 							<Drawer.Header><Drawer.Title>Checkout</Drawer.Title></Drawer.Header>
 							<Drawer.Body>
 								<Elements stripe={getStripe()} options={{ clientSecret, appearance }}>

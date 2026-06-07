@@ -8,8 +8,6 @@ import { AppToaster } from "@/components/ui/toaster";
 import ReduxProvider from "@/contexts/ReduxProvider";
 import { UserProvider } from "@/contexts/UserContext";
 import ReactQueryProvider from "@/lib/react-query-provider";
-import EmotionRegistry from "@/lib/emotion-registry";
-
 const Navbar = dynamic(() => import("@/components/partials/navbar"), { ssr: false });
 
 export default function ClientProviders({ children }: { children: React.ReactNode }) {
@@ -17,22 +15,20 @@ export default function ClientProviders({ children }: { children: React.ReactNod
   useEffect(() => { setMounted(true); }, []);
 
   return (
-    <EmotionRegistry>
-      <ChakraProvider value={defaultSystem}>
-        <ColorModeProvider>
-          <ReactQueryProvider>
-            <ReduxProvider>
-              <UserProvider>
-                {mounted && <AppToaster />}
-                <Navbar />
-                <Box mt="8rem" className="container">
-                  {children}
-                </Box>
-              </UserProvider>
-            </ReduxProvider>
-          </ReactQueryProvider>
-        </ColorModeProvider>
-      </ChakraProvider>
-    </EmotionRegistry>
+    <ChakraProvider value={defaultSystem}>
+      <ColorModeProvider>
+        <ReactQueryProvider>
+          <ReduxProvider>
+            <UserProvider>
+              {mounted && <AppToaster />}
+              <Navbar />
+              <Box mt="8rem" className="container">
+                {children}
+              </Box>
+            </UserProvider>
+          </ReduxProvider>
+        </ReactQueryProvider>
+      </ColorModeProvider>
+    </ChakraProvider>
   );
 }
