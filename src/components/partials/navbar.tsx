@@ -403,17 +403,17 @@ const Navbar = () => {
 					name: "getcomics.org",
 					submenu: [{ name: "Get Some!", href: "/search/comicbooks-api" }],
 				},
-				// {
-				// 	name: "MARVEL",
-				// 	submenu: [
-				// 		{ name: "Comics", href: "/search/marvel/marvel-comics" },
-				// 		{ name: "Characters", href: "/search/marvel/marvel-characters" },
-				// 		{ name: "Creators", href: "/search/marvel/marvel-creators" },
-				// 		{ name: "Events", href: "/search/marvel/marvel-events" },
-				// 		{ name: "Series", href: "/search/marvel/marvel-series" },
-				// 		{ name: "Stories", href: "/search/marvel/marvel-stories" },
-				// 	],
-				// },
+				{
+					name: "MARVEL",
+					submenu: [
+						{ name: "Comics", href: "/search/marvel/marvel-comics" },
+						// { name: "Characters", href: "/search/marvel/marvel-characters" },
+						{ name: "Creators", href: "/search/marvel/marvel-creators" },
+						// { name: "Events", href: "/search/marvel/marvel-events" },
+						{ name: "Series", href: "/search/marvel/marvel-series" },
+						// { name: "Stories", href: "/search/marvel/marvel-stories" },
+					],
+				},
 				{
 					name: "Metron Cloud",
 					submenu: [{ name: "Issues", href: "/search/metron/metron-issues" }],

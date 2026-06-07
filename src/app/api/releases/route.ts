@@ -26,7 +26,6 @@ async function fetchJsonWithRetry(url: string, init: RequestInit, maxRetries = 3
 			}
 			return await response.json();
 		} catch (error) {
-			// AbortError is commonly transient with slow upstreams; allow retry.
 			if (attempt >= maxRetries) throw error;
 			await delay(300 * Math.pow(2, attempt));
 			attempt++;
@@ -68,13 +67,43 @@ async function fetchMetronList<T>(params: URLSearchParams, authHeaderValue: stri
 async function fetchMetronCount(params: URLSearchParams, authHeaderValue: string) {
 	const countParams = new URLSearchParams(params);
 	countParams.set("page", "1");
+	countParams.set("page_size", "1");
 	const data = await fetchMetronList<unknown>(countParams, authHeaderValue);
 	return data.count;
 }
 
-function isMetronInvalidPageError(error: unknown) {
-	if (!(error instanceof Error)) return false;
-	return error.message.includes("HTTP 404") && error.message.includes("Invalid page");
+// Fetches ALL pages from the Metron API so we can sort globally across all results.
+// Uses page_size=100 to minimize the number of requests (cached for 5 minutes each).
+const METRON_FETCH_PAGE_SIZE = 100;
+
+async function fetchAllMetronResults<T>(
+	baseParams: URLSearchParams,
+	authHeaderValue: string,
+): Promise<{ results: T[]; count: number }> {
+	const firstPageParams = new URLSearchParams(baseParams);
+	firstPageParams.set("page", "1");
+	firstPageParams.set("page_size", METRON_FETCH_PAGE_SIZE.toString());
+
+	const firstPage = await fetchMetronList<T>(firstPageParams, authHeaderValue);
+	const total = firstPage.count;
+	const totalPages = Math.ceil(total / METRON_FETCH_PAGE_SIZE);
+
+	if (totalPages <= 1) {
+		return { results: firstPage.results, count: total };
+	}
+
+	// Fetch remaining pages concurrently — each is individually cached.
+	const remainingPagePromises = Array.from({ length: totalPages - 1 }, (_, i) => {
+		const params = new URLSearchParams(baseParams);
+		params.set("page", (i + 2).toString());
+		params.set("page_size", METRON_FETCH_PAGE_SIZE.toString());
+		return fetchMetronList<T>(params, authHeaderValue);
+	});
+
+	const remainingPages = await Promise.all(remainingPagePromises);
+	const allResults = [firstPage.results, ...remainingPages.map((p) => p.results)].flat();
+
+	return { results: allResults, count: total };
 }
 
 export async function GET(request: Request) {
@@ -92,7 +121,6 @@ export async function GET(request: Request) {
 		const pageSizeParam = searchParams.get("pageSize");
 		const view = searchParams.get("view") || "recent";
 
-		// Ensure page and pageSize are valid numbers
 		const page = pageParam && !isNaN(Number(pageParam)) ? Math.max(1, parseInt(pageParam)) : 1;
 		const requestedPageSize =
 			pageSizeParam && !isNaN(Number(pageSizeParam)) ? Math.max(1, parseInt(pageSizeParam)) : 20;
@@ -117,71 +145,37 @@ export async function GET(request: Request) {
 		const recentParams = new URLSearchParams(forwardedParams);
 		recentParams.set("store_date_range_after", toIsoDateOnly(thirtyDaysAgo));
 		recentParams.set("store_date_range_before", toIsoDateOnly(today));
-		recentParams.set("page_size", pageSize.toString());
 
 		const upcomingParams = new URLSearchParams(forwardedParams);
 		upcomingParams.set("store_date_range_after", toIsoDateOnly(tomorrow));
 		upcomingParams.set("store_date_range_before", toIsoDateOnly(thirtyDaysAhead));
-		upcomingParams.set("page_size", pageSize.toString());
 
-		// 1) Fetch the active view list (includes count), 2) fetch the other view count.
 		const activeParams = view === "recent" ? recentParams : upcomingParams;
 		const otherParams = view === "recent" ? upcomingParams : recentParams;
 
-		let listData: MetronListResponse<any>;
-		try {
-			const listParams = new URLSearchParams(activeParams);
-			listParams.set("page", page.toString());
-			listData = await fetchMetronList<any>(listParams, authHeaderValue);
-		} catch (error) {
-			// If a user has a stale URL with an out-of-range page, avoid a hard 500.
-			if (isMetronInvalidPageError(error)) {
-				const viewCount = await fetchMetronCount(activeParams, authHeaderValue);
-				const totalPages = Math.max(1, Math.ceil(viewCount / pageSize));
-				const currentPage = Math.min(page, totalPages);
+		// Fetch ALL results for the active view so we can sort globally, then paginate ourselves.
+		const { results: allResults, count: viewCount } = await fetchAllMetronResults<any>(
+			activeParams,
+			authHeaderValue,
+		);
 
-				const otherCount = await fetchMetronCount(otherParams, authHeaderValue);
-				const recentCount = view === "recent" ? viewCount : otherCount;
-				const upcomingCount = view === "recent" ? otherCount : viewCount;
-				const totalCount = recentCount + upcomingCount;
-
-				return NextResponse.json(
-					{
-						results: [],
-						count: viewCount,
-						totalCount,
-						recentCount,
-						upcomingCount,
-						totalPages,
-						currentPage,
-						pageSize,
-						next: currentPage < totalPages ? `?page=${currentPage + 1}` : null,
-						previous: currentPage > 1 ? `?page=${currentPage - 1}` : null,
-						view,
-					},
-					{
-						headers: {
-							"Cache-Control": "s-maxage=300, stale-while-revalidate=600",
-						},
-					},
-				);
-			}
-			throw error;
-		}
-
-		const sortedResults = [...(listData.results || [])].sort((a, b) => {
+		// Sort ALL results globally by date — newest first for recent, soonest first for upcoming.
+		const sortedAllResults = [...allResults].sort((a, b) => {
 			const aTime = a?.store_date ? new Date(a.store_date).getTime() : 0;
 			const bTime = b?.store_date ? new Date(b.store_date).getTime() : 0;
-			// Recent releases: newest -> oldest. Upcoming: soonest -> latest.
 			return view === "recent" ? bTime - aTime : aTime - bTime;
 		});
 
-		const viewCount = listData.count;
+		// Apply our own pagination to the globally sorted list.
+		const totalPages = Math.max(1, Math.ceil(viewCount / pageSize));
+		const clampedPage = Math.min(page, totalPages);
+		const startIndex = (clampedPage - 1) * pageSize;
+		const sortedResults = sortedAllResults.slice(startIndex, startIndex + pageSize);
+
 		const otherCount = await fetchMetronCount(otherParams, authHeaderValue);
 		const recentCount = view === "recent" ? viewCount : otherCount;
 		const upcomingCount = view === "recent" ? otherCount : viewCount;
 		const totalCount = recentCount + upcomingCount;
-		const totalPages = Math.max(1, Math.ceil(viewCount / pageSize));
 
 		return NextResponse.json(
 			{
@@ -191,10 +185,10 @@ export async function GET(request: Request) {
 				recentCount,
 				upcomingCount,
 				totalPages,
-				currentPage: page,
+				currentPage: clampedPage,
 				pageSize,
-				next: page < totalPages ? `?page=${page + 1}` : null,
-				previous: page > 1 ? `?page=${page - 1}` : null,
+				next: clampedPage < totalPages ? `?page=${clampedPage + 1}` : null,
+				previous: clampedPage > 1 ? `?page=${clampedPage - 1}` : null,
 				view,
 			},
 			{

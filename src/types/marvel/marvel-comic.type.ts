@@ -44,13 +44,14 @@ export type MarvelCharacter = {
 	urls: UrlItem[];
 };
 
-export type MarvelCreator =  {
+export type MarvelCreator = {
 	id: number;
 	firstName: string;
 	middleName: string;
 	lastName: string;
 	suffix: string;
 	fullName: string;
+	description?: string;
 	modified: string;
 	thumbnail: ComicImage;
 	resourceURI: string;
@@ -59,9 +60,9 @@ export type MarvelCreator =  {
 	stories: Stories;
 	events: Event;
 	urls: UrlItem[];
-  }
+};
 
-  export type MarvelEvent = {
+export type MarvelEvent = {
 	id: number;
 	title: string;
 	description: string;
@@ -78,9 +79,9 @@ export type MarvelCreator =  {
 	series: SeriesItem[];
 	next: MarvelEventSummary;
 	previous: MarvelEventSummary;
-  }
+};
 
-  export type MarvelSeriesTypes = {
+export type MarvelSeriesTypes = {
 	id: number;
 	title: string;
 	description: string;
@@ -97,9 +98,9 @@ export type MarvelCreator =  {
 	series: SeriesItem[];
 	next: MarvelEventSummary;
 	previous: MarvelEventSummary;
-  }
+};
 
-  export type MarvelStory = {
+export type MarvelStory = {
 	id: number;
 	title: string;
 	description: string;
@@ -113,8 +114,7 @@ export type MarvelCreator =  {
 	comics: Comic;
 	events: Event;
 	originalIssue: OriginalIssue;
-  }
-
+};
 
 type TextObject = {
 	type: string;
@@ -130,7 +130,7 @@ export type SeriesItem = {
 type MarvelEventSummary = {
 	resourceURI: string;
 	name: string;
-  }
+};
 
 export type UrlItem = {
 	type: string;
@@ -256,5 +256,4 @@ type ComicEvents = {
 type OriginalIssue = {
 	resourceURI: string;
 	name: string;
-  }
-
+};

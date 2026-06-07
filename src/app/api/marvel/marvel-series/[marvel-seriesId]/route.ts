@@ -1,56 +1,112 @@
-import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
+import { NextRequest, NextResponse } from "next/server";
+
+const API_BASE_URL = "https://marvel.emreparker.com";
+const FALLBACK_THUMBNAIL = {
+	path: "https://i.annihil.us/u/prod/marvel/i/mg/b/40/image_not_available",
+	extension: "jpg",
+};
+
+type MetronSeriesDetail = {
+	seriesId: number;
+	seriesName: string;
+	issueCount?: number;
+	firstIssueDate?: string;
+	lastIssueDate?: string;
+};
+
+// Map Metron series detail to legacy Marvel format
+function mapSeriesDetailToLegacy(series: MetronSeriesDetail) {
+	const issueCount = series.issueCount || 0;
+	const comicsItems = issueCount
+		? [
+				{
+					resourceURI: `${API_BASE_URL}/v1/series/${series.seriesId}`,
+					name: `${issueCount} issues in this series`,
+				},
+			]
+		: [];
+
+	return {
+		id: series.seriesId,
+		title: series.seriesName,
+		description: `${issueCount} issues. First: ${series.firstIssueDate || "N/A"}, Last: ${series.lastIssueDate || "N/A"}`,
+		resourceURI: `${API_BASE_URL}/v1/series/${series.seriesId}`,
+		urls: [
+			{
+				type: "detail",
+				url: `https://www.marvel.com/search?q=${encodeURIComponent(series.seriesName)}`,
+			},
+		],
+		modified: new Date().toISOString(),
+		start: series.firstIssueDate || "",
+		end: series.lastIssueDate || "",
+		thumbnail: FALLBACK_THUMBNAIL,
+		creators: { available: 0, collectionURI: "", items: [], returned: 0 },
+		characters: { available: 0, collectionURI: "", items: [], returned: 0 },
+		stories: { available: 0, collectionURI: "", items: [], returned: 0 },
+		comics: {
+			available: issueCount,
+			collectionURI: `${API_BASE_URL}/v1/series/${series.seriesId}`,
+			items: comicsItems,
+			returned: comicsItems.length,
+		},
+		series: [],
+		next: null,
+		previous: null,
+	};
+}
 
 export async function GET(request: NextRequest) {
-  const publicKey = process.env.MARVEL_PUBLIC_KEY;
-  const privateKey = process.env.MARVEL_PRIVATE_KEY;
+	const serieId = request.nextUrl.pathname.split("/").pop();
 
-  if (!publicKey || !privateKey) {
-    return new NextResponse('Marvel API keys not configured', { status: 500 });
-  }
+	try {
+		const apiUrl = `${API_BASE_URL}/v1/series/${serieId}`;
+		const response = await fetch(apiUrl);
 
-  const urlParams = new URL(request.url).searchParams;
-  const page = parseInt(urlParams.get('page') || '1', 10);
-  const limit = parseInt(urlParams.get('limit') || '20', 10);
-  const searchTerm = urlParams.get('query') || '';
+		if (!response.ok) {
+			throw new Error(`Metron API call failed with status: ${response.status}`);
+		}
 
-  const serieId = request.nextUrl.pathname.split('/').pop();
+		const metronData = (await response.json()) as MetronSeriesDetail;
+		const result = mapSeriesDetailToLegacy(metronData);
 
-  // Generate a timestamp and hash for the API request
-  const ts = new Date().getTime().toString();
-  const hash = crypto.createHash('md5').update(ts + privateKey + publicKey).digest('hex');
+		const data = {
+			data: {
+				offset: 0,
+				limit: 1,
+				total: 1,
+				count: 1,
+				results: [result],
+			},
+		};
 
-  let apiUrl = `https://gateway.marvel.com:443/v1/public/series/${serieId}?ts=${ts}&apikey=${publicKey}&hash=${hash}&limit=${limit}`;
-
-  if (searchTerm) {
-    apiUrl += `&titleStartsWith=${encodeURIComponent(searchTerm)}`;
-  } else {
-    // Calculate the offset based on the page number
-    const offset = (page - 1) * limit;
-    apiUrl += `&offset=${offset}`;
-  }
-
-  try {
-    const response = await fetch(apiUrl);
-
-    if (!response.ok) {
-      throw new Error(`Marvel API call failed with status: ${response.status}`);
-    }
-    const data = await response.json();
-    return new NextResponse(JSON.stringify(data), {
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'An unknown error occurred';
-    return new NextResponse(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-    });
-  }
+		return new NextResponse(JSON.stringify(data), {
+			status: 200,
+			headers: {
+				"Content-Type": "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		});
+	} catch (error) {
+		const message = error instanceof Error ? error.message : "An unknown error occurred";
+		return new NextResponse(
+			JSON.stringify({
+				error: message,
+				data: {
+					offset: 0,
+					limit: 1,
+					total: 0,
+					count: 0,
+					results: [],
+				},
+			}),
+			{
+				status: 500,
+				headers: {
+					"Content-Type": "application/json",
+					"Access-Control-Allow-Origin": "*",
+				},
+			},
+		);
+	}
 }

@@ -1,16 +1,7 @@
 "use client";
 
 import { useEffect, Suspense, useState } from "react";
-import {
-	SimpleGrid,
-	Box,
-	Image,
-	Text,
-	Container,
-	Center,
-	Spinner,
-	Button,
-} from "@chakra-ui/react";
+import { SimpleGrid, Box, Image, Text, Container, Center, Spinner, Button } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 import NextLink from "next/link";
 import type { NextPage } from "next";
@@ -22,6 +13,23 @@ import MarvelPagination from "@/components/MarvelPagination";
 import { MarvelEvent, MarvelSeriesTypes } from "@/types/marvel/marvel-comic.type";
 import { useGetMarvelSeries } from "@/hooks/marvel/useGetMarvelSeries";
 
+const FALLBACK_THUMBNAIL_URL = "https://i.annihil.us/u/prod/marvel/i/mg/b/40/image_not_available/portrait_uncanny.jpg";
+
+function buildThumbnailUrl(thumbnail?: { path?: string; extension?: string }) {
+	if (!thumbnail?.path) {
+		return FALLBACK_THUMBNAIL_URL;
+	}
+
+	const path = thumbnail.path.replace("http://", "https://");
+	const extension = thumbnail.extension || "jpg";
+
+	if (/\.(jpg|jpeg|png|webp|gif)$/i.test(path)) {
+		return path;
+	}
+
+	return `${path}/portrait_uncanny.${extension}`;
+}
+
 const MarvelSeriesClient: NextPage = () => {
 	const pageSize = 15;
 	const router = useRouter();
@@ -32,11 +40,7 @@ const MarvelSeriesClient: NextPage = () => {
 
 	const { searchTerm, setSearchTerm } = useSearchParameters(1, "");
 
-	const { data, isLoading, isError, error } = useGetMarvelSeries(
-		searchTerm,
-		currentPage,
-		pageSize
-	);
+	const { data, isLoading, isError, error } = useGetMarvelSeries(searchTerm, currentPage, pageSize);
 
 	const handleSearchTerm = useDebouncedCallback((value: string) => {
 		setSearchTerm(value);
@@ -137,24 +141,16 @@ const MarvelSeriesClient: NextPage = () => {
 					<Box>
 						<Text fontSize="1.5em" mb={4} textAlign="center">
 							{searchTerm
-								? `You have ${
-										data.data.total
-								  } results for "${searchTerm}" in ${Math.ceil(
-										data.data.total / pageSize
-								  )} pages`
-								: `You have a total of ${
-										data.data.total
-								  } comics from Marvel in ${Math.ceil(
-										data.data.total / pageSize
-								  )} pages`}
+								? `You have ${data.data.total} results for "${searchTerm}" in ${Math.ceil(
+										data.data.total / pageSize,
+									)} pages`
+								: `You have a total of ${data.data.total} comics from Marvel in ${Math.ceil(
+										data.data.total / pageSize,
+									)} pages`}
 						</Text>
 					</Box>
 				)}
-				<SimpleGrid
-					columns={{ base: 1, md: 3 }}
-					spacing={30}
-					width="100%"
-				>
+				<SimpleGrid columns={{ base: 1, md: 3 }} spacing={30} width="100%">
 					{data.data &&
 						Array.isArray(data.data.results) &&
 						data.data.results.map((marvelSeries: MarvelSeriesTypes) => (
@@ -178,19 +174,18 @@ const MarvelSeriesClient: NextPage = () => {
 										minW="200px"
 									>
 										<Image
-											src={`${marvelSeries.thumbnail.path}/portrait_uncanny.${marvelSeries.thumbnail.extension}`}
+											src={buildThumbnailUrl(marvelSeries.thumbnail)}
 											alt={marvelSeries.title}
+											fallbackSrc={FALLBACK_THUMBNAIL_URL}
 											maxW="300px"
 											maxH="300px"
 											objectFit="contain"
 										/>
-										<Text
-											mt={4}
-											fontWeight="bold"
-											fontSize="1rem"
-											textAlign="center"
-										>
+										<Text mt={4} fontWeight="bold" fontSize="1rem" textAlign="center">
 											{marvelSeries.title}
+										</Text>
+										<Text mt={2} fontSize="0.9rem" textAlign="center" noOfLines={2}>
+											{marvelSeries.description || "No description available."}
 										</Text>
 									</Box>
 								</motion.div>
@@ -198,11 +193,7 @@ const MarvelSeriesClient: NextPage = () => {
 						))}
 				</SimpleGrid>
 
-				<MarvelPagination
-					currentPage={currentPage}
-					totalPages={totalPages}
-					onPageChange={onPageChange}
-				/>
+				<MarvelPagination currentPage={currentPage} totalPages={totalPages} onPageChange={onPageChange} />
 			</Container>
 		</Suspense>
 	);

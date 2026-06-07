@@ -1,18 +1,7 @@
 "use client";
 
 import { useEffect, Suspense, useState } from "react";
-import {
-	SimpleGrid,
-	Box,
-	Image,
-	Text,
-	Container,
-	Center,
-	Spinner,
-	Button,
-	Flex,
-	Tag,
-} from "@chakra-ui/react";
+import { SimpleGrid, Box, Image, Text, Container, Center, Spinner, Button, Flex, Tag } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 import NextLink from "next/link";
 import type { NextPage } from "next";
@@ -25,6 +14,23 @@ import MarvelPagination from "@/components/MarvelPagination";
 import { useGetMarvelCreators } from "@/hooks/marvel/useGetMarvelCreators";
 import { MarvelCreator, UrlItem } from "@/types/marvel/marvel-comic.type";
 
+const FALLBACK_THUMBNAIL_URL = "https://i.annihil.us/u/prod/marvel/i/mg/b/40/image_not_available/portrait_uncanny.jpg";
+
+function buildThumbnailUrl(thumbnail?: { path?: string; extension?: string }) {
+	if (!thumbnail?.path) {
+		return FALLBACK_THUMBNAIL_URL;
+	}
+
+	const path = thumbnail.path.replace("http://", "https://");
+	const extension = thumbnail.extension || "jpg";
+
+	if (/\.(jpg|jpeg|png|webp|gif)$/i.test(path)) {
+		return path;
+	}
+
+	return `${path}/portrait_uncanny.${extension}`;
+}
+
 const MarvelCreatorsClient: NextPage = () => {
 	const pageSize = 18;
 	const router = useRouter();
@@ -35,11 +41,7 @@ const MarvelCreatorsClient: NextPage = () => {
 
 	const { searchTerm, setSearchTerm } = useSearchParameters(1, "");
 
-	const { data, isLoading, isError, error } = useGetMarvelCreators(
-		searchTerm,
-		currentPage,
-		pageSize
-	);
+	const { data, isLoading, isError, error } = useGetMarvelCreators(searchTerm, currentPage, pageSize);
 
 	const handleSearchTerm = useDebouncedCallback((value: string) => {
 		setSearchTerm(value);
@@ -149,63 +151,53 @@ const MarvelCreatorsClient: NextPage = () => {
 					<Box>
 						<Text fontSize="1.5em" mb={4} textAlign="center">
 							{searchTerm
-								? `You have ${
-										data.data.total
-								  } results for "${searchTerm}" in ${Math.ceil(
-										data.data.total / pageSize
-								  )} pages`
-								: `You have a total of ${
-										data.data.total
-								  } creators in Marvel in ${Math.ceil(
-										data.data.total / pageSize
-								  )} pages`}
+								? `You have ${data.data.total} results for "${searchTerm}" in ${Math.ceil(
+										data.data.total / pageSize,
+									)} pages`
+								: `You have a total of ${data.data.total} creators in Marvel in ${Math.ceil(
+										data.data.total / pageSize,
+									)} pages`}
 						</Text>
 					</Box>
 				)}
-				<SimpleGrid
-					columns={{ base: 1, md: 3 }}
-					spacing={30}
-					width="100%"
-				>
+				<SimpleGrid columns={{ base: 1, md: 3 }} spacing={30} width="100%">
 					{data.data &&
 						Array.isArray(data.data.results) &&
-						data.data.results.map(
-							(marvelCreator: MarvelCreator) => (
-								<NextLink
-									href={`/search/marvel/marvel-creators/${marvelCreator.id}?page=${currentPage}&query=${searchTerm}`}
-									passHref
-									key={marvelCreator.id}
-								>
-									<motion.div whileHover={{ scale: 1.05 }}>
-										<Box
-											boxShadow="0 4px 8px rgba(0,0,0,0.1)"
-											rounded="sm"
-											overflow="hidden"
-											p={4}
-											display="flex"
-											flexDirection="column"
-											alignItems="center"
-											justifyContent="space-between"
-											minH="380px"
-											minW="350px"
-										>
-											<Image
-												src={`${marvelCreator.thumbnail.path}/portrait_uncanny.${marvelCreator.thumbnail.extension}`}
-												alt={marvelCreator.fullName}
-												maxW="300px"
-												maxH="300px"
-												objectFit="contain"
-											/>
-											<Text
-											mt={4}
-											fontWeight="bold"
-											fontSize="1rem"
-											textAlign="center"
-										>
-												{marvelCreator.fullName}
-											</Text>
-											{/* Display the detail URL if available */}
-											{/* <Flex wrap="wrap" mt={2}>
+						data.data.results.map((marvelCreator: MarvelCreator) => (
+							<NextLink
+								href={`/search/marvel/marvel-creators/${marvelCreator.id}?page=${currentPage}&query=${searchTerm}`}
+								passHref
+								key={marvelCreator.id}
+							>
+								<motion.div whileHover={{ scale: 1.05 }}>
+									<Box
+										boxShadow="0 4px 8px rgba(0,0,0,0.1)"
+										rounded="sm"
+										overflow="hidden"
+										p={4}
+										display="flex"
+										flexDirection="column"
+										alignItems="center"
+										justifyContent="space-between"
+										minH="380px"
+										minW="350px"
+									>
+										<Image
+											src={buildThumbnailUrl(marvelCreator.thumbnail)}
+											alt={marvelCreator.fullName}
+											fallbackSrc={FALLBACK_THUMBNAIL_URL}
+											maxW="300px"
+											maxH="300px"
+											objectFit="contain"
+										/>
+										<Text mt={4} fontWeight="bold" fontSize="1rem" textAlign="center">
+											{marvelCreator.fullName}
+										</Text>
+										<Text mt={2} fontSize="0.9rem" textAlign="center" noOfLines={2}>
+											{marvelCreator.description || "No additional details available."}
+										</Text>
+										{/* Display the detail URL if available */}
+										{/* <Flex wrap="wrap" mt={2}>
 												{marvelCreator.urls.map(
 													(urlItem: UrlItem) => (
 														<Tag
@@ -234,18 +226,13 @@ const MarvelCreatorsClient: NextPage = () => {
 													)
 												)}
 											</Flex> */}
-										</Box>
-									</motion.div>
-								</NextLink>
-							)
-						)}
+									</Box>
+								</motion.div>
+							</NextLink>
+						))}
 				</SimpleGrid>
 
-				<MarvelPagination
-					currentPage={currentPage}
-					totalPages={totalPages}
-					onPageChange={onPageChange}
-				/>
+				<MarvelPagination currentPage={currentPage} totalPages={totalPages} onPageChange={onPageChange} />
 			</Container>
 		</Suspense>
 	);

@@ -1,16 +1,7 @@
 "use client";
 
 import { useEffect, Suspense, useState } from "react";
-import {
-	SimpleGrid,
-	Box,
-	Image,
-	Text,
-	Container,
-	Center,
-	Spinner,
-	Button,
-} from "@chakra-ui/react";
+import { SimpleGrid, Box, Image, Text, Container, Center, Spinner, Button, Tag } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 import NextLink from "next/link";
 import type { NextPage } from "next";
@@ -22,6 +13,15 @@ import { useGetMarvelComics } from "@/hooks/marvel/useGetMarvelComics";
 import { MarvelComicsTypes } from "@/types/marvel/marvel-comics.type";
 import MarvelPagination from "@/components/MarvelPagination";
 
+const formatDate = (dateString: string | null | undefined): string => {
+	if (!dateString) return "Unknown date";
+	return new Date(dateString).toLocaleDateString(undefined, {
+		day: "numeric",
+		month: "short",
+		year: "numeric",
+	});
+};
+
 const MarvelComicsClient: NextPage = () => {
 	const pageSize = 16;
 	const router = useRouter();
@@ -32,11 +32,7 @@ const MarvelComicsClient: NextPage = () => {
 
 	const { searchTerm, setSearchTerm } = useSearchParameters(1, "");
 
-	const { data, isLoading, isError, error } = useGetMarvelComics(
-		searchTerm,
-		currentPage,
-		pageSize
-	);
+	const { data, isLoading, isError, error } = useGetMarvelComics(searchTerm, currentPage, pageSize);
 
 	const handleSearchTerm = useDebouncedCallback((value: string) => {
 		setSearchTerm(value);
@@ -137,24 +133,16 @@ const MarvelComicsClient: NextPage = () => {
 					<Box>
 						<Text fontSize="1.5em" mb={4} textAlign="center">
 							{searchTerm
-								? `You have ${
-										data.data.total
-								  } results for "${searchTerm}" in ${Math.ceil(
-										data.data.total / pageSize
-								  )} pages`
-								: `You have a total of ${
-										data.data.total
-								  } comics from Marvel in ${Math.ceil(
-										data.data.total / pageSize
-								  )} pages`}
+								? `You have ${data.data.total} results for "${searchTerm}" in ${Math.ceil(
+										data.data.total / pageSize,
+									)} pages`
+								: `You have a total of ${data.data.total} comics from Marvel in ${Math.ceil(
+										data.data.total / pageSize,
+									)} pages`}
 						</Text>
 					</Box>
 				)}
-				<SimpleGrid
-					columns={{ base: 1, md: 2 }}
-					spacing={30}
-					width="100%"
-				>
+				<SimpleGrid columns={{ base: 1, md: 2 }} spacing={30} width="100%">
 					{data.data &&
 						Array.isArray(data.data.results) &&
 						data.data.results.map((marvelComics: MarvelComicsTypes) => (
@@ -183,25 +171,19 @@ const MarvelComicsClient: NextPage = () => {
 											maxH="300px"
 											objectFit="contain"
 										/>
-										<Text
-											mt={4}
-											fontWeight="bold"
-											fontSize="1rem"
-											textAlign="center"
-										>
+										<Text mt={4} fontWeight="bold" fontSize="1rem" textAlign="center">
 											{marvelComics.title}
-										</Text>
+										</Text>{" "}
+										<Tag size="sm" colorScheme="green" mt={2}>
+											{formatDate(marvelComics.dates?.find((d) => d.type === "onsaleDate")?.date)}
+										</Tag>{" "}
 									</Box>
 								</motion.div>
 							</NextLink>
 						))}
 				</SimpleGrid>
 
-				<MarvelPagination
-					currentPage={currentPage}
-					totalPages={totalPages}
-					onPageChange={onPageChange}
-				/>
+				<MarvelPagination currentPage={currentPage} totalPages={totalPages} onPageChange={onPageChange} />
 			</Container>
 		</Suspense>
 	);

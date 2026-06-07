@@ -1,49 +1,45 @@
-
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from "@tanstack/react-query";
 
 async function fetchMarvelCreators(searchTerm: string, page: number, pageSize: number) {
-    const url = new URL('/api/marvel/marvel-creators', window.location.origin);
+	const url = new URL("/api/marvel/marvel-creators", window.location.origin);
 
-    url.searchParams.append('page', page.toString());
-    url.searchParams.append('limit', pageSize.toString());
+	url.searchParams.append("page", page.toString());
+	url.searchParams.append("limit", pageSize.toString());
 
+	if (searchTerm) {
+		url.searchParams.append("query", searchTerm);
+	}
 
-    if (searchTerm) {
-        url.searchParams.append('query', searchTerm);
-    }
+	const response = await fetch(url.toString());
+	if (!response.ok) {
+		throw new Error(`API call failed with status: ${response.status}`);
+	}
 
-    const response = await fetch(url.toString());
-    if (!response.ok) {
-        throw new Error(`API call failed with status: ${response.status}`);
-    }
-
-    return response.json();
+	return response.json();
 }
 
 export const useGetMarvelCreators = (searchTerm: string, page: number, pageSize: number) => {
-    return useQuery({
+	return useQuery({
 		queryFn: () => fetchMarvelCreators(searchTerm, page, pageSize),
-        queryKey: ['comics', searchTerm, page],
+		queryKey: ["marvel-creators", searchTerm, page, pageSize],
 	});
 };
 
-
 // This function fetches details of a single superhero
 async function fetchMarvelCreator(comicId: string) {
+	const response = await fetch(`/api/marvel/marvel-creators/${comicId}`);
 
-  const response = await fetch(`/api/marvel/marvel-creators/${comicId}`);
+	if (!response.ok) {
+		throw new Error(`API call failed with status: ${response.status}`);
+	}
 
-  if (!response.ok) {
-    throw new Error(`API call failed with status: ${response.status}`);
-  }
-
-  return response.json();
+	return response.json();
 }
 
 // This hook uses the fetchSuperhero function to fetch data
 export const useGetMarvelCreator = (comicId: string) => {
-  return useQuery({
-    queryFn: () => fetchMarvelCreator(comicId),
-    queryKey: ['comic', comicId],
-  });
+	return useQuery({
+		queryFn: () => fetchMarvelCreator(comicId),
+		queryKey: ["marvel-creators-detail", comicId],
+	});
 };
