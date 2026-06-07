@@ -3,7 +3,7 @@ import { createServerClient} from "../../../lib/supabase-server";
 import PasswordForm from "./password-form";
 
 export default async function UpdatePassword() {
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
 
   const {
     data: { session },
