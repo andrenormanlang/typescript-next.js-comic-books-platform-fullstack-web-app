@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/utils/supabase/middleware";
 
-// Define public paths that don't require authentication
 const publicPaths = [
   '/auth/login',
   '/auth/signup',
@@ -9,19 +8,12 @@ const publicPaths = [
   '/auth/confirm',
   '/auth/reset-password',
   '/auth/auth-error',
-  '/api/', // Allow API routes without redirect
+  '/api/',
 ];
 
 export async function middleware(request: NextRequest) {
-  // Update the session
-  const response = await updateSession(request);
-
-  // Get the pathname from the URL
   const { pathname } = request.nextUrl;
 
-  console.log(`Middleware processing path: ${pathname}`);
-
-  // Check if the path is public or starts with any of the public paths prefixes
   const isPublicPath = publicPaths.some(path =>
     path.endsWith('/')
       ? pathname === path || pathname.startsWith(path)
@@ -30,19 +22,14 @@ export async function middleware(request: NextRequest) {
 
   console.log(`Is public path: ${isPublicPath}`);
 
-  // If it's a public path, return the response without checking authentication
   if (isPublicPath) {
+    const { response } = await updateSession(request);
     return response;
   }
 
-  // Extract the supabase-auth-token cookie to check if user is authenticated
-  const authCookie = request.cookies.get('sb-access-token')?.value ||
-                     request.cookies.get('supabase-auth-token')?.value;
+  const { response, user } = await updateSession(request);
 
-  console.log(`Auth cookie present: ${!!authCookie}`);
-
-  // If the user is not authenticated and trying to access a protected route, redirect to login
-  if (!authCookie) {
+  if (!user) {
     const redirectUrl = new URL('/auth/login', request.url);
     redirectUrl.searchParams.set('redirectTo', pathname);
     console.log('Middleware: Redirecting to:', redirectUrl.toString(), 'from:', pathname);
@@ -52,19 +39,15 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
-// Configure the middleware to run on specific paths
 export const config = {
   matcher: [
     /*
-     * Match all request paths except those starting with:
+     * Match all request paths except:
      * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - images/ (local images)
-     * - public/ (public assets)
+     * - _next/image (image optimization)
+     * - favicon.ico
+     * - Any file with an extension (e.g. .svg, .png, .jpg, .ico, .webp)
      */
-    '/((?!_next/static|_next/image|favicon.ico|images|public).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff|woff2|ttf|eot)$).*)',
   ],
 };
-
-

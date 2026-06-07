@@ -17,13 +17,13 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    const { data: session, error } = await supabase.auth.getSession();
+    const { data: { user }, error } = await supabase.auth.getUser();
 
     if (error) {
-      throw new Error(`Failed to fetch session: ${error.message}`);
+      throw new Error(`Failed to fetch user: ${error.message}`);
     }
 
-    return NextResponse.json(session, {
+    return NextResponse.json({ user }, {
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
