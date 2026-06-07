@@ -4,12 +4,12 @@ import { BlogPost } from "@/types/blog/blog.type";
 import BlogPostDetailClient from "./BlogPostDetail.client";
 
 interface Props {
-	params: { id: string };
+	params: Promise<{ id: string }>;
 }
 
 export default async function BlogPostDetailServer({ params }: Props) {
 	const supabase = createClient();
-	const { id } = params;
+	const { id } = await params;
 
 	// Fetch the blog post from Supabase on the server
 	const { data, error } = await supabase.from("blog_posts").select("*").eq("id", id).single();

@@ -148,10 +148,13 @@ const BlogPostDetailClient: React.FC<BlogPostDetailClientProps> = ({ post }) => 
 					border-radius: 4px;
 				}
 
-				/* Image styles (already present) */
+				/* Image styles */
 				.blog-content img {
-					max-width: 100%;
-					height: auto;
+					max-width: min(100%, 680px) !important;
+					max-height: 480px;
+					width: auto !important;
+					height: auto !important;
+					object-fit: contain;
 					display: block;
 					margin: 1em auto;
 				}
