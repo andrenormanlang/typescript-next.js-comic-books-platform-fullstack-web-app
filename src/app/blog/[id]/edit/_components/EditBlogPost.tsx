@@ -37,16 +37,8 @@ export default function EditBlogPost({ initialBlog }: EditBlogPostProps) {
 				<form>
 					<Field.Root required>
 						<Field.Label>Content</Field.Label>
-						<Box
-							css={{
-								".tox-tinymce": {
-									resize: "vertical",
-									minHeight: "300px",
-									maxHeight: "800px",
-									overflow: "auto",
-								},
-							}}
-						>
+						<Box>
+							<style>{`.tox-tinymce { resize: vertical; min-height: 300px; max-height: 800px; overflow: auto; }`}</style>
 							<RichTextEditor
 								value={watch("content")}
 								onChange={(value) => setValue("content", value)}

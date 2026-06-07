@@ -323,16 +323,8 @@ const EditComic = () => {
 						<Field.Label>Description</Field.Label>
 						{/* Hidden input for react-hook-form registration */}
 						<Input type="text" {...register("description")} style={{ display: "none" }} />
-						<Box
-							css={{
-								".tox-tinymce": {
-									resize: "vertical",
-									minHeight: "300px",
-									maxHeight: "800px",
-									overflow: "auto",
-								},
-							}}
-						>
+						<Box>
+							<style>{`.tox-tinymce { resize: vertical; min-height: 300px; max-height: 800px; overflow: auto; }`}</style>
 							<RichTextEditor
 								value={watch("description")}
 								onChange={(value) => setValue("description", value)}

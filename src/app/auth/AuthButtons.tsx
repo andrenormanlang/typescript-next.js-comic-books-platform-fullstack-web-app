@@ -3,7 +3,7 @@ import Link from 'next/link';
 import React from 'react';
 
 export const AuthButtons = async () => {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const {
     data: { session },

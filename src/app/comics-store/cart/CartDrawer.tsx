@@ -280,95 +280,98 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 		<>
 			<Drawer.Root open={isOpen} onOpenChange={(e) => { if (!e.open) onClose(); }} placement="end" size={{ base: "full", md: "md" }}>
 				<Drawer.Backdrop />
-				<Drawer.Content>
-					<Drawer.CloseTrigger />
-					<Drawer.Header><Drawer.Title>Your Cart</Drawer.Title></Drawer.Header>
-					<Drawer.Body>
-						{loading ? (
-							<Center h="100%">
-								<Spinner size="xl" />
-							</Center>
-						) : error ? (
-							<Center h="100%">
-								<Alert.Root status="error">
-									<Alert.Indicator />
-									<Alert.Description>{error}</Alert.Description>
-								</Alert.Root>
-							</Center>
-						) : (
-							cartItems.map((item: CartItem) => (
-								<Flex
-									key={item.comicId}
-									boxShadow="0 4px 8px rgba(0,0,0,0.1)"
-									rounded="md"
-									overflow="hidden"
-									p={4}
-									alignItems="center"
-									justifyContent="space-between"
-									mb={4}
-								>
-									<Image
-										src={item.image || "/path/to/default-image.jpg"}
-										alt={item.title}
-										maxW={{ base: "75px", md: "100px" }}
-										objectFit="contain"
-									/>
-									<Box flex="1" ml={4}>
-										<Text fontWeight="bold" fontSize="lg" lineClamp={1}>
-											{item.title}
-										</Text>
-										<Text>Price: ${item.price.toFixed(2)} {item.currency}</Text>
-										<Flex alignItems="center">
-											<Button
-												size="sm"
-												onClick={() => handleStockChange(item.comicId, item.quantity - 1)}
-												disabled={item.quantity <= 1 || updatingStock}
-											>
-												-
-											</Button>
-											<Input
-												size="sm"
-												value={item.quantity}
-												readOnly
-												width="50px"
-												mx={2}
-												textAlign="center"
-											/>
-											<Button
-												size="sm"
-												onClick={() => handleStockChange(item.comicId, item.quantity + 1)}
-												disabled={item.quantity >= item.stock || updatingStock}
-											>
-												+
-											</Button>
-										</Flex>
-									</Box>
-									<IconButton
-										aria-label="Remove from cart"
-										
-										colorPalette="red"
-										onClick={() => confirmRemoveFromCart(item.comicId)}
-									/>
+				<Drawer.Positioner>
+					<Drawer.Content>
+						<Drawer.CloseTrigger />
+						<Drawer.Header><Drawer.Title>Your Cart</Drawer.Title></Drawer.Header>
+						<Drawer.Body>
+							{loading ? (
+								<Center h="100%">
+									<Spinner size="xl" />
+								</Center>
+							) : error ? (
+								<Center h="100%">
+									<Alert.Root status="error">
+										<Alert.Indicator />
+										<Alert.Description>{error}</Alert.Description>
+									</Alert.Root>
+								</Center>
+							) : (
+								cartItems.map((item: CartItem) => (
+									<Flex
+										key={item.comicId}
+										boxShadow="0 4px 8px rgba(0,0,0,0.1)"
+										rounded="md"
+										overflow="hidden"
+										p={4}
+										alignItems="center"
+										justifyContent="space-between"
+										mb={4}
+									>
+										<Image
+											src={item.image || "/path/to/default-image.jpg"}
+											alt={item.title}
+											maxW={{ base: "75px", md: "100px" }}
+											objectFit="contain"
+										/>
+										<Box flex="1" ml={4}>
+											<Text fontWeight="bold" fontSize="lg" lineClamp={1}>
+												{item.title}
+											</Text>
+											<Text>Price: ${item.price.toFixed(2)} {item.currency}</Text>
+											<Flex alignItems="center">
+												<Button
+													size="sm"
+													onClick={() => handleStockChange(item.comicId, item.quantity - 1)}
+													disabled={item.quantity <= 1 || updatingStock}
+												>
+													-
+												</Button>
+												<Input
+													size="sm"
+													value={item.quantity}
+													readOnly
+													width="50px"
+													mx={2}
+													textAlign="center"
+												/>
+												<Button
+													size="sm"
+													onClick={() => handleStockChange(item.comicId, item.quantity + 1)}
+													disabled={item.quantity >= item.stock || updatingStock}
+												>
+													+
+												</Button>
+											</Flex>
+										</Box>
+										<IconButton
+											aria-label="Remove from cart"
+											colorPalette="red"
+											onClick={() => confirmRemoveFromCart(item.comicId)}
+										>
+											<Trash2 />
+										</IconButton>
+									</Flex>
+								))
+							)}
+						</Drawer.Body>
+						<Drawer.Footer>
+							<Box width="100%" p={4}>
+								<Flex justifyContent="space-between">
+									<Text>Subtotal:</Text>
+									<Text>${calculateTotalAmount().toFixed(2)}</Text>
 								</Flex>
-							))
-						)}
-					</Drawer.Body>
-					<Drawer.Footer>
-						<Box width="100%" p={4}>
-							<Flex justifyContent="space-between">
-								<Text>Subtotal:</Text>
-								<Text>${calculateTotalAmount().toFixed(2)}</Text>
-							</Flex>
-							<Flex justifyContent="space-between" mt={2} fontWeight="bold">
-								<Text>Total:</Text>
-								<Text>${calculateTotalAmount().toFixed(2)}</Text>
-							</Flex>
-							<Button mt={4} colorPalette="blue" width="100%" onClick={handleCheckout}>
-								Go to Checkout
-							</Button>
-						</Box>
-					</Drawer.Footer>
-				</Drawer.Content>
+								<Flex justifyContent="space-between" mt={2} fontWeight="bold">
+									<Text>Total:</Text>
+									<Text>${calculateTotalAmount().toFixed(2)}</Text>
+								</Flex>
+								<Button mt={4} colorPalette="blue" width="100%" onClick={handleCheckout}>
+									Go to Checkout
+								</Button>
+							</Box>
+						</Drawer.Footer>
+					</Drawer.Content>
+				</Drawer.Positioner>
 			</Drawer.Root>
 
 			<Dialog.Root open={isDeleteDialogOpen} onOpenChange={(e) => { if (!e.open) setIsDeleteDialogOpen(false); }} role="alertdialog">
@@ -402,19 +405,21 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 			{isCheckoutOpen && clientSecret && (
 				<Drawer.Root open={isCheckoutOpen} onOpenChange={(e) => { if (!e.open) setIsCheckoutOpen(false); }} placement="end" size={{ base: "full", md: "md" }}>
 					<Drawer.Backdrop />
-					<Drawer.Content>
-						<Drawer.CloseTrigger />
-						<Drawer.Header><Drawer.Title>Checkout</Drawer.Title></Drawer.Header>
-						<Drawer.Body>
-							<Elements stripe={getStripe()} options={{ clientSecret, appearance }}>
-								<CheckoutForm
-									amount={totalAmount}
-									cartItems={cartItems}
-									onPaymentSuccess={handleClearCart}
-								/>
-							</Elements>
-						</Drawer.Body>
-					</Drawer.Content>
+					<Drawer.Positioner>
+						<Drawer.Content>
+							<Drawer.CloseTrigger />
+							<Drawer.Header><Drawer.Title>Checkout</Drawer.Title></Drawer.Header>
+							<Drawer.Body>
+								<Elements stripe={getStripe()} options={{ clientSecret, appearance }}>
+									<CheckoutForm
+										amount={totalAmount}
+										cartItems={cartItems}
+										onPaymentSuccess={handleClearCart}
+									/>
+								</Elements>
+							</Drawer.Body>
+						</Drawer.Content>
+					</Drawer.Positioner>
 				</Drawer.Root>
 			)}
 		</>

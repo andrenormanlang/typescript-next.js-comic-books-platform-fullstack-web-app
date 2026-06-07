@@ -35,10 +35,12 @@ const HalftoneBackground = ({ children }: HalftoneBackgroundProps) => {
               transition: background-image 0.5s ease;
             }
 
+            .dark .halftone-background,
             [data-theme="dark"] .halftone-background {
               background-color: black;
             }
 
+            .dark .halftone-background::before,
             [data-theme="dark"] .halftone-background::before {
               background-image: radial-gradient(circle, white 3px, transparent 3px);
             }

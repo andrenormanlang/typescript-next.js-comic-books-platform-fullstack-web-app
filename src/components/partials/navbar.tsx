@@ -15,7 +15,7 @@ import {
 	Icon,
 } from "@chakra-ui/react";
 import { toaster } from "@/components/ui/toaster";
-import { Menu as HamburgerIcon, X as CloseIcon, Moon as MoonIcon, Sun as SunIcon, ChevronDown as ChevronDownIcon, ChevronUp as ChevronUpIcon, Plus as AddIcon } from "lucide-react";
+import { Menu as HamburgerIcon, X as CloseIcon, Moon as MoonIcon, Sun as SunIcon, ChevronDown as ChevronDownIcon, Plus as AddIcon } from "lucide-react";
 import { VscAccount, VscSignOut } from "react-icons/vsc";
 import ShoppingCartButton from "@/helpers/ShoppingCartButton";
 import { motion, AnimatePresence } from "framer-motion";
@@ -30,6 +30,59 @@ import { setAvatarUrl } from "@/store/avatarSlice";
 import { fetchCart } from "@/store/cartSlice";
 import AvatarNav from "../../helpers/AvatarNav";
 import CartDrawer from "@/app/comics-store/cart/CartDrawer";
+
+interface MobileMenuItemProps {
+	item: MenuType | SubmenuType;
+	index: number | string;
+	btnStyle: Record<string, any>;
+	marvelBtnStyle: Record<string, any>;
+	onNavigate: () => void;
+}
+
+const MobileMenuItem: React.FC<MobileMenuItemProps> = ({ item, index, btnStyle, marvelBtnStyle, onNavigate }) => {
+	const [isOpen, setIsOpen] = useState(false);
+	const style = item.name === "MARVEL" ? marvelBtnStyle : btnStyle;
+
+	if (!item.submenu) {
+		return (
+			<Button asChild {...btnStyle}>
+				<Link href={(item as SubmenuType).href ?? "#"} onClick={onNavigate}>
+					{item.name}
+				</Link>
+			</Button>
+		);
+	}
+
+	return (
+		<Box width="100%" display="flex" flexDirection="column" alignItems="center" gap={2}>
+			<Button {...style} onClick={() => setIsOpen((o) => !o)}>
+				{item.name}
+				<ChevronDownIcon
+					size={16}
+					style={{
+						marginLeft: "0.4rem",
+						transform: isOpen ? "rotate(180deg)" : "none",
+						transition: "transform 0.2s",
+					}}
+				/>
+			</Button>
+			{isOpen && (
+				<Box width="90%" display="flex" flexDirection="column" alignItems="center" gap={2}>
+					{item.submenu.map((subItem, subIndex) => (
+						<MobileMenuItem
+							key={`${index}-${subIndex}`}
+							item={subItem}
+							index={`${index}-${subIndex}`}
+							btnStyle={btnStyle}
+							marvelBtnStyle={marvelBtnStyle}
+							onNavigate={onNavigate}
+						/>
+					))}
+				</Box>
+			)}
+		</Box>
+	);
+};
 
 const Navbar = () => {
 	const supabase = createClient();
@@ -49,7 +102,6 @@ const Navbar = () => {
 	// Move color mode values to component level
 	const profileIconColor = useColorModeValue("blue.500", "blue.200");
 	const signoutIconColor = useColorModeValue("red.500", "red.200");
-	const chevronColor = useColorModeValue("gray.600", "gray.400");
 	const menuBg = useColorModeValue("white", "gray.800");
 	const menuBgTransparent = useColorModeValue("rgba(255, 255, 255, 0.95)", "rgba(26, 32, 44, 0.95)");
 	const menuItemTextColor = useColorModeValue("gray.700", "whiteAlpha.900");
@@ -238,23 +290,6 @@ const Navbar = () => {
 		},
 	};
 
-	const submenuFinalItemStyle = {
-		...buttonStyle,
-		maxWidth: "unset", // Remove max-width restriction
-		width: "100%", // Ensure it takes full width of the MenuList
-		my: "0.1rem", // Reduce vertical margin for closer packing
-		fontSize: { base: "0.9rem", md: "1.1rem" }, // Slightly smaller font size for nested items
-		height: "2rem", // Make them a bit shorter
-		justifyContent: "flex-start", // Left-align text
-		px: "1rem", // Add some horizontal padding
-		_hover: {
-			bg: "blue.600",
-			transform: "none", // Prevent scaling to avoid layout issues in a list
-		},
-		_active: {
-			bg: "blue.700",
-		},
-	};
 
 	const newReleaseButtonStyle = {
 		...buttonStyle,
@@ -285,29 +320,6 @@ const Navbar = () => {
 		},
 	};
 
-	const menuBgColor = useColorModeValue("white", "gray.800");
-	const menuColor = useColorModeValue("black", "white");
-
-	const customMenuListStyle = {
-		borderColor: "gray.600",
-		borderWidth: "0.5px",
-		borderRadius: "md",
-		boxShadow: "lg",
-		minWidth: "fit-content",
-		maxWidth: { base: "220px", md: "310px" },
-		bg: menuBgColor,
-		color: menuColor,
-		outline: "none",
-		padding: "0.5rem",
-		margin: "1",
-		_hover: {
-			bg: menuItemHoverBg,
-		},
-		_focus: {
-			bg: menuItemFocusBg,
-			outline: "none",
-		},
-	};
 
 	const avatarMenuListStyle = {
 		bg: menuBg,
@@ -423,30 +435,7 @@ const Navbar = () => {
 		});
 	}
 
-	const renderMenuItem = (item: MenuType | SubmenuType, index: number | string) => (
-		<Menu.Root key={index}>
-			<Menu.Trigger asChild>
-				<Button
-					{...(item.name === "MARVEL" ? marvelButtonStyle : buttonStyle)}
-				>
-					{item.name} <ChevronDownIcon />
-				</Button>
-			</Menu.Trigger>
-			<Menu.Content {...customMenuListStyle}>
-				{item.submenu?.map((subItem, subIndex) =>
-					subItem.submenu ? (
-						renderMenuItem(subItem, `${index}-${subIndex}`)
-					) : (
-						<Menu.Item key={subIndex} value={subItem.name.toLowerCase().replace(/\s+/g, "-")} asChild>
-							<Link href={subItem.href} {...submenuFinalItemStyle}>
-								{subItem.name}
-							</Link>
-						</Menu.Item>
-					),
-				)}
-			</Menu.Content>
-		</Menu.Root>
-	);
+
 
 	const renderAvatarItem = (name: string, href?: string, onClick?: () => void) => (
 		<Menu.Item key={name} value={name.toLowerCase().replace(/\s+/g, "-")} {...menuItemStyle} onClick={onClick} asChild>
@@ -522,9 +511,13 @@ const Navbar = () => {
 						<IconButton
 							onClick={handleOpenMainMenu}
 							aria-label="Open menu"
-							display={{ base: "block" }}
-							zIndex="tooltip"
-							mr={2}><HamburgerIcon size={20} /></IconButton>
+							variant="ghost"
+							color="white"
+							_hover={{ bg: "whiteAlpha.200" }}
+							mr={2}
+						>
+							<HamburgerIcon size={20} />
+						</IconButton>
 					)}
 
 					{user && (
@@ -532,44 +525,26 @@ const Navbar = () => {
 							<Menu.Root
 								open={isAvatarMenuOpen}
 								onOpenChange={(e) => { if (e.open !== isAvatarMenuOpen) handleToggleAvatarMenu(); }}
+								positioning={{ placement: "bottom-end" }}
 							>
 								<Menu.Trigger asChild>
 									<Box
-										position="relative"
 										display="flex"
 										alignItems="center"
 										cursor="pointer"
 										transition="all 0.2s"
-										_hover={{
-											transform: "scale(1.05)",
-										}}
-										_active={{
-											transform: "scale(0.95)",
-										}}
+										_hover={{ transform: "scale(1.05)" }}
+										_active={{ transform: "scale(0.95)" }}
 									>
 										<AvatarNav uid={user.id} size={{ base: 12, md: 14 }} />
-										<Box
-											position="absolute"
-											bottom="-15px"
-											left="50%"
-											transform="translateX(-50%)"
-											transition="all 0.2s"
-											color={chevronColor}
-											opacity={0.8}
-											_groupHover={{ opacity: 1 }}
-										>
-											{isAvatarMenuOpen ? (
-												<ChevronUpIcon size={18} />
-											) : (
-												<ChevronDownIcon size={18} />
-											)}
-										</Box>
 									</Box>
 								</Menu.Trigger>
-								<Menu.Content {...avatarMenuListStyle}>
-									{renderAvatarItem("Profile", "/auth/account")}
-									{renderAvatarItem("Sign Out", undefined, handleSignOut)}
-								</Menu.Content>
+								<Menu.Positioner>
+									<Menu.Content {...avatarMenuListStyle}>
+										{renderAvatarItem("Profile", "/auth/account")}
+										{renderAvatarItem("Sign Out", undefined, handleSignOut)}
+									</Menu.Content>
+								</Menu.Positioner>
 							</Menu.Root>
 						</Flex>
 					)}
@@ -694,7 +669,15 @@ const Navbar = () => {
 									variants={itemVariants}
 									style={{ width: "100%", display: "flex", justifyContent: "center" }}
 								>
-									{item.submenu ? renderMenuItem(item, index) : null}
+									{item.submenu ? (
+										<MobileMenuItem
+											item={item}
+											index={index}
+											btnStyle={buttonStyle}
+											marvelBtnStyle={marvelButtonStyle}
+											onNavigate={handleCloseMainMenu}
+										/>
+									) : null}
 								</motion.div>
 							))}
 							<motion.div

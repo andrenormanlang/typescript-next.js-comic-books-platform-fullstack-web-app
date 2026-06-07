@@ -383,23 +383,26 @@ const ComicsBuy: NextPage = () => {
 												handleStockChange(comic.id, 1);
 											}}
 											size={{ base: "xs", md: "md" }}
-											disabled={comic.stock === 0 || loadingComicIds.includes(comic.id)}>loadingComicIds.includes(comic.id) ? <Spinner size="sm" /> : <Plus /></IconButton>
+											disabled={comic.stock === 0 || loadingComicIds.includes(comic.id)}
+										>
+											{loadingComicIds.includes(comic.id) ? <Spinner size="sm" /> : <Plus />}
+										</IconButton>
 										{isAdmin && (
 											<Box position="absolute" top={2} right={2} display="flex" gap={1}>
 												<NextLink href={`/comics-store/edit/${comic.id}`} passHref>
 													<IconButton
 														aria-label="Edit Comic"
-														
 														fontWeight={"900"}
 														color={"white"}
 														backgroundColor={"blue.500"}
 														size={{ base: "xs", md: "md" }}
 														onClick={(e) => e.stopPropagation()}
-													/>
+													>
+														<Pencil />
+													</IconButton>
 												</NextLink>
 												<IconButton
 													aria-label="Delete Comic"
-													
 													fontWeight={"900"}
 													color={"white"}
 													backgroundColor={"red.500"}
@@ -408,7 +411,9 @@ const ComicsBuy: NextPage = () => {
 														e.stopPropagation();
 														openDeleteDialog(comic);
 													}}
-												/>
+												>
+													<Trash2 />
+												</IconButton>
 											</Box>
 										)}
 									</MotionDiv>
