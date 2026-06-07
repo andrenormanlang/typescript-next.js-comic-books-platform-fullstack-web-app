@@ -1,9 +1,10 @@
-// In your AvatarNav component
 "use client";
 
+import { useColorModeValue } from "@/components/ui/color-mode";
+// In your AvatarNav component
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";
-import { Image, Box, Spinner, useColorModeValue, Text, useBreakpointValue } from "@chakra-ui/react";
+import { Image, Box, Spinner, Text, useBreakpointValue } from "@chakra-ui/react";
 import { setAvatarUrl } from "@/store/avatarSlice";
 import { useGetAvatar } from "@/hooks/avatar-image/useGetAvatar";
 

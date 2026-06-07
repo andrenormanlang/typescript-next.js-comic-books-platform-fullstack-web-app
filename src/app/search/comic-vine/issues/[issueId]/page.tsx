@@ -1,26 +1,23 @@
 "use client";
 
+import { useColorModeValue } from "@/components/ui/color-mode";
 import React, { Suspense, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import {
+import {Tag, 
 	Box,
 	Image,
 	Text,
 	VStack,
-	HStack,
-	Tag,
-	Flex,
+	HStack, Flex,
 	Badge,
-	Container,
-	useColorModeValue,
-	Heading,
+	Container, Heading,
 	Button,
 	Center,
 	Spinner,
 	SimpleGrid,
 } from "@chakra-ui/react";
 import { CharacterCredit, PersonCredit, SearchQuery } from "@/types/comic.types";
-import { ArrowBackIcon } from "@chakra-ui/icons";
+import { ArrowLeft } from "lucide-react";
 import { NextPage } from "next";
 import { useGetComicVineIssue } from "@/hooks/comic-vine/useComicVine";
 import { useSearchParams } from "next/navigation";
@@ -101,15 +98,15 @@ const IssuePage: NextPage = () => {
 						display: "flex",
 						justifyContent: "center",
 						alignItems: "center",
-						height: "100vh", // Full viewport height
-						fontFamily: '"Bangers", cursive', // Assuming "Bangers" font is loaded
-						fontSize: "1.5rem", // Larger font size
-						color: "red", // Red color for the error message
+						height: "100vh",
+						fontFamily: '"Bangers", cursive',
+						fontSize: "1.5rem",
+						color: "red",
 						textAlign: "center",
 						padding: "20px",
-						backgroundColor: "#f0f0f0", // Light background for visibility
+						backgroundColor: "#f0f0f0",
 						borderRadius: "10px",
-						boxShadow: "0 4px 8px rgba(0, 0, 0, 0.15)", // Optional shadow for better appearance
+						boxShadow: "0 4px 8px rgba(0, 0, 0, 0.15)",
 					}}
 				>
 					Loading...
@@ -118,7 +115,7 @@ const IssuePage: NextPage = () => {
 		>
 			<Container maxW="1150px" p={4}>
 				<Box mb={4}>
-					<Button leftIcon={<ArrowBackIcon />} colorScheme="teal" variant="outline" onClick={handleBack}>
+					<Button  colorPalette="teal" variant="outline" onClick={handleBack}>
 						Back to Grid
 					</Button>
 				</Box>
@@ -139,9 +136,9 @@ const IssuePage: NextPage = () => {
 						{/* Image */}
 						<Image
 							borderRadius="md"
-							boxSize={{ base: "100%", md: "600" }} // Adjust the size as you like
+							maxW={{ base: "100%", md: "600px" }}
 							objectFit="contain"
-							sx={{marginBottom: "5", }}
+							css={{marginBottom: "5", }}
 							width={{ base: "100%", md: "100%" }}
 							src={imageUrl}
 							alt={`Cover of ${comic.name}`}
@@ -149,15 +146,15 @@ const IssuePage: NextPage = () => {
 
 						<Box>
 							<HStack justifyContent="" mt={2}>
-								<Tag
+								<Tag.Root
 									fontFamily="Bangers"
 									letterSpacing="0.05em"
 									size="lg"
-									colorScheme="blue"
-								>{`Issue #${issueNumber}`}</Tag>
-								<Tag fontFamily="Bangers" letterSpacing="0.05em" size="lg" colorScheme="green">
+									colorPalette="blue"
+								>{`Issue #${issueNumber}`}</Tag.Root>
+								<Tag.Root fontFamily="Bangers" letterSpacing="0.05em" size="lg" colorPalette="green">
 									{coverDate}
-								</Tag>
+								</Tag.Root>
 							</HStack>
 
 
@@ -204,7 +201,7 @@ const IssuePage: NextPage = () => {
 						<Heading size="md" fontFamily="Bangers" letterSpacing="0.05em" color="orange">
 							Character Credits:
 						</Heading>
-						<SimpleGrid columns={{ base: 2, md: 3 }} spacing={4}>
+						<SimpleGrid columns={{ base: 2, md: 3 }} gap={4}>
 							{comic.results?.character_credits &&
 								comic.results?.character_credits.map((character: CharacterCredit) => (
 									<Box key={character.id} p={2} boxShadow="md" borderRadius="md">
@@ -217,12 +214,12 @@ const IssuePage: NextPage = () => {
 						<Heading size="md" fontFamily="Bangers" letterSpacing="0.05em" color="lightblue">
 							Person Credits:
 						</Heading>
-						<SimpleGrid columns={{ base: 2, md: 3 }} spacing={4}>
+						<SimpleGrid columns={{ base: 2, md: 3 }} gap={4}>
 							{comic.results?.person_credits &&
 								comic.results?.person_credits?.map((person: PersonCredit) => (
 									<Box key={person.id} p={2} boxShadow="md" borderRadius="md">
 										<Text textAlign="start">{person.name}</Text>
-										<Badge colorScheme="blue">{person.role}</Badge>
+										<Badge colorPalette="blue">{person.role}</Badge>
 									</Box>
 								))}
 						</SimpleGrid>

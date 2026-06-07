@@ -1,3 +1,4 @@
+import { useColorModeValue } from "@/components/ui/color-mode";
 // app/auth/confirm/page.tsx
 
 import React, { Suspense } from "react";
@@ -7,11 +8,6 @@ import { Spinner, Center } from "@chakra-ui/react";
 export default function ConfirmPage() {
   return (
     <Suspense
-      fallback={
-        <Center minH="100vh">
-          <Spinner size="xl" />
-        </Center>
-      }
     >
       <ConfirmForm />
     </Suspense>
@@ -28,10 +24,9 @@ export default function ConfirmPage() {
 //   Box,
 //   Center,
 //   Text,
-//   useColorModeValue,
-//   Heading,
+//, //   Heading,
 //   VStack,
-//   Divider,
+//   Separator,
 // } from "@chakra-ui/react";
 
 // export default function Confirm() {
@@ -52,11 +47,11 @@ export default function ConfirmPage() {
 //         boxShadow="lg"
 //         borderRadius="lg"
 //       >
-//         <VStack spacing={4}>
+//         <VStack gap={4}>
 //           <Heading as="h1" size="lg" color="green.600" textAlign="center">
 //             Confirmation Required
 //           </Heading>
-//           <Divider />
+//           <Separator />
 //           <Text textAlign="center" fontSize="md" color="green.600">
 //             Check your email <span style={{ fontWeight: 'bold' }}>{email}</span> to continue the sign-in process
 //           </Text>

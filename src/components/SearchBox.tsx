@@ -1,7 +1,8 @@
 "use client";
 
-import { Input, Button, Stack, Flex, Box, useColorModeValue, IconButton } from "@chakra-ui/react";
-import { CloseIcon } from "@chakra-ui/icons";
+import { useColorModeValue } from "@/components/ui/color-mode";
+import { Input, Button, Stack, Flex, Box, IconButton } from "@chakra-ui/react";
+import { X } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 
 type SearchComponentProps = {
@@ -54,7 +55,6 @@ const SearchBox: React.FC<SearchComponentProps> = ({
 	};
 
 	const handleClear = () => {
-		// Back-compat: if someone wired refresh, treat it as the clear override.
 		const clearOverride = onClearQuery ?? onRefresh;
 		if (clearOverride) {
 			clearOverride();
@@ -75,7 +75,7 @@ const SearchBox: React.FC<SearchComponentProps> = ({
 		<Flex justify="center" width="100%" mb={8}>
 			<Box width={{ base: "90%", sm: "80%", md: "60%", lg: "40%" }}>
 				<form onSubmit={handleSearch} style={{ width: "100%" }}>
-					<Stack direction="row" spacing={4} width="100%" align="center">
+					<Stack direction="row" gap={4} width="100%" align="center">
 						<Input
 							type="text"
 							placeholder="Search..."
@@ -90,12 +90,13 @@ const SearchBox: React.FC<SearchComponentProps> = ({
 							<IconButton
 								aria-label="Clear query"
 								onClick={handleClear}
-								icon={<CloseIcon />}
 								variant="outline"
-								colorScheme="blue"
-							/>
+								colorPalette="blue"
+							>
+								<X />
+							</IconButton>
 						)}
-						<Button type="submit" colorScheme="blue" minW="100px">
+						<Button type="submit" colorPalette="blue" minW="100px">
 							Search
 						</Button>
 					</Stack>

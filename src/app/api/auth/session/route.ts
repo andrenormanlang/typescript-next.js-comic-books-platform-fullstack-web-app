@@ -1,9 +1,22 @@
-// src/app/api/auth/session/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/utils/supabase/client'; // Adjust path based on your project structure
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 export async function GET(request: NextRequest) {
   try {
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value ?? '';
+          },
+        },
+      }
+    );
+
     const { data: session, error } = await supabase.auth.getSession();
 
     if (error) {

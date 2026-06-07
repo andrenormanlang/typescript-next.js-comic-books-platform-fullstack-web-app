@@ -1,8 +1,9 @@
-'use client';
+"use client";
 
+import { useColorModeValue } from "@/components/ui/color-mode";
 import { useEffect, useState } from "react";
 import { supabase } from "@/utils/supabaseClient";
-import { Box, Spinner, SimpleGrid, Heading, Text, Button, Image, VStack, Center, Container, useColorModeValue, Badge, Flex } from "@chakra-ui/react";
+import { Box, Spinner, SimpleGrid, Heading, Text, Button, Image, VStack, Center, Container, Badge, Flex } from "@chakra-ui/react";
 import { useRouter } from "next/navigation";
 import { Forum } from "@/types/forum/forum.type";
 import { getRelativeTime } from "@/helpers/getRelativeTime";
@@ -82,7 +83,7 @@ const ForumList = () => {
 
     return (
         <Container maxW="container.xl" py={8}>
-            <SimpleGrid columns={{ sm: 1, md: 2, lg: 3 }} spacing={6}>
+            <SimpleGrid columns={{ sm: 1, md: 2, lg: 3 }} gap={6}>
                 {forums.map((forum) => (
                     <Box
                         key={forum.id}
@@ -105,25 +106,24 @@ const ForumList = () => {
                                 objectFit="cover"
                                 height="100%"
                                 width="100%"
-                                fallbackSrc="https://via.placeholder.com/400x200?text=Forum"
                             />
                         </Box>
                         <Flex direction="column" justify="space-between" flex="1" p={5}>
-                            <VStack spacing={4} align="stretch" flex="1">
+                            <VStack gap={4} align="stretch" flex="1">
                                 <Heading fontSize="xl">{forum.title}</Heading>
                                 <Text>{forum.description}</Text>
                                 <Box mt="auto">
 									<VStack align="initial">
 
-                                    <Badge colorScheme="teal" mb={1} variant="subtle" color={cardText}>Topics: {forumDetails[forum.id]?.topicCount || 0}</Badge>
+                                    <Badge colorPalette="teal" mb={1} variant="subtle" color={cardText}>Topics: {forumDetails[forum.id]?.topicCount || 0}</Badge>
 
-                                    <Badge colorScheme="blue" mb={1} variant="subtle" color={cardText}>Posts: {forumDetails[forum.id]?.postCount || 0}</Badge>
+                                    <Badge colorPalette="blue" mb={1} variant="subtle" color={cardText}>Posts: {forumDetails[forum.id]?.postCount || 0}</Badge>
 
-                                    <Badge colorScheme="black" mb={1} variant="subtle" color={cardText}>Last Updated: {forumDetails[forum.id]?.lastUpdated || "No posts"}</Badge>
+                                    <Badge colorPalette="black" mb={1} variant="subtle" color={cardText}>Last Updated: {forumDetails[forum.id]?.lastUpdated || "No posts"}</Badge>
 									</VStack>
                                 </Box>
                             </VStack>
-                            <Button mt={4} width="full" colorScheme="teal" onClick={() => router.push(`/forums/${forum.id}`)}>
+                            <Button mt={4} width="full" colorPalette="teal" onClick={() => router.push(`/forums/${forum.id}`)}>
                                 View Topics
                             </Button>
                         </Flex>

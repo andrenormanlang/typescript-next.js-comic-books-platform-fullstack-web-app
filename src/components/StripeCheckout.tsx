@@ -54,7 +54,7 @@ const CheckoutForm: React.FC<{ amount: number }> = ({ amount }) => {
 			{success ? (
 				<Text color="green.500">Payment succeeded!</Text>
 			) : (
-				<Button type="submit" isLoading={loading} mt={4} colorScheme="blue" isDisabled={!stripe || loading}>
+				<Button type="submit" loading={loading} mt={4} colorPalette="blue" disabled={!stripe || loading}>
 					Pay
 				</Button>
 			)}

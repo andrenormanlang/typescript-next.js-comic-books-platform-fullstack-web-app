@@ -1,25 +1,20 @@
 'use client';
 
+import { useColorModeValue } from "@/components/ui/color-mode";
 import { useRouter, useParams } from "next/navigation"; // Import useParams
 import { useState } from "react";
 import { supabase } from "@/utils/supabaseClient";
-import {
+import {Field, 
   Box,
   Button,
   Input,
   Spinner,
-  Center,
-  FormControl,
-  FormLabel,
-  Textarea,
+  Center, Textarea,
   VStack,
   Container,
-  Heading,
-  useToast,
-  useColorModeValue,
-  FormErrorMessage,
-  Flex,
+  Heading, Flex,
 } from "@chakra-ui/react";
+import { toaster } from "@/components/ui/toaster";
 import { useUser } from "@/contexts/UserContext";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -38,7 +33,6 @@ const CreateTopic: React.FC = () => { // No props
   const { id } = params; // Destructure 'id' from params
   const router = useRouter();
   const { user } = useUser();
-  const toast = useToast();
   const [loading, setLoading] = useState(false);
 
   const {
@@ -55,12 +49,11 @@ const CreateTopic: React.FC = () => { // No props
 
   const onSubmit = async (data: TopicFormData) => {
     if (!user) {
-      toast({
+      toaster.create({
         title: "Error",
         description: "You need to be signed in to create a topic.",
-        status: "error",
+        type: "error",
         duration: 5000,
-        isClosable: true,
       });
       return;
     }
@@ -71,23 +64,21 @@ const CreateTopic: React.FC = () => { // No props
       const { error } = await supabase.from("topics").insert([{ forum_id: id, ...data, created_by: user.id }]);
       if (error) throw error;
 
-      toast({
+      toaster.create({
         title: "Topic created.",
         description: "Your topic has been created successfully.",
-        status: "success",
+        type: "success",
         duration: 5000,
-        isClosable: true,
       });
 
       router.push(`/forums/${id}`);
     } catch (error) {
       console.error("Error creating topic:", error);
-      toast({
+      toaster.create({
         title: "Error",
         description: "There was an error creating the topic.",
-        status: "error",
+        type: "error",
         duration: 5000,
-        isClosable: true,
       });
     } finally {
       setLoading(false);
@@ -97,7 +88,7 @@ const CreateTopic: React.FC = () => { // No props
   return (
     <Container maxW="container.md" py={8}>
       <Flex justifyContent="space-between" mb={4}>
-        <Button colorScheme="teal" onClick={() => router.push(`/forums/${id}`)}>
+        <Button colorPalette="teal" onClick={() => router.push(`/forums/${id}`)}>
           Back to Topics
         </Button>
       </Flex>
@@ -117,25 +108,25 @@ const CreateTopic: React.FC = () => { // No props
           </Center>
         ) : (
           <form onSubmit={handleSubmit(onSubmit)}>
-            <VStack spacing={4}>
-              <FormControl id="title" isInvalid={!!errors.title}>
-                <FormLabel>Title</FormLabel>
+            <VStack gap={4}>
+              <Field.Root id="title" invalid={!!errors.title}>
+                <Field.Label>Title</Field.Label>
                 <Input
                   {...register("title")}
                   placeholder="Enter topic title"
                 />
-                <FormErrorMessage>{errors.title && errors.title.message}</FormErrorMessage>
-              </FormControl>
-              <FormControl id="description" isInvalid={!!errors.description}>
-                <FormLabel>Description</FormLabel>
+                <Field.ErrorText>{errors.title && errors.title.message}</Field.ErrorText>
+              </Field.Root>
+              <Field.Root id="description" invalid={!!errors.description}>
+                <Field.Label>Description</Field.Label>
                 <Textarea
                   {...register("description")}
                   placeholder="Enter topic description"
                 />
-                <FormErrorMessage>{errors.description && errors.description.message}</FormErrorMessage>
-              </FormControl>
+                <Field.ErrorText>{errors.description && errors.description.message}</Field.ErrorText>
+              </Field.Root>
               <Button
-                colorScheme="teal"
+                colorPalette="teal"
                 width="full"
                 type="submit"
                 _hover={{ bg: cardHover }}

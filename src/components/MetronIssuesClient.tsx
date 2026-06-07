@@ -1,5 +1,6 @@
 "use client";
 
+import { useColorModeValue } from "@/components/ui/color-mode";
 import { useQuery } from "@tanstack/react-query";
 import {
 	SimpleGrid,
@@ -10,13 +11,7 @@ import {
 	Center,
 	Spinner,
 	Tabs,
-	TabList,
-	TabPanels,
-	Tab,
-	TabPanel,
-	Heading,
-	useColorModeValue,
-	VStack,
+	Heading, VStack,
 	Badge,
 } from "@chakra-ui/react";
 import { motion } from "framer-motion";
@@ -165,7 +160,7 @@ const MetronIssuesClient = () => {
 	};
 
 	const IssueGrid = ({ issues }: { issues: MetronIssue[] }) => (
-		<SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing={6}>
+		<SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} gap={6}>
 			{issues.map((issue) => (
 				<NextLink
 					key={issue.id}
@@ -220,20 +215,15 @@ const MetronIssuesClient = () => {
 									objectFit="cover"
 									width="100%"
 									height="100%"
-									fallback={
-										<Center height="100%">
-											<Spinner />
-										</Center>
-									}
 								/>
 							</Box>
 
 							{/* Content Container */}
-							<VStack p={4} align="center" spacing={2} height="170px" justify="center">
+							<VStack p={4} align="center" gap={2} height="170px" justify="center">
 								<Heading
 									size="md"
 									color={textColor}
-									noOfLines={3}
+									lineClamp={3}
 									textAlign="center"
 									lineHeight="1.2"
 									minHeight="4.8em"
@@ -291,26 +281,22 @@ const MetronIssuesClient = () => {
 				</Box>
 			)}
 
-			<Tabs
-				isFitted
+			<Tabs.Root
 				variant="enclosed"
-				colorScheme="blue"
-				index={activeView === "recent" ? 0 : 1}
-				onChange={handleTabChange}
+				value={activeView}
+				onValueChange={(e) => handleTabChange(e.value === "recent" ? 0 : 1)}
 			>
-				<TabPanels>
-					<TabPanel>
-						{activeView === "recent" &&
-							(data?.results.length === 0 ? (
-								<Center p={8}>
-									<Text color={textColor}>No issues found</Text>
-								</Center>
-							) : (
-								<IssueGrid issues={data?.results || []} />
-							))}
-					</TabPanel>
-				</TabPanels>
-			</Tabs>
+				<Tabs.Content value="recent">
+					{activeView === "recent" &&
+						(data?.results.length === 0 ? (
+							<Center p={8}>
+								<Text color={textColor}>No issues found</Text>
+							</Center>
+						) : (
+							<IssueGrid issues={data?.results || []} />
+						))}
+				</Tabs.Content>
+			</Tabs.Root>
 
 			{data?.results?.length > 0 && (
 				<Box mt={8}>

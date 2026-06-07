@@ -1,6 +1,7 @@
 'use client';
 
-import { useToast, FormControl, FormLabel, Input, Button, Box, Text, Link } from '@chakra-ui/react';
+import { Field, Input, Button, Box, Text, Link } from '@chakra-ui/react';
+import { toaster } from "@/components/ui/toaster";
 import { FormEvent, useState } from "react";
 import { z, ZodError } from 'zod';
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
@@ -14,7 +15,6 @@ type FormData = z.infer<typeof ForgotPasswordSchema>;
 
 export default function ForgotPasswordForm() {
   const supabase = createClientComponentClient();
-  const toast = useToast();
   const [formData, setFormData] = useState<FormData>({ email: "" });
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -25,12 +25,11 @@ export default function ForgotPasswordForm() {
     } catch (err) {
       if (err instanceof ZodError) {
         err.errors.forEach((error) => {
-          toast({
+          toaster.create({
             title: "Validation Error",
             description: error.message,
-            status: "error",
+            type: "error",
             duration: 9000,
-            isClosable: true,
           });
         });
         return;
@@ -41,23 +40,21 @@ export default function ForgotPasswordForm() {
 		redirectTo: `${window.location.origin}/api/auth/callback-password`,
 	  });
     if (error) {
-      toast({
+      toaster.create({
         title: "Error",
         description: error.message,
-        status: "error",
+        type: "error",
         duration: 9000,
-        isClosable: true,
       });
       return;
     }
 
     setFormData({ email: "" });
-    toast({
+    toaster.create({
       title: "Success",
       description: "Please check your email for a password reset link to log into the website.",
-      status: "success",
+      type: "success",
       duration: 9000,
-      isClosable: true,
     });
   };
 
@@ -66,11 +63,11 @@ export default function ForgotPasswordForm() {
       <Text fontSize="xl" fontWeight="semibold" mb={4}>Forgot Password</Text>
       <Text mb={4}>Looks like you´ve forgotten your password</Text>
       <form onSubmit={handleSubmit}>
-        <FormControl id="email" isInvalid={!!formData.email}>
-          <FormLabel>Email</FormLabel>
+        <Field.Root id="email" invalid={!!formData.email}>
+          <Field.Label>Email</Field.Label>
           <Input type="email" value={formData.email} onChange={(ev) => setFormData({ ...formData, email: ev.target.value })} />
-        </FormControl>
-        <Button mt={6} colorScheme="blue" type="submit">Send</Button>
+        </Field.Root>
+        <Button mt={6} colorPalette="blue" type="submit">Send</Button>
       </form>
       <Text pt={4} textAlign="center">
         Not registered yet? <Link href="/auth/signup" color="blue.500">Create an account</Link>

@@ -130,7 +130,7 @@ const MarvelEventsClient: NextPage = () => {
 	}
 
 	return (
-		<Suspense fallback={<div>Loading...</div>}>
+		<Suspense>
 			<Container maxW="container.xl" centerContent p={4}>
 				<SearchBox onSearch={(value) => handleSearchTerm(value)} />
 				{data && data.data && (
@@ -152,7 +152,7 @@ const MarvelEventsClient: NextPage = () => {
 				)}
 				<SimpleGrid
 					columns={{ base: 1, md: 3 }}
-					spacing={30}
+					gap={30}
 					width="100%"
 				>
 					{data.data &&

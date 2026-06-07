@@ -5,11 +5,6 @@ import { Spinner, Center } from "@chakra-ui/react";
 const MarvelEvents = () => {
   return (
     <Suspense
-      fallback={
-        <Center height="100vh">
-          <Spinner size="xl" />
-        </Center>
-      }
     >
       <MarvelEventsClient />
     </Suspense>

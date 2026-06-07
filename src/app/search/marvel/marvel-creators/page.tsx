@@ -1,15 +1,10 @@
 import React, { Suspense } from "react";
 import MarvelCreatorsClient from "@/components/MarvelCreatorsClient";
-import { Spinner, Center } from "@chakra-ui/react";
+import {Tag,  Spinner, Center } from "@chakra-ui/react";
 
 const MarvelCreators = () => {
   return (
     <Suspense
-      fallback={
-        <Center height="100vh">
-          <Spinner size="xl" />
-        </Center>
-      }
     >
       <MarvelCreatorsClient />
     </Suspense>
@@ -33,8 +28,7 @@ export default MarvelCreators;
 // 	Spinner,
 // 	Button,
 // 	Flex,
-// 	Tag,
-// } from "@chakra-ui/react";
+//, // } from "@chakra-ui/react";
 // import { motion } from "framer-motion";
 // import NextLink from "next/link";
 // import type { NextPage } from "next";
@@ -164,7 +158,7 @@ export default MarvelCreators;
 // 	}
 
 // 	return (
-// 		<Suspense fallback={<div>Loading...</div>}>
+// 		<Suspense>
 // 			<Container maxW="container.xl" centerContent p={4}>
 // 				<SearchBox onSearch={(value) => handleSearchTerm(value)} />
 // 				{data && data.data && (
@@ -186,7 +180,7 @@ export default MarvelCreators;
 // 				)}
 // 				<SimpleGrid
 // 					columns={{ base: 1, md: 3 }}
-// 					spacing={30}
+// 					gap={30}
 // 					width="100%"
 // 				>
 // 					{data.data &&
@@ -230,9 +224,9 @@ export default MarvelCreators;
 // 											{/* <Flex wrap="wrap" mt={2}>
 // 												{marvelCreator.urls.map(
 // 													(urlItem: UrlItem) => (
-// 														<Tag
+// 														<Tag.Root
 // 															key={urlItem.type}
-// 															colorScheme={getColorScheme(
+// 															colorPalette={getColorScheme(
 // 																urlItem.type
 // 															)}
 // 															mr={2}
@@ -252,7 +246,7 @@ export default MarvelCreators;
 // 																		1
 // 																	)}
 // 															</a>
-// 														</Tag>
+// 														</Tag.Root>
 // 													)
 // 												)}
 // 											</Flex> */}

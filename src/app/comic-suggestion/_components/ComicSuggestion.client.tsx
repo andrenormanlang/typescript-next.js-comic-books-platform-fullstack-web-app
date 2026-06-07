@@ -9,20 +9,16 @@ import {
 	Link,
 	VStack,
 	HStack,
-	useToast,
 	Skeleton,
 	Badge,
-	Divider,
+	Separator,
 	Heading,
 	SimpleGrid,
 	Icon,
 	Flex,
-	Card,
-	CardHeader,
-	CardBody,
-	CardFooter,
-} from "@chakra-ui/react";
-import { ChevronLeftIcon, ExternalLinkIcon } from "@chakra-ui/icons";
+	Card } from "@chakra-ui/react";
+import { toaster } from "@/components/ui/toaster";
+import { ChevronLeft, ExternalLink } from "lucide-react";
 import { FaBook, FaPencilAlt, FaPaintBrush, FaBuilding, FaCalendarAlt } from "react-icons/fa";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -53,7 +49,6 @@ export default function ComicSuggestion() {
 	const isMountedRef = useRef(true);
 	const requestControllerRef = useRef<AbortController | null>(null);
 	const enrichControllerRef = useRef<AbortController | null>(null);
-	const toast = useToast();
 	const router = useRouter();
 	const searchParamsLocal = useSearchParams();
 
@@ -64,7 +59,7 @@ export default function ComicSuggestion() {
 		return () => {
 			isMountedRef.current = false;
 		};
-	}, []);
+	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const fetchSuggestion = async () => {
 		try {
@@ -98,12 +93,11 @@ export default function ComicSuggestion() {
 			if (!isMountedRef.current) return;
 
 			if (data.error) {
-				toast({
+				toaster.create({
 					title: "Error",
 					description: data.error,
-					status: "error",
+					type: "error",
 					duration: 5000,
-					isClosable: true,
 				});
 			} else {
 				setSuggestion(data.suggestion);
@@ -137,12 +131,11 @@ export default function ComicSuggestion() {
 		} catch (error) {
 			if (!isMountedRef.current) return;
 			if ((error as { name?: string }).name === "AbortError") return;
-			toast({
+			toaster.create({
 				title: "Error",
 				description: "Failed to fetch comic suggestion.",
-				status: "error",
+				type: "error",
 				duration: 5000,
-				isClosable: true,
 			});
 		} finally {
 			if (isMountedRef.current) setLoading(false);
@@ -159,8 +152,8 @@ export default function ComicSuggestion() {
 
 	return (
 		<Box p={4} maxW="800px" mx="auto">
-			<Button leftIcon={<ChevronLeftIcon />} onClick={goBack} colorScheme="gray" variant="outline" mb={6}>
-				Go Back
+			<Button onClick={goBack} colorPalette="gray" variant="outline" mb={6}>
+				<ChevronLeft size={16} /> Go Back
 			</Button>
 
 			<Heading as="h1" size="xl" mb={6} textAlign="center" color="blue.600">
@@ -168,11 +161,11 @@ export default function ComicSuggestion() {
 			</Heading>
 
 			{loading ? (
-				<Card boxShadow="lg" borderRadius="lg" overflow="hidden">
-					<CardBody>
-						<SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+				<Card.Root boxShadow="lg" borderRadius="lg" overflow="hidden">
+					<Card.Body>
+						<SimpleGrid columns={{ base: 1, md: 2 }} gap={6}>
 							<Skeleton height="400px" borderRadius="md" />
-							<VStack align="start" spacing={4}>
+							<VStack align="start" gap={4}>
 								<Skeleton height="40px" width="80%" />
 								<Skeleton height="20px" width="40%" />
 								<Skeleton height="120px" width="100%" />
@@ -180,12 +173,12 @@ export default function ComicSuggestion() {
 								<Skeleton height="40px" width="60%" />
 							</VStack>
 						</SimpleGrid>
-					</CardBody>
-				</Card>
+					</Card.Body>
+				</Card.Root>
 			) : suggestion ? (
-				<Card boxShadow="lg" borderRadius="lg" overflow="hidden">
-					<CardBody>
-						<SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+				<Card.Root boxShadow="lg" borderRadius="lg" overflow="hidden">
+					<Card.Body>
+						<SimpleGrid columns={{ base: 1, md: 2 }} gap={6}>
 							<Box>
 								{suggestion.imageUrl && !imageError ? (
 									<Image
@@ -203,14 +196,14 @@ export default function ComicSuggestion() {
 								)}
 							</Box>
 
-							<VStack align="start" spacing={4}>
+							<VStack align="start" gap={4}>
 								<Heading as="h2" size="lg" color="purple.600">
 									{suggestion.title}
 								</Heading>
 
 								<Box display="flex" flexWrap="wrap" gap={2} mb={2}>
 									<Badge
-										colorScheme="blue"
+										colorPalette="blue"
 										fontSize={{ base: "sm", md: "md" }}
 										py={{ base: 0.5, md: 1 }}
 										px={{ base: 1.5, md: 2 }}
@@ -222,7 +215,7 @@ export default function ComicSuggestion() {
 									</Badge>
 								</Box>
 								<Box width="100%" p={4} borderWidth="1px" borderRadius="md" borderColor="gray.200">
-									<VStack align="stretch" spacing={2}>
+									<VStack align="stretch" gap={2}>
 										<HStack>
 											<Icon as={FaBuilding} color="gray.500" />
 											<Text fontWeight="bold">Publisher:</Text>
@@ -245,8 +238,8 @@ export default function ComicSuggestion() {
 										</HStack>
 									</VStack>
 								</Box>
-								<Divider />
-								<VStack align="start" spacing={3} width="100%">
+								<Separator />
+								<VStack align="start" gap={3} width="100%">
 									<Heading as="h3" size="sm" color="blue.600">
 										<Icon as={FaBook} mr={2} />
 										Description:
@@ -260,40 +253,39 @@ export default function ComicSuggestion() {
 								</VStack>
 							</VStack>
 						</SimpleGrid>
-					</CardBody>
+					</Card.Body>
 
-					<CardFooter bg="gray.50" borderTop="1px" borderColor="gray.200">
+					<Card.Footer bg="gray.50" borderTop="1px" borderColor="gray.200">
 						<Flex width="100%" justify="space-between" align="center">
-							<Button onClick={fetchSuggestion} colorScheme="blue" leftIcon={<Icon as={FaBook} />}>
-								Get Another Suggestion
+							<Button onClick={fetchSuggestion} colorPalette="blue">
+								Get Another Suggestion <ExternalLink size={16} />
 							</Button>
 
 							{suggestion.link ? (
-								<Link href={suggestion.link} isExternal>
+								<Link href={suggestion.link} target="_blank" rel="noopener noreferrer">
 									<Button
-										rightIcon={<ExternalLinkIcon />}
-										colorScheme="teal"
+										colorPalette="teal"
 										variant="solid"
 										fontWeight="bold"
 										color="white"
 										_hover={{ bg: "teal.600" }}
 										boxShadow="md"
 									>
-										Learn More
+										Learn More <ExternalLink size={16} />
 									</Button>
 								</Link>
 							) : (
-								<Button rightIcon={<ExternalLinkIcon />} colorScheme="teal" isDisabled>
+								<Button colorPalette="teal" disabled>
 									No link yet
 								</Button>
 							)}
 						</Flex>
-					</CardFooter>
-				</Card>
+					</Card.Footer>
+				</Card.Root>
 			) : (
 				<Box textAlign="center" p={8}>
 					<Text>No suggestion available. Please try again.</Text>
-					<Button onClick={fetchSuggestion} colorScheme="blue" mt={4}>
+					<Button onClick={fetchSuggestion} colorPalette="blue" mt={4}>
 						Get Comic Suggestion
 					</Button>
 				</Box>

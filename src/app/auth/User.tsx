@@ -3,13 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { createClient } from "@supabase/supabase-js";
 import { useRouter } from 'next/router';
-import { useToast, Spinner, Button } from "@chakra-ui/react";
+import { Spinner, Button } from "@chakra-ui/react";
+import { toaster } from "@/components/ui/toaster";
 
 export default function User() {
   const [loading, setLoading] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const router = useRouter();
-  const toast = useToast();
 
   const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
   const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
@@ -39,21 +39,19 @@ export default function User() {
     setLoading(true);
     try {
       await supabase.auth.signOut();
-      toast({
+      toaster.create({
         title: "Signed out successfully.",
-        status: "success",
+        type: "success",
         duration: 9000,
-        isClosable: true,
       });
       router.push('/auth/login');
     } catch (error) {
       const errorMsg = (error as { message?: string }).message || "Unexpected error.";
-      toast({
+      toaster.create({
         title: "Failed to sign out.",
         description: errorMsg,
-        status: "error",
+        type: "error",
         duration: 9000,
-        isClosable: true,
       });
     } finally {
       setLoading(false);
@@ -67,7 +65,7 @@ export default function User() {
   return userEmail ? (
     <div className="flex items-center gap-4">
       Hey, {userEmail}!
-      <Button onClick={signOut} isLoading={loading} loadingText="Logging Out">
+      <Button onClick={signOut} loading={loading} loadingText="Logging Out">
         Logout
       </Button>
     </div>

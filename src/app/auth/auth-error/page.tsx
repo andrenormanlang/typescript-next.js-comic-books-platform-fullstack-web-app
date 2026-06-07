@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Center, Box, Heading, Text, Button, useColorModeValue } from "@chakra-ui/react";
+import { Center, Box, Heading, Text, Button } from "@chakra-ui/react";
+import { useColorModeValue } from "@/components/ui/color-mode";
 
 export default function AuthError() {
   const router = useRouter();
@@ -28,7 +29,7 @@ export default function AuthError() {
         <Text mb={4} color={textColor}>
           Your session has expired. Please sign up again to continue.
         </Text>
-        <Button colorScheme="teal" onClick={() => router.push("/auth/signup")}>
+        <Button colorPalette="teal" onClick={() => router.push("/auth/signup")}>
           Sign Up
         </Button>
       </Box>

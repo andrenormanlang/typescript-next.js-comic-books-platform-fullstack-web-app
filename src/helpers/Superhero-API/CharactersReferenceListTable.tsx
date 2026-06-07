@@ -1,7 +1,8 @@
 "use client";
 
+import { useColorModeValue } from "@/components/ui/color-mode";
 import { useRouter } from "next/navigation";
-import { useBreakpointValue, Table, Thead, Tbody, Tr, Th, Td, Flex, useColorModeValue } from "@chakra-ui/react";
+import { useBreakpointValue, Table, Flex } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 
 export type Character = {
@@ -22,7 +23,6 @@ const CharactersReferenceListTable: React.FC<{ characters: CharactersApiResponse
 	const [characterColumns, setCharacterColumns] = useState<Character[][]>([]);
 
 	const handleRowClick = (characterId: number) => {
-		// Navigate to the SuperheroID page with the character ID
 		router.push(`/search/superheros/superhero-api/${characterId}`);
 	};
 
@@ -36,33 +36,32 @@ const CharactersReferenceListTable: React.FC<{ characters: CharactersApiResponse
 			setCharacterColumns(newCharacterColumns);
 		} else {
 			console.log('Data is not an array:', characters.data);
-	
 		}
 	}, [characters, columns]);
 
 	return (
 		<Flex direction="row" overflowX="auto" h="80vh">
 			{characterColumns.map((column, columnIndex) => (
-				<Table key={columnIndex} variant="simple" size="sm" mx={4}>
-					<Thead>
-						<Tr>
-							<Th>ID</Th>
-							<Th>Character Name</Th>
-						</Tr>
-					</Thead>
-					<Tbody>
+				<Table.Root key={columnIndex} variant="outline" size="sm" mx={4}>
+					<Table.Header>
+						<Table.Row>
+							<Table.ColumnHeader>ID</Table.ColumnHeader>
+							<Table.ColumnHeader>Character Name</Table.ColumnHeader>
+						</Table.Row>
+					</Table.Header>
+					<Table.Body>
 						{column.map((character) => (
-							<Tr
+							<Table.Row
 								key={character.ID}
 								_hover={{ bg: bg, cursor: "pointer" }}
 								onClick={() => handleRowClick(character.ID)}
 							>
-								<Td>{character.ID}</Td>
-								<Td>{character.CharacterName}</Td>
-							</Tr>
+								<Table.Cell>{character.ID}</Table.Cell>
+								<Table.Cell>{character.CharacterName}</Table.Cell>
+							</Table.Row>
 						))}
-					</Tbody>
-				</Table>
+					</Table.Body>
+				</Table.Root>
 			))}
 		</Flex>
 	);

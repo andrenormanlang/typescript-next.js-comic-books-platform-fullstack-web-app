@@ -1,3 +1,4 @@
+import { useColorModeValue } from "@/components/ui/color-mode";
 import React from "react";
 import LoginServer from "@/components/auth/LoginServer";
 
@@ -31,22 +32,18 @@ export default function Login({ searchParams }: PageProps) {
 
 // import React, { useEffect, useState } from "react";
 // import { useRouter, useSearchParams } from "next/navigation";
-// import {
+// import {InputElement, Field, 
 //   Box,
 //   Heading,
-//   FormControl,
-//   FormLabel,
-//   Input,
+//, //, //   Input,
 //   Button,
 //   Text,
 //   Center,
 //   Spinner,
 //   useToast,
 //   InputGroup,
-//   InputRightElement,
-//   IconButton,
-//   useColorModeValue,
-// } from "@chakra-ui/react";
+//, //   IconButton,
+//, // } from "@chakra-ui/react";
 // import Link from "next/link";
 // import { createClient } from "@/utils/supabase/client";
 // import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
@@ -178,8 +175,8 @@ export default function Login({ searchParams }: PageProps) {
 //           Sign In
 //         </Heading>
 //         <form onSubmit={signIn}>
-//           <FormControl id="email" mb={4}>
-//             <FormLabel>Email</FormLabel>
+//           <Field.Root id="email" mb={4}>
+//             <Field.Label>Email</Field.Label>
 //             <Input
 //               type="email"
 //               name="email"
@@ -187,9 +184,9 @@ export default function Login({ searchParams }: PageProps) {
 //               value={formData.email}
 //               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
 //             />
-//           </FormControl>
-//           <FormControl id="password" mb={4}>
-//             <FormLabel>Password</FormLabel>
+//           </Field.Root>
+//           <Field.Root id="password" mb={4}>
+//             <Field.Label>Password</Field.Label>
 //             <InputGroup>
 //               <Input
 //                 type={showPassword ? "text" : "password"}
@@ -198,17 +195,17 @@ export default function Login({ searchParams }: PageProps) {
 //                 value={formData.password}
 //                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
 //               />
-//               <InputRightElement>
+//               <InputElement placement="end">
 //                 <IconButton
-//                   icon={showPassword ? <ViewOffIcon /> : <ViewIcon />}
+//
 //                   onClick={() => setShowPassword(!showPassword)}
 //                   variant="ghost"
 //                   aria-label="Toggle Password Visibility"
-//                 />
-//               </InputRightElement>
+//>showPassword ? <ViewOffIcon /> : <ViewIcon /></IconButton>
+//               </InputElement>
 //             </InputGroup>
-//           </FormControl>
-//           <Button type="submit" colorScheme="teal" width="full" mb={4}>
+//           </Field.Root>
+//           <Button type="submit" colorPalette="teal" width="full" mb={4}>
 //             Sign In
 //           </Button>
 //           {message && (
@@ -218,12 +215,12 @@ export default function Login({ searchParams }: PageProps) {
 //           )}
 //         </form>
 //         <Link href="/auth/forgot-password" passHref>
-//           <Button variant="link" colorScheme="teal" width="full" mb={2}>
+//           <Button variant="plain" colorPalette="teal" width="full" mb={2}>
 //             Forgotten Password?
 //           </Button>
 //         </Link>
 //         <Link href="/auth/signup" passHref>
-//           <Button variant="link" colorScheme="teal" width="full">
+//           <Button variant="plain" colorPalette="teal" width="full">
 //             Don’t have an Account? Sign Up
 //           </Button>
 //         </Link>
@@ -242,15 +239,12 @@ export default function Login({ searchParams }: PageProps) {
 // import {
 // 	Box,
 // 	Heading,
-// 	FormControl,
-// 	FormLabel,
-// 	Input,
+//, //, // 	Input,
 // 	Button,
 // 	Text,
 // 	Center,
 // 	Spinner,
-// 	useColorModeValue,
-// 	useToast,
+//, // 	useToast,
 // } from "@chakra-ui/react";
 // import { User } from "@supabase/supabase-js"; // Import the User type
 
@@ -372,7 +366,7 @@ export default function Login({ searchParams }: PageProps) {
 // 					<Heading as="h1" size="lg" mb={6}>
 // 						You are already logged in
 // 					</Heading>
-// 					<Button onClick={handleLogout} colorScheme="red" width="full">
+// 					<Button onClick={handleLogout} colorPalette="red" width="full">
 // 						Logout
 // 					</Button>
 // 				</Box>
@@ -386,32 +380,32 @@ export default function Login({ searchParams }: PageProps) {
 // 				<Heading as="h1" size="lg" mb={6} textAlign="center">
 // 					Sign In
 // 				</Heading>
-// 				<FormControl id="email" mb={4}>
-// 					<FormLabel>Email</FormLabel>
+// 				<Field.Root id="email" mb={4}>
+// 					<Field.Label>Email</Field.Label>
 // 					<Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-// 				</FormControl>
-// 				<FormControl id="password" mb={4}>
-// 					<FormLabel>Password</FormLabel>
+// 				</Field.Root>
+// 				<Field.Root id="password" mb={4}>
+// 					<Field.Label>Password</Field.Label>
 // 					<Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-// 				</FormControl>
+// 				</Field.Root>
 // 				{/* <Button
 //                     onClick={handleSignUp}
-//                     colorScheme="blue"
+//                     colorPalette="blue"
 //                     width="full"
 //                     mb={4}
 //                 >
 //                     Sign Up
 //                 </Button> */}
-// 				<Button onClick={handleSignIn} colorScheme="teal" width="full">
+// 				<Button onClick={handleSignIn} colorPalette="teal" width="full">
 // 					Sign In
 // 				</Button>
 // 				<Link href="/auth/forgot-password" passHref>
-// 					<Button variant="link" colorScheme="teal" width="full" mt={4}>
+// 					<Button variant="plain" colorPalette="teal" width="full" mt={4}>
 // 						Forgotten Password?
 // 					</Button>
 // 				</Link>
 // 				<Link href="/auth/signup" passHref>
-// 					<Button variant="link" colorScheme="teal" width="full" mt={4}>
+// 					<Button variant="plain" colorPalette="teal" width="full" mt={4}>
 // 						Don’t have an Account? Sign Up
 // 					</Button>
 // 				</Link>

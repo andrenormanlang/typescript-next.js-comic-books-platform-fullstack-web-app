@@ -7,7 +7,7 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { supabase } from "@/utils/supabase/client";
-import {
+import {NativeSelect, 
 	Box,
 	Button,
 	Input,
@@ -15,17 +15,14 @@ import {
 	Center,
 	Text,
 	VStack,
-	FormControl,
-	FormLabel,
-	Select,
-	useToast,
-	Container,
+	Field, Container,
 	Flex,
 	Heading,
 	Image,
-	useColorMode,
 } from "@chakra-ui/react";
-import { ArrowBackIcon } from "@chakra-ui/icons";
+import { useColorMode } from "@/components/ui/color-mode";
+import { toaster } from "@/components/ui/toaster";
+import { ArrowLeft } from "lucide-react";
 import ImageUpload from "./image-upload";
 import { Comic } from "@/types/comics-store/comic-detail.type";
 import { useUpdateComics } from "@/hooks/comic-table/useUpdateComics";
@@ -62,7 +59,6 @@ const EditComic = () => {
 	const id = pathParts.pop();
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-	const toast = useToast();
 	const [comic, setComic] = useState<Comic | null>(null);
 
 	const {
@@ -169,12 +165,11 @@ const EditComic = () => {
 				newPrice: data.price,
 			});
 
-			toast({
+			toaster.create({
 				title: "Comic updated.",
 				description: "The comic has been successfully updated.",
-				status: "success",
+				type: "success",
 				duration: 5000,
-				isClosable: true,
 			});
 
 			// Removed automatic redirect to home to prevent unexpected navigation.
@@ -182,12 +177,11 @@ const EditComic = () => {
 			// router.push("/");
 		} catch (error: any) {
 			setError("Error updating the comic!");
-			toast({
+			toaster.create({
 				title: "Error updating comic.",
 				description: error.message,
-				status: "error",
+				type: "error",
 				duration: 5000,
-				isClosable: true,
 			});
 		} finally {
 			setLoading(false);
@@ -213,7 +207,7 @@ const EditComic = () => {
 	return (
 		<Container maxW="container.xl" p={4}>
 			<Box mb={4}>
-				<Button leftIcon={<ArrowBackIcon />} colorScheme="teal" variant="outline" onClick={() => router.back()}>
+				<Button  colorPalette="teal" variant="outline" onClick={() => router.back()}>
 					Back to Grid
 				</Button>
 			</Box>
@@ -230,7 +224,7 @@ const EditComic = () => {
 					onSubmit={handleSubmit(onSubmit)}
 					flex="2"
 					align="start"
-					spacing={4}
+					gap={4}
 					p={4}
 					position="relative"
 					height="100%"
@@ -247,50 +241,50 @@ const EditComic = () => {
 							width="70%"
 						/>
 					</Box>
-					<FormControl isInvalid={!!errors.title}>
-						<FormLabel>Title</FormLabel>
+					<Field.Root invalid={!!errors.title}>
+						<Field.Label>Title</Field.Label>
 						<Input type="text" {...register("title")} maxWidth={"500px"} />
 						{errors.title && <Text color="red.500">{errors.title.message}</Text>}
-					</FormControl>
-					<FormControl isInvalid={!!errors.image}>
-						<FormLabel>New Cover Image</FormLabel>
+					</Field.Root>
+					<Field.Root invalid={!!errors.image}>
+						<Field.Label>New Cover Image</Field.Label>
 						<ImageUpload onUpload={(url) => setValue("image", url)} />
 						{errors.image && <Text color="red.500">{errors.image.message}</Text>}
-					</FormControl>
-					<FormControl isInvalid={!!errors.genre}>
-						<FormLabel>Genre</FormLabel>
-						<Select placeholder="Select genre" {...register("genre")} maxWidth={"250px"}>
+					</Field.Root>
+					<Field.Root invalid={!!errors.genre}>
+						<Field.Label>Genre</Field.Label>
+						<NativeSelect.Root><NativeSelect.Field placeholder="Select genre" {...register("genre")} maxWidth={"250px"}>
 							{genres.map((genre) => (
 								<option key={genre} value={genre}>
 									{genre}
 								</option>
 							))}
-						</Select>
+						</NativeSelect.Field></NativeSelect.Root>
 						{errors.genre && <Text color="red.500">{errors.genre.message}</Text>}
-					</FormControl>
-					<FormControl isInvalid={!!errors.release_date} maxWidth={"180px"}>
-						<FormLabel>Release Date</FormLabel>
+					</Field.Root>
+					<Field.Root invalid={!!errors.release_date} maxWidth={"180px"}>
+						<Field.Label>Release Date</Field.Label>
 						<Input type="date" {...register("release_date")} />
 						{errors.release_date && <Text color="red.500">{errors.release_date.message}</Text>}
-					</FormControl>
-					<FormControl isInvalid={!!errors.stock}>
-						<FormLabel>Stock</FormLabel>
+					</Field.Root>
+					<Field.Root invalid={!!errors.stock}>
+						<Field.Label>Stock</Field.Label>
 						<Input type="number" {...register("stock", { valueAsNumber: true })} maxWidth={"50px"} />
 						{errors.stock && <Text color="red.500">{errors.stock.message}</Text>}
-					</FormControl>
-					<FormControl isInvalid={!!errors.currency}>
-						<FormLabel>Currency</FormLabel>
-						<Select placeholder="Select currency" {...register("currency")} maxWidth={"180px"}>
+					</Field.Root>
+					<Field.Root invalid={!!errors.currency}>
+						<Field.Label>Currency</Field.Label>
+						<NativeSelect.Root><NativeSelect.Field placeholder="Select currency" {...register("currency")} maxWidth={"180px"}>
 							{currencies.map((currency) => (
 								<option key={currency.value} value={currency.value}>
 									{currency.label}
 								</option>
 							))}
-						</Select>
+						</NativeSelect.Field></NativeSelect.Root>
 						{errors.currency && <Text color="red.500">{errors.currency.message}</Text>}
-					</FormControl>
-					<FormControl isInvalid={!!errors.price}>
-						<FormLabel>Price</FormLabel>
+					</Field.Root>
+					<Field.Root invalid={!!errors.price}>
+						<Field.Label>Price</Field.Label>
 						<Input
 							type="number"
 							step="0.01"
@@ -298,56 +292,48 @@ const EditComic = () => {
 							maxWidth={"80px"}
 						/>
 						{errors.price && <Text color="red.500">{errors.price.message}</Text>}
-					</FormControl>
-					<FormControl isInvalid={!!errors.pages}>
-						<FormLabel>Number of Pages</FormLabel>
+					</Field.Root>
+					<Field.Root invalid={!!errors.pages}>
+						<Field.Label>Number of Pages</Field.Label>
 						<Input type="number" {...register("pages", { valueAsNumber: true })} maxWidth={"80px"} />
 						{errors.pages && <Text color="red.500">{errors.pages.message}</Text>}
-					</FormControl>
-					<FormControl isInvalid={!!errors.publisher}>
-						<FormLabel>Publisher</FormLabel>
-						<Select placeholder="Select publisher" {...register("publisher")} maxWidth={"200px"}>
+					</Field.Root>
+					<Field.Root invalid={!!errors.publisher}>
+						<Field.Label>Publisher</Field.Label>
+						<NativeSelect.Root><NativeSelect.Field placeholder="Select publisher" {...register("publisher")} maxWidth={"200px"}>
 							{publishers.map((publisher) => (
 								<option key={publisher} value={publisher}>
 									{publisher}
 								</option>
 							))}
-						</Select>
+						</NativeSelect.Field></NativeSelect.Root>
 						{errors.publisher && <Text color="red.500">{errors.publisher.message}</Text>}
-					</FormControl>
-					<FormControl isInvalid={!!errors.main_artist}>
-						<FormLabel>Main Artist</FormLabel>
+					</Field.Root>
+					<Field.Root invalid={!!errors.main_artist}>
+						<Field.Label>Main Artist</Field.Label>
 						<Input type="text" {...register("main_artist")} maxWidth={"250px"} />
 						{errors.main_artist && <Text color="red.500">{errors.main_artist.message}</Text>}
-					</FormControl>
-					<FormControl isInvalid={!!errors.main_writer}>
-						<FormLabel>Main Writer</FormLabel>
+					</Field.Root>
+					<Field.Root invalid={!!errors.main_writer}>
+						<Field.Label>Main Writer</Field.Label>
 						<Input type="text" {...register("main_writer")} maxWidth={"250px"} />
 						{errors.main_writer && <Text color="red.500">{errors.main_writer.message}</Text>}
-					</FormControl>
-					<FormControl isInvalid={!!errors.description}>
-						<FormLabel>Description</FormLabel>
+					</Field.Root>
+					<Field.Root invalid={!!errors.description}>
+						<Field.Label>Description</Field.Label>
 						{/* Hidden input for react-hook-form registration */}
 						<Input type="text" {...register("description")} style={{ display: "none" }} />
-						<Box
-							sx={{
-								".tox-tinymce": {
-									resize: "vertical",
-									minHeight: "300px",
-									maxHeight: "800px",
-									overflow: "auto",
-								},
-							}}
-						>
+						<Box>
+							<style>{`.tox-tinymce { resize: vertical; min-height: 300px; max-height: 800px; overflow: auto; }`}</style>
 							<RichTextEditor
 								value={watch("description")}
 								onChange={(value) => setValue("description", value)}
 							/>
 						</Box>
 						{errors.description && <Text color="red.500">{errors.description.message}</Text>}
-					</FormControl>
+					</Field.Root>
 					<Box bottom={4} width="100%" textAlign="center" mt={8} pb={4}>
-						<Button colorScheme="teal" width="300px" type="submit" isDisabled={loading} size="lg">
+						<Button colorPalette="teal" width="300px" type="submit" disabled={loading} size="lg">
 							{loading ? "Loading ..." : "Update Comic"}
 						</Button>
 					</Box>

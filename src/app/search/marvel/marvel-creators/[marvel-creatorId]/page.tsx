@@ -1,23 +1,20 @@
 "use client";
 
+import { useColorModeValue } from "@/components/ui/color-mode";
 import React, { Suspense, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import {
+import {Tag, 
 	Box,
 	Image,
 	Text,
-	VStack,
-	Tag,
-	Flex,
-	Container,
-	useColorModeValue,
-	Heading,
+	VStack, Flex,
+	Container, Heading,
 	Button,
 	Center,
 	Spinner,
 	SimpleGrid,
 } from "@chakra-ui/react";
-import { ArrowBackIcon } from "@chakra-ui/icons";
+import { ArrowLeft } from "lucide-react";
 import { NextPage } from "next";
 import NextLink from "next/link";
 import { useSearchParameters } from "@/hooks/useSearchParameters";
@@ -107,15 +104,15 @@ const MarvelCreator: NextPage = () => {
 						display: "flex",
 						justifyContent: "center",
 						alignItems: "center",
-						height: "100vh", // Full viewport height
-						fontFamily: '"Bangers", cursive', // Assuming "Bangers" font is loaded
-						fontSize: "1.5rem", // Larger font size
-						color: "red", // Red color for the error message
+						height: "100vh",
+						fontFamily: '"Bangers", cursive',
+						fontSize: "1.5rem",
+						color: "red",
 						textAlign: "center",
 						padding: "20px",
-						backgroundColor: "#f0f0f0", // Light background for visibility
+						backgroundColor: "#f0f0f0",
 						borderRadius: "10px",
-						boxShadow: "0 4px 8px rgba(0, 0, 0, 0.15)", // Optional shadow for better appearance
+						boxShadow: "0 4px 8px rgba(0, 0, 0, 0.15)",
 					}}
 				>
 					Loading...
@@ -124,12 +121,12 @@ const MarvelCreator: NextPage = () => {
 		>
 			<Container maxW="1100px" p={4}>
 				<Box mb={4}>
-					<Button leftIcon={<ArrowBackIcon />} colorScheme="teal" variant="outline" onClick={handleBack}>
+					<Button  colorPalette="teal" variant="outline" onClick={handleBack}>
 						Back to Grid
 					</Button>
 				</Box>
 
-				<VStack spacing={2}>
+				<VStack gap={2}>
 					{/* Content Box */}
 					<Flex
 						bg={bgColor}
@@ -155,19 +152,19 @@ const MarvelCreator: NextPage = () => {
 							mx={{ base: "auto", md: 0 }} // Horizontal margin auto for mobile to center the image
 						/>
 
-						<VStack spacing={4} align="start" maxW="600px" marginLeft={4}>
-							{/* <Tag
+						<VStack gap={4} align="start" maxW="600px" marginLeft={4}>
+							{/* <Tag.Root
 								size="lg"
-								colorScheme="blue"
-							>{`Issue #${result?.issueNumber}`}</Tag>
-							<Tag size="lg" colorScheme="green">
+								colorPalette="blue"
+							>{`Issue #${result?.issueNumber}`}</Tag.Root>
+							<Tag.Root size="lg" colorPalette="green">
 								{formatDate(
 									result?.dates?.find(
 										(date: { type: string }) =>
 											date.type === "onsaleDate"
 									)?.date || new Date()
 								)}
-							</Tag> */}
+							</Tag.Root> */}
 							<Heading fontFamily="Bangers" letterSpacing="0.05em" color="tomato" size="lg">
 								{result?.fullName || "No Title"}
 							</Heading>
@@ -175,16 +172,16 @@ const MarvelCreator: NextPage = () => {
 								{solicitationText}
 								<Flex wrap="wrap" mt={2}>
 									{result?.urls?.map((urlItem: UrlItem) => (
-										<Tag
+										<Tag.Root
 											key={urlItem.type}
-											colorScheme={getColorScheme(urlItem.type)}
+											colorPalette={getColorScheme(urlItem.type)}
 											mr={2}
 											mb={2}
 										>
 											<a href={urlItem.url} target="_blank" rel="noopener noreferrer">
 												{urlItem.type.charAt(0).toUpperCase() + urlItem.type.slice(1)}
 											</a>
-										</Tag>
+										</Tag.Root>
 									))}
 								</Flex>
 
@@ -207,12 +204,12 @@ const MarvelCreator: NextPage = () => {
 						justify="space-between"
 						width={{ base: "100%", md: "90%", lg: "1100px" }}
 					>
-						<VStack spacing={4} align="stretch">
+						<VStack gap={4} align="stretch">
 							<Box>
 								<Heading size="md" fontFamily="Bangers" letterSpacing="0.05em" color="orange">
 									Characters:
 								</Heading>
-								<SimpleGrid columns={{ base: 2, md: 3 }} spacing={4}>
+								<SimpleGrid columns={{ base: 2, md: 3 }} gap={4}>
 									{" "}
 									{result?.characters?.items?.map((charactersItem: CharacterItem) => {
 										// Extract the ID inside the map callback function
@@ -243,7 +240,7 @@ const MarvelCreator: NextPage = () => {
 								<Heading size="md" fontFamily="Bangers" letterSpacing="0.05em" color="orange">
 									Comics:
 								</Heading>
-								<SimpleGrid columns={{ base: 2, md: 3 }} spacing={1}>
+								<SimpleGrid columns={{ base: 2, md: 3 }} gap={1}>
 									{result?.comics?.items?.map((comicItem: ComicItem) => {
 										// Extract the ID inside the map callback function
 										const comicId = extractIdFromURI(comicItem.resourceURI);
@@ -273,7 +270,7 @@ const MarvelCreator: NextPage = () => {
 								<Heading size="md" fontFamily="Bangers" letterSpacing="0.05em" color="orange">
 									Series:
 								</Heading>
-								<SimpleGrid columns={{ base: 2, md: 3 }} spacing={1}>
+								<SimpleGrid columns={{ base: 2, md: 3 }} gap={1}>
 									{result?.comics?.items?.map((seriesItem: SeriesItem) => {
 										// Extract the ID inside the map callback function
 										const comicId = extractIdFromURI(seriesItem.resourceURI);
@@ -303,7 +300,7 @@ const MarvelCreator: NextPage = () => {
 								<Heading size="md" fontFamily="Bangers" letterSpacing="0.05em" color="orange">
 									Events:
 								</Heading>
-								<SimpleGrid columns={{ base: 2, md: 3 }} spacing={1}>
+								<SimpleGrid columns={{ base: 2, md: 3 }} gap={1}>
 									{result?.events?.items?.map((eventItem: EventItem) => {
 										// Extract the ID inside the map callback function
 										const comicId = extractIdFromURI(eventItem.resourceURI);
@@ -333,7 +330,7 @@ const MarvelCreator: NextPage = () => {
 								<Heading size="md" fontFamily="Bangers" letterSpacing="0.05em" color="orange">
 									Stories:
 								</Heading>
-								<SimpleGrid columns={{ base: 2, md: 3 }} spacing={1}>
+								<SimpleGrid columns={{ base: 2, md: 3 }} gap={1}>
 									{result?.stories?.items?.map((storyItem: StoryItems) => {
 										// Extract the ID inside the map callback function
 										const comicId = extractIdFromURI(storyItem.resourceURI);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, Suspense, useState } from "react";
-import { SimpleGrid, Box, Image, Text, Container, Center, Spinner, Button, Flex, Tag } from "@chakra-ui/react";
+import {Tag,  SimpleGrid, Box, Image, Text, Container, Center, Spinner, Button, Flex } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 import NextLink from "next/link";
 import type { NextPage } from "next";
@@ -144,7 +144,7 @@ const MarvelCreatorsClient: NextPage = () => {
 	}
 
 	return (
-		<Suspense fallback={<div>Loading...</div>}>
+		<Suspense>
 			<Container maxW="container.xl" centerContent p={4}>
 				<SearchBox onSearch={(value) => handleSearchTerm(value)} />
 				{data && data.data && (
@@ -160,7 +160,7 @@ const MarvelCreatorsClient: NextPage = () => {
 						</Text>
 					</Box>
 				)}
-				<SimpleGrid columns={{ base: 1, md: 3 }} spacing={30} width="100%">
+				<SimpleGrid columns={{ base: 1, md: 3 }} gap={30} width="100%">
 					{data.data &&
 						Array.isArray(data.data.results) &&
 						data.data.results.map((marvelCreator: MarvelCreator) => (
@@ -185,7 +185,6 @@ const MarvelCreatorsClient: NextPage = () => {
 										<Image
 											src={buildThumbnailUrl(marvelCreator.thumbnail)}
 											alt={marvelCreator.fullName}
-											fallbackSrc={FALLBACK_THUMBNAIL_URL}
 											maxW="300px"
 											maxH="300px"
 											objectFit="contain"
@@ -193,16 +192,16 @@ const MarvelCreatorsClient: NextPage = () => {
 										<Text mt={4} fontWeight="bold" fontSize="1rem" textAlign="center">
 											{marvelCreator.fullName}
 										</Text>
-										<Text mt={2} fontSize="0.9rem" textAlign="center" noOfLines={2}>
+										<Text mt={2} fontSize="0.9rem" textAlign="center" lineClamp={2}>
 											{marvelCreator.description || "No additional details available."}
 										</Text>
 										{/* Display the detail URL if available */}
 										{/* <Flex wrap="wrap" mt={2}>
 												{marvelCreator.urls.map(
 													(urlItem: UrlItem) => (
-														<Tag
+														<Tag.Root
 															key={urlItem.type}
-															colorScheme={getColorScheme(
+															colorPalette={getColorScheme(
 																urlItem.type
 															)}
 															mr={2}
@@ -222,7 +221,7 @@ const MarvelCreatorsClient: NextPage = () => {
 																		1
 																	)}
 															</a>
-														</Tag>
+														</Tag.Root>
 													)
 												)}
 											</Flex> */}

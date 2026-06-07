@@ -1,32 +1,22 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
 	Box,
 	Flex,
 	Image,
 	Text,
 	IconButton,
-	useToast,
 	Drawer,
-	DrawerBody,
-	DrawerHeader,
-	DrawerOverlay,
-	DrawerContent,
-	DrawerCloseButton,
 	Button,
 	Center,
 	Spinner,
 	Alert,
-	AlertIcon,
 	Input,
-	AlertDialog,
-	AlertDialogBody,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogContent,
-	AlertDialogOverlay,
-	DrawerFooter,
+	Dialog,
+	Portal,
+	CloseButton,
 } from "@chakra-ui/react";
-import { DeleteIcon } from "@chakra-ui/icons";
+import { toaster } from "@/components/ui/toaster";
+import { Trash2 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState, AppDispatch } from "@/store/store";
 import { fetchCart, removeFromCart, updateCartQuantity } from "@/store/cartSlice";
@@ -61,13 +51,11 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 	const cartItems = useSelector((state: RootState) => state.cart.items);
 	const loading = useSelector((state: RootState) => state.cart.loading);
 	const error = useSelector((state: RootState) => state.cart.error);
-	const toast = useToast();
 	const queryClient = useQueryClient();
 	const { mutate: updateStock, isPending: updatingStock } = useUpdateStock();
 
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 	const [selectedComicId, setSelectedComicId] = useState<string | null>(null);
-	const cancelRef = useRef<HTMLButtonElement>(null);
 	const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
 	const [totalAmount, setTotalAmount] = useState(0);
 	const [clientSecret, setClientSecret] = useState("");
@@ -106,12 +94,11 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 			.single();
 
 		if (comicError || !comicData) {
-			toast({
+			toaster.create({
 				title: "Error updating stock.",
 				description: "There was an error updating the stock or insufficient stock available.",
-				status: "error",
+				type: "error",
 				duration: 5000,
-				isClosable: true,
 			});
 			return;
 		}
@@ -129,21 +116,19 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 						},
 					}
 				);
-				toast({
+				toaster.create({
 					title: "Comic removed from cart.",
 					description: "The comic has been removed from your cart.",
-					status: "success",
+					type: "success",
 					duration: 5000,
-					isClosable: true,
 				});
 			})
 			.catch(() => {
-				toast({
+				toaster.create({
 					title: "Error removing from cart.",
 					description: "There was an error removing the comic from your cart.",
-					status: "error",
+					type: "error",
 					duration: 5000,
-					isClosable: true,
 				});
 			});
 	};
@@ -174,12 +159,11 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 			.single();
 
 		if (comicError || !comicData) {
-			toast({
+			toaster.create({
 				title: "Error updating stock.",
 				description: "There was an error updating the stock or insufficient stock available.",
-				status: "error",
+				type: "error",
 				duration: 5000,
-				isClosable: true,
 			});
 			return;
 		}
@@ -187,12 +171,11 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 		const updatedStock = comicData.stock - stockDifference;
 
 		if (updatedStock < 0) {
-			toast({
+			toaster.create({
 				title: "Insufficient stock",
 				description: "You cannot add more of this comic to your cart.",
-				status: "error",
+				type: "error",
 				duration: 5000,
-				isClosable: true,
 			});
 			return;
 		}
@@ -208,21 +191,19 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 						},
 					}
 				);
-				toast({
+				toaster.create({
 					title: "Cart updated.",
 					description: "The quantity has been updated.",
-					status: "success",
+					type: "success",
 					duration: 5000,
-					isClosable: true,
 				});
 			})
 			.catch((error) => {
-				toast({
+				toaster.create({
 					title: "Error updating cart.",
 					description: error.message,
-					status: "error",
+					type: "error",
 					duration: 5000,
-					isClosable: true,
 				});
 			});
 	};
@@ -248,12 +229,11 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 		const data = await response.json();
 
 		if (data.error) {
-			toast({
+			toaster.create({
 				title: "Payment Error",
 				description: data.error,
-				status: "error",
+				type: "error",
 				duration: 5000,
-				isClosable: true,
 			});
 		} else {
 			setClientSecret(data.clientSecret);
@@ -268,21 +248,19 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 		const { error } = await supabase.from("cart").delete().eq("user_id", user.id);
 
 		if (error) {
-			toast({
+			toaster.create({
 				title: "Error clearing cart",
 				description: error.message,
-				status: "error",
+				type: "error",
 				duration: 5000,
-				isClosable: true,
 			});
 		} else {
 			dispatch(fetchCart({ userId: user.id }));
-			toast({
+			toaster.create({
 				title: "Cart cleared successfully",
 				description: "All items have been removed from your cart.",
-				status: "success",
+				type: "success",
 				duration: 5000,
-				isClosable: true,
 			});
 		}
 	};
@@ -302,155 +280,157 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
 	return (
 		<>
-			<Drawer isOpen={isOpen} placement="right" onClose={onClose} size={{ base: "full", md: "md" }}>
-				<DrawerOverlay />
-				<DrawerContent>
-					<DrawerCloseButton />
-					<DrawerHeader>Your Cart</DrawerHeader>
-					<DrawerBody>
-						{loading ? (
-							<Center h="100%">
-								<Spinner size="xl" />
-							</Center>
-						) : error ? (
-							<Center h="100%">
-								<Alert status="error">
-									<AlertIcon />
-									{error}
-								</Alert>
-							</Center>
-						) : (
-							cartItems.map((item: CartItem) => (
-								<Flex
-									key={item.comicId}
-									boxShadow="0 4px 8px rgba(0,0,0,0.1)"
-									rounded="md"
-									overflow="hidden"
-									p={4}
-									alignItems="center"
-									justifyContent="space-between"
-									mb={4}
-								>
-									<Image
-										src={item.image || "/path/to/default-image.jpg"}
-										alt={item.title}
-										maxW={{ base: "75px", md: "100px" }}
-										objectFit="contain"
-									/>
-									<Box flex="1" ml={4}>
-										<Text fontWeight="bold" fontSize="lg" noOfLines={1}>
-											{item.title}
-										</Text>
-										<Text>Price: ${item.price.toFixed(2)} {item.currency}</Text>
-										<Flex alignItems="center">
-											<Button
-												size="sm"
-												onClick={() => handleStockChange(item.comicId, item.quantity - 1)}
-												disabled={item.quantity <= 1 || updatingStock}
-											>
-												-
-											</Button>
-											<Input
-												size="sm"
-												value={item.quantity}
-												readOnly
-												width="50px"
-												mx={2}
-												textAlign="center"
-											/>
-											<Button
-												size="sm"
-												onClick={() => handleStockChange(item.comicId, item.quantity + 1)}
-												disabled={item.quantity >= item.stock || updatingStock}
-											>
-												+
-											</Button>
-										</Flex>
-									</Box>
-									<IconButton
-										aria-label="Remove from cart"
-										icon={<DeleteIcon />}
-										colorScheme="red"
-										onClick={() => confirmRemoveFromCart(item.comicId)}
-									/>
+			<Drawer.Root open={isOpen} onOpenChange={(e) => { if (!e.open) onClose(); }} placement="end" size={{ base: "full", md: "md" }}>
+				<Drawer.Backdrop />
+				<Drawer.Positioner>
+					<Drawer.Content>
+						<Drawer.CloseTrigger asChild position="absolute" top="3" insetEnd="4">
+							<CloseButton size="sm" />
+						</Drawer.CloseTrigger>
+						<Drawer.Header><Drawer.Title>Your Cart</Drawer.Title></Drawer.Header>
+						<Drawer.Body>
+							{loading ? (
+								<Center h="100%">
+									<Spinner size="xl" />
+								</Center>
+							) : error ? (
+								<Center h="100%">
+									<Alert.Root status="error">
+										<Alert.Indicator />
+										<Alert.Description>{error}</Alert.Description>
+									</Alert.Root>
+								</Center>
+							) : (
+								cartItems.map((item: CartItem) => (
+									<Flex
+										key={item.comicId}
+										boxShadow="0 4px 8px rgba(0,0,0,0.1)"
+										rounded="md"
+										overflow="hidden"
+										p={4}
+										alignItems="center"
+										justifyContent="space-between"
+										mb={4}
+									>
+										<Image
+											src={item.image || "/path/to/default-image.jpg"}
+											alt={item.title}
+											maxW={{ base: "75px", md: "100px" }}
+											objectFit="contain"
+										/>
+										<Box flex="1" ml={4}>
+											<Text fontWeight="bold" fontSize="lg" lineClamp={1}>
+												{item.title}
+											</Text>
+											<Text>Price: ${item.price.toFixed(2)} {item.currency}</Text>
+											<Flex alignItems="center">
+												<Button
+													size="sm"
+													onClick={() => handleStockChange(item.comicId, item.quantity - 1)}
+													disabled={item.quantity <= 1 || updatingStock}
+												>
+													-
+												</Button>
+												<Input
+													size="sm"
+													value={item.quantity}
+													readOnly
+													width="50px"
+													mx={2}
+													textAlign="center"
+												/>
+												<Button
+													size="sm"
+													onClick={() => handleStockChange(item.comicId, item.quantity + 1)}
+													disabled={item.quantity >= item.stock || updatingStock}
+												>
+													+
+												</Button>
+											</Flex>
+										</Box>
+										<IconButton
+											aria-label="Remove from cart"
+											colorPalette="red"
+											onClick={() => confirmRemoveFromCart(item.comicId)}
+										>
+											<Trash2 />
+										</IconButton>
+									</Flex>
+								))
+							)}
+						</Drawer.Body>
+						<Drawer.Footer>
+							<Box width="100%" p={4}>
+								<Flex justifyContent="space-between">
+									<Text>Subtotal:</Text>
+									<Text>${calculateTotalAmount().toFixed(2)}</Text>
 								</Flex>
-							))
-						)}
-					</DrawerBody>
-					<DrawerFooter>
-						<Box width="100%" p={4}>
-							<Flex justifyContent="space-between">
-								<Text>Subtotal:</Text>
-								<Text>${calculateTotalAmount().toFixed(2)}</Text>
-							</Flex>
-							<Flex justifyContent="space-between" mt={2} fontWeight="bold">
-								<Text>Total:</Text>
-								<Text>${calculateTotalAmount().toFixed(2)}</Text>
-							</Flex>
-							<Button mt={4} colorScheme="blue" width="100%" onClick={handleCheckout}>
-								Go to Checkout
-							</Button>
-						</Box>
-					</DrawerFooter>
-				</DrawerContent>
-			</Drawer>
+								<Flex justifyContent="space-between" mt={2} fontWeight="bold">
+									<Text>Total:</Text>
+									<Text>${calculateTotalAmount().toFixed(2)}</Text>
+								</Flex>
+								<Button mt={4} colorPalette="blue" width="100%" onClick={handleCheckout}>
+									Go to Checkout
+								</Button>
+							</Box>
+						</Drawer.Footer>
+					</Drawer.Content>
+				</Drawer.Positioner>
+			</Drawer.Root>
 
-			<AlertDialog
-				isOpen={isDeleteDialogOpen}
-				leastDestructiveRef={cancelRef}
-				onClose={() => setIsDeleteDialogOpen(false)}
-			>
-				<AlertDialogOverlay>
-					<AlertDialogContent>
-						<AlertDialogHeader fontSize="lg" fontWeight="bold">
-							Delete Comic
-						</AlertDialogHeader>
-						<AlertDialogBody>
-							Are you sure you want to delete this comic from your cart?
-						</AlertDialogBody>
-						<AlertDialogFooter>
-							<Button ref={cancelRef} onClick={() => setIsDeleteDialogOpen(false)}>
-								Cancel
-							</Button>
-							<Button
-								colorScheme="red"
-								onClick={() => {
-									if (selectedComicId) {
-										handleRemoveFromCart(selectedComicId);
-									}
-									setIsDeleteDialogOpen(false);
-								}}
-								ml={3}
-							>
-								Delete
-							</Button>
-						</AlertDialogFooter>
-					</AlertDialogContent>
-				</AlertDialogOverlay>
-			</AlertDialog>
+			<Dialog.Root open={isDeleteDialogOpen} onOpenChange={(e) => { if (!e.open) setIsDeleteDialogOpen(false); }} role="alertdialog">
+				<Portal>
+					<Dialog.Backdrop />
+					<Dialog.Positioner>
+						<Dialog.Content>
+							<Dialog.Header><Dialog.Title fontSize="lg" fontWeight="bold">Delete Comic</Dialog.Title></Dialog.Header>
+							<Dialog.Body>
+								Are you sure you want to delete this comic from your cart?
+							</Dialog.Body>
+							<Dialog.Footer>
+								<Button onClick={() => setIsDeleteDialogOpen(false)}>
+									Cancel
+								</Button>
+								<Button
+									colorPalette="red"
+									onClick={() => {
+										if (selectedComicId) {
+											handleRemoveFromCart(selectedComicId);
+										}
+										setIsDeleteDialogOpen(false);
+									}}
+									ml={3}
+								>
+									Delete
+								</Button>
+							</Dialog.Footer>
+							<Dialog.CloseTrigger />
+						</Dialog.Content>
+					</Dialog.Positioner>
+				</Portal>
+			</Dialog.Root>
 
 			{isCheckoutOpen && clientSecret && (
-				<Drawer
-					isOpen={isCheckoutOpen}
-					placement="right"
-					onClose={() => setIsCheckoutOpen(false)}
-					size={{ base: "full", md: "md" }}
-				>
-					<DrawerOverlay />
-					<DrawerContent>
-						<DrawerCloseButton />
-						<DrawerHeader>Checkout</DrawerHeader>
-						<DrawerBody>
-							<Elements stripe={getStripe()} options={{ clientSecret, appearance }}>
-								<CheckoutForm
-									amount={totalAmount}
-									cartItems={cartItems}
-									onPaymentSuccess={handleClearCart}
-								/>
-							</Elements>
-						</DrawerBody>
-					</DrawerContent>
-				</Drawer>
+				<Drawer.Root open={isCheckoutOpen} onOpenChange={(e) => { if (!e.open) setIsCheckoutOpen(false); }} placement="end" size={{ base: "full", md: "md" }}>
+					<Drawer.Backdrop />
+					<Drawer.Positioner>
+						<Drawer.Content>
+							<Drawer.CloseTrigger asChild position="absolute" top="3" insetEnd="4">
+								<CloseButton size="sm" />
+							</Drawer.CloseTrigger>
+							<Drawer.Header><Drawer.Title>Checkout</Drawer.Title></Drawer.Header>
+							<Drawer.Body>
+								<Elements stripe={getStripe()} options={{ clientSecret, appearance }}>
+									<CheckoutForm
+										amount={totalAmount}
+										cartItems={cartItems}
+										onPaymentSuccess={handleClearCart}
+									/>
+								</Elements>
+							</Drawer.Body>
+						</Drawer.Content>
+					</Drawer.Positioner>
+				</Drawer.Root>
 			)}
 		</>
 	);

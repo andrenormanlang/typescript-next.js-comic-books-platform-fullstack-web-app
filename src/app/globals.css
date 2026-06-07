@@ -83,10 +83,12 @@ h6 {
 }
 
 /* Dark mode styles */
+.dark .halftone-background,
 [data-theme="dark"] .halftone-background {
 	background-color: rgb(26, 32, 44);
 }
 
+.dark .halftone-background::before,
 [data-theme="dark"] .halftone-background::before {
 	background-image: radial-gradient(circle, rgba(255, 255, 255, 0.2) 1px, transparent 1px);
 }

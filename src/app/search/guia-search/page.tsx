@@ -1,5 +1,6 @@
 "use client";
 
+import { useColorModeValue } from "@/components/ui/color-mode";
 import React, { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -12,9 +13,7 @@ import {
 	SimpleGrid,
 	Spinner,
 	Stack,
-	Text,
-	useColorModeValue,
-} from "@chakra-ui/react";
+	Text } from "@chakra-ui/react";
 import ComicsPagination from "@/components/ComicsPagination";
 
 type Result = {
@@ -168,13 +167,13 @@ export default function GuiaSearchPage() {
 			</Box>
 
 			<Box as="form" onSubmit={handleSearch} mb={6}>
-				<Stack direction={{ base: "column", md: "row" }} spacing={3}>
+				<Stack direction={{ base: "column", md: "row" }} gap={3}>
 					<Input
 						value={query}
 						onChange={(e) => setQuery(e.target.value)}
 						placeholder="Try: wolverine or http://www.guiadosquadrinhos.com/capas/incrivel-hulk-o/hk00301"
 					/>
-					<Button type="submit" colorScheme="blue" isDisabled={!canSearch} minW={{ md: "140px" }}>
+					<Button type="submit" colorPalette="blue" disabled={!canSearch} minW={{ md: "140px" }}>
 						{loading ? "Searching..." : "Search"}
 					</Button>
 				</Stack>
@@ -204,43 +203,46 @@ export default function GuiaSearchPage() {
 				</Box>
 			)}
 
-			<SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+			<SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={6}>
 				{results.map((r) => {
 					const { editionNumber, editionDate } = extractEditionMeta(r.title);
 					const displayIssueNumber = r.editionNumber || editionNumber || "Edição";
 					const displayReleaseDate = r.releaseDate || editionDate || "Data não informada";
 					return (
-						<Box
+						<Link
 							key={r.id || r.url}
-							as={Link}
 							href={`/search/guia-search/${encodeURIComponent(r.id || "edicao")}?url=${encodeURIComponent(r.url)}`}
-							bg={cardBg}
-							borderWidth="1px"
-							borderColor={borderColor}
-							rounded="md"
-							overflow="hidden"
-							p={4}
-							display="flex"
-							gap={3}
+							style={{ display: "contents" }}
 						>
-							<Box w="92px" h="132px" bg={thumbBg} flexShrink={0} rounded="md" overflow="hidden">
-								<CoverImage cover={r.cover} title={r.title} subtleText={subtleText} />
-							</Box>
+							<Box
+								bg={cardBg}
+								borderWidth="1px"
+								borderColor={borderColor}
+								rounded="md"
+								overflow="hidden"
+								p={4}
+								display="flex"
+								gap={3}
+							>
+								<Box w="92px" h="132px" bg={thumbBg} flexShrink={0} rounded="md" overflow="hidden">
+									<CoverImage cover={r.cover} title={r.title} subtleText={subtleText} />
+								</Box>
 
-							<Box minW={0} flex={1}>
-								<Text fontWeight="bold" fontSize="lg" noOfLines={1}>
-									{displayIssueNumber}
-								</Text>
-								<Text color={subtleText} mb={2} noOfLines={2}>
-									{displayReleaseDate}
-								</Text>
-								{r.provider && (
-									<Text fontSize="xs" color={subtleText} mt={2}>
-										{r.provider}
+								<Box minW={0} flex={1}>
+									<Text fontWeight="bold" fontSize="lg" lineClamp={1}>
+										{displayIssueNumber}
 									</Text>
-								)}
+									<Text color={subtleText} mb={2} lineClamp={2}>
+										{displayReleaseDate}
+									</Text>
+									{r.provider && (
+										<Text fontSize="xs" color={subtleText} mt={2}>
+											{r.provider}
+										</Text>
+									)}
+								</Box>
 							</Box>
-						</Box>
+						</Link>
 					);
 				})}
 			</SimpleGrid>

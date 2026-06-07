@@ -11,27 +11,27 @@ const MarvelPagination: React.FC<Props> = ({ currentPage, totalPages, onPageChan
     <Box display="flex" justifyContent="center" mt="8" p={4}>
       <Button
         onClick={() => onPageChange(1)}
-        isDisabled={currentPage === 1}
+        disabled={currentPage === 1}
       >
         First
       </Button>
       <Button
         onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-        isDisabled={currentPage === 1}
+        disabled={currentPage === 1}
         mx={2}
       >
         Previous
       </Button>
       <Button
         onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-        isDisabled={currentPage === totalPages}
+        disabled={currentPage === totalPages}
         mx={2}
       >
         Next
       </Button>
       <Button
         onClick={() => onPageChange(totalPages)}
-        isDisabled={currentPage === totalPages}
+        disabled={currentPage === totalPages}
       >
         Last
       </Button>
@@ -68,7 +68,7 @@ export default MarvelPagination;
 // 		<Box>This is the last page at the moment</Box>
 // 	  </Center>
 // 	)}
-//     <Stack direction="row" spacing={2} align="center" justify="center" my="1rem">
+//     <Stack direction="row" gap={2} align="center" justify="center" my="1rem">
 //       <Button onClick={() => onPageChange(1)} disabled={currentPage === 1}>
 //         First
 //       </Button>

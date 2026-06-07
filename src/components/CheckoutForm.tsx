@@ -5,13 +5,12 @@ import {
   PaymentElement,
 } from "@stripe/react-stripe-js";
 import {
-  Box,
   Button,
   Center,
   Spinner,
   Text,
-  useToast,
 } from "@chakra-ui/react";
+import { toaster } from "@/components/ui/toaster";
 import { CartItem } from "@/types/comics-store/comic-detail.type";
 import { useUser } from "@/contexts/UserContext";
 
@@ -25,7 +24,6 @@ interface CheckoutFormProps {
 const CheckoutForm: React.FC<CheckoutFormProps> = ({ amount, cartItems, onPaymentSuccess }) => {
   const stripe = useStripe();
   const elements = useElements();
-  const toast = useToast();
   const { user } = useUser();
   const [errorMessage, setErrorMessage] = useState<string>();
   const [loading, setLoading] = useState(false);
@@ -50,12 +48,11 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ amount, cartItems, onPaymen
 
     if (data.error) {
       console.error("Error creating payment intent:", data.error);
-      toast({
+      toaster.create({
         title: "Payment error",
         description: data.error,
-        status: "error",
+        type: "error",
         duration: 5000,
-        isClosable: true,
       });
       setLoading(false);
       return;
@@ -66,12 +63,11 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ amount, cartItems, onPaymen
     if (submitError) {
       console.error("Error submitting payment form:", submitError);
       setErrorMessage(submitError.message);
-      toast({
+      toaster.create({
         title: "Payment error",
         description: submitError.message,
-        status: "error",
+        type: "error",
         duration: 5000,
-        isClosable: true,
       });
       setLoading(false);
       return;
@@ -87,12 +83,11 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ amount, cartItems, onPaymen
     if (error) {
       console.error("Error confirming payment:", error);
       setErrorMessage(error.message);
-      toast({
+      toaster.create({
         title: "Payment error",
         description: error.message,
-        status: "error",
+        type: "error",
         duration: 5000,
-        isClosable: true,
       });
     } else {
       await fetch("/api/confirm-payment", {
@@ -127,22 +122,22 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ amount, cartItems, onPaymen
   }
 
   return (
-    <Box as="form" onSubmit={handleSubmit} bg="" p={4} rounded="md" boxShadow="md">
+    <form onSubmit={handleSubmit} style={{ padding: "1rem", borderRadius: "0.375rem", boxShadow: "0 1px 3px rgba(0,0,0,0.12)" }}>
       <PaymentElement />
 
       {errorMessage && <Text color="red.500" mt={2}>{errorMessage}</Text>}
 
       <Button
         mt={4}
-        colorScheme="blue"
+        colorPalette="blue"
         type="submit"
-        isLoading={loading}
-        isDisabled={!stripe || loading}
+        loading={loading}
+        disabled={!stripe || loading}
         width="full"
       >
         {!loading ? `Pay $${(amount) }` : "Processing..."}
       </Button>
-    </Box>
+    </form>
   );
 };
 

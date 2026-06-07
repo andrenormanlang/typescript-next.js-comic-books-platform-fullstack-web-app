@@ -1,41 +1,25 @@
 'use client';
 
+import { useColorModeValue } from "@/components/ui/color-mode";
 import { useRouter, useParams } from "next/navigation"; // Import useParams
 import { useEffect, useState } from "react"; // Removed 'use'
 import { supabase } from "@/utils/supabaseClient";
-import {
+import {Avatar, Dialog,
   Box,
   Spinner,
   Heading,
   Text,
   Button,
-  VStack,
-  useColorModeValue,
-  Center,
-  Container,
-  Avatar,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  HStack,
+  VStack, Center,
+  Container, Table, HStack,
   Tooltip,
-  useToast,
-  Flex,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalCloseButton,
-  ModalBody,
-  ModalFooter,
-  useDisclosure,
+  Flex, useDisclosure,
+  Portal,
 } from "@chakra-ui/react";
+import { toaster } from "@/components/ui/toaster";
 import { Forum, Topic } from "@/types/forum/forum.type"; // Removed Params import
 import { useUser } from "@/contexts/UserContext";
-import { DeleteIcon } from "@chakra-ui/icons";
+import { Trash2 } from "lucide-react";
 import { getRelativeTime } from "@/helpers/getRelativeTime";
 
 const ForumPage = () => { // Removed props parameter
@@ -48,8 +32,7 @@ const ForumPage = () => { // Removed props parameter
   const [isAdmin, setIsAdmin] = useState(false);
   const [topicToDelete, setTopicToDelete] = useState<string | null>(null);
   const router = useRouter();
-  const toast = useToast();
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { open: isOpen, onOpen, onClose } = useDisclosure();
 
   const cardBg = useColorModeValue("white", "gray.700");
   const cardText = useColorModeValue("gray.800", "white");
@@ -143,12 +126,11 @@ const ForumPage = () => { // Removed props parameter
     const topic = topics.find((t) => t.id === topicToDelete);
 
     if (topic && (topic.postCount || 0) > 0) {
-      toast({
+      toaster.create({
         title: "Error",
         description: "You can't delete topics that have posts. Please delete all posts first.",
-        status: "error",
+        type: "error",
         duration: 5000,
-        isClosable: true,
       });
       return;
     }
@@ -157,21 +139,19 @@ const ForumPage = () => { // Removed props parameter
       const { error } = await supabase.from("topics").delete().eq("id", topicToDelete);
       if (error) throw error;
       setTopics((prevTopics) => prevTopics.filter((topic) => topic.id !== topicToDelete));
-      toast({
+      toaster.create({
         title: "Topic deleted.",
         description: "The topic has been deleted successfully.",
-        status: "success",
+        type: "success",
         duration: 5000,
-        isClosable: true,
       });
     } catch (error) {
       console.error("Error deleting topic:", error);
-      toast({
+      toaster.create({
         title: "Error",
         description: "There was an error deleting the topic.",
-        status: "error",
+        type: "error",
         duration: 5000,
-        isClosable: true,
       });
     } finally {
       setTopicToDelete(null);
@@ -186,12 +166,11 @@ const ForumPage = () => { // Removed props parameter
 
   const handleCreateTopic = () => {
     if (!user) {
-      toast({
+      toaster.create({
         title: "Error",
         description: "You need to be signed in to create a topic.",
-        status: "error",
+        type: "error",
         duration: 5000,
-        isClosable: true,
       });
       return;
     }
@@ -216,84 +195,89 @@ const ForumPage = () => { // Removed props parameter
         {forum.description}
       </Text>
       <Flex justify="space-between" mb={4}>
-        <Button colorScheme="teal" onClick={() => router.push(`/forums`)}>
+        <Button colorPalette="teal" onClick={() => router.push(`/forums`)}>
           Back to Forums
         </Button>
-        <Button colorScheme="teal" onClick={handleCreateTopic}>
+        <Button colorPalette="teal" onClick={handleCreateTopic}>
           Create Topic
         </Button>
       </Flex>
       <Box overflowX="auto">
-        <Table variant="simple">
-          <Thead>
-            <Tr>
-              <Th>Topic</Th>
-              <Th>Author</Th>
-              <Th>Created At</Th>
-              <Th>Voices</Th>
-              <Th>Posts</Th>
-              <Th>Freshness</Th>
-              {isAdmin && <Th>Delete</Th>}
-            </Tr>
-          </Thead>
-          <Tbody>
+        <Table.Root variant="outline">
+          <Table.Header>
+            <Table.Row>
+              <Table.ColumnHeader>Topic</Table.ColumnHeader>
+              <Table.ColumnHeader>Author</Table.ColumnHeader>
+              <Table.ColumnHeader>Created At</Table.ColumnHeader>
+              <Table.ColumnHeader>Voices</Table.ColumnHeader>
+              <Table.ColumnHeader>Posts</Table.ColumnHeader>
+              <Table.ColumnHeader>Freshness</Table.ColumnHeader>
+              {isAdmin && <Table.ColumnHeader>Delete</Table.ColumnHeader>}
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
             {topics.map((topic) => (
-              <Tr key={topic.id}>
-                <Td>
-                  <Tooltip label={topic.description} fontSize="md">
-                    <Text
-                      as="a"
-                      href={`/forums/${forum.id}/topics/${topic.id}`}
-                      fontWeight="bold"
-                      _hover={{ textDecoration: "underline" }}
-                    >
-                      {topic.title}
-                    </Text>
-                  </Tooltip>
-                </Td>
-                <Td>
-                  <HStack spacing={3}>
+              <Table.Row key={topic.id}>
+                <Table.Cell>
+                  <Tooltip.Root>
+                    <Tooltip.Trigger asChild>
+                      <a
+                        href={`/forums/${forum.id}/topics/${topic.id}`}
+                        style={{ fontWeight: "bold" }}
+                      >
+                        {topic.title}
+                      </a>
+                    </Tooltip.Trigger>
+                    <Tooltip.Content>{topic.description}</Tooltip.Content>
+                  </Tooltip.Root>
+                </Table.Cell>
+                <Table.Cell>
+                  <HStack gap={3}>
                     {topic.profiles && (
                       <>
-                        <Avatar size="sm" src={topic.profiles.avatar_url} />
+                        <Avatar.Root size="sm"><Avatar.Image src={topic.profiles.avatar_url} /><Avatar.Fallback /></Avatar.Root>
                         <Text>{topic.profiles.username}</Text>
                       </>
                     )}
                   </HStack>
-                </Td>
-                <Td>{new Date(topic.created_at).toLocaleDateString()}</Td>
-                <Td>{topic.voiceCount}</Td>
-                <Td>{topic.postCount}</Td>
-                <Td>{topic.lastPostTime}</Td>
+                </Table.Cell>
+                <Table.Cell>{new Date(topic.created_at).toLocaleDateString()}</Table.Cell>
+                <Table.Cell>{topic.voiceCount}</Table.Cell>
+                <Table.Cell>{topic.postCount}</Table.Cell>
+                <Table.Cell>{topic.lastPostTime}</Table.Cell>
                 {isAdmin && (
-                  <Td>
-                    <Button colorScheme="red" size="sm" onClick={() => openDeleteModal(topic.id)}>
-                      <DeleteIcon />
+                  <Table.Cell>
+                    <Button colorPalette="red" size="sm" onClick={() => openDeleteModal(topic.id)}>
+                      <Trash2 />
                     </Button>
-                  </Td>
+                  </Table.Cell>
                 )}
-              </Tr>
+              </Table.Row>
             ))}
-          </Tbody>
-        </Table>
+          </Table.Body>
+        </Table.Root>
       </Box>
 
-      <Modal isOpen={isOpen} onClose={onClose}>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Delete Topic</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            <Text>Are you sure you want to delete this topic?</Text>
-          </ModalBody>
-          <ModalFooter>
-            <Button colorScheme="red" mr={3} onClick={handleDelete}>
-              Yes, Delete
-            </Button>
-            <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+      <Dialog.Root open={isOpen} onOpenChange={(e) => !e.open && (onClose)()}>
+        <Portal>
+          <Dialog.Backdrop />
+          <Dialog.Positioner>
+            <Dialog.Content>
+              <Dialog.Header><Dialog.Title>Delete Topic</Dialog.Title></Dialog.Header>
+              <Dialog.CloseTrigger />
+              <Dialog.Body>
+                <Text>Are you sure you want to delete this topic?</Text>
+              </Dialog.Body>
+              <Dialog.Footer>
+                <Button colorPalette="red" mr={3} onClick={handleDelete}>
+                  Yes, Delete
+                </Button>
+                <Button variant="ghost" onClick={onClose}>Cancel</Button>
+              </Dialog.Footer>
+            </Dialog.Content>
+          </Dialog.Positioner>
+        </Portal>
+      </Dialog.Root>
     </Container>
   );
 };

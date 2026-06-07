@@ -1,33 +1,19 @@
 "use client";
 
-import {
-	Table,
-	Thead,
-	Tbody,
-	Tr,
-	Th,
-	Td,
-	TableContainer,
-	Heading,
+import {Checkbox, Switch,
+	Table, Heading,
 	Spinner,
 	Center,
-	Alert,
-	AlertIcon,
-	Switch,
-	useToast,
-	Accordion,
-	AccordionItem,
-	AccordionButton,
-	AccordionPanel,
-	AccordionIcon,
+	Alert, Accordion,
 	Box,
 	Input,
 	Button,
 	HStack,
-	Checkbox,
-	CheckboxGroup,
 	Flex,
+	Text,
+	Separator,
 } from "@chakra-ui/react";
+import { toaster } from "@/components/ui/toaster";
 import { useGetComics } from "@/hooks/comic-table/useGetComics";
 import { Comic } from "@/types/comics-store/comic-detail.type";
 import { useState, useEffect, useMemo } from "react";
@@ -38,7 +24,6 @@ type SortConfigKey = keyof Comic | "profiles.username" | "profiles.email";
 
 const ComicsListTable = () => {
 	const { data: comics, isLoading, isError, error } = useGetComics();
-	const toast = useToast();
 	const [searchQuery, setSearchQuery] = useState("");
 	const [localComics, setLocalComics] = useState<Comic[]>([]);
 	const [sortConfig, setSortConfig] = useState<{ key: SortConfigKey; direction: string } | null>(null);
@@ -115,20 +100,18 @@ const ComicsListTable = () => {
 			setLocalComics(updatedComics);
 
 			const isApproved = !comic.is_approved;
-			toast({
+			toaster.create({
 				title: isApproved ? "Comic approved." : "Comic disapproved.",
 				description: isApproved ? "The comic has been approved." : "The comic has been set to not approved.",
-				status: isApproved ? "success" : "warning",
+				type: isApproved ? "success" : "warning",
 				duration: 5000,
-				isClosable: true,
 			});
 		} catch (error) {
-			toast({
+			toaster.create({
 				title: "Error updating comic.",
 				description: "There was an error updating the approval status.",
-				status: "error",
+				type: "error",
 				duration: 5000,
-				isClosable: true,
 			});
 		}
 	};
@@ -138,21 +121,19 @@ const ComicsListTable = () => {
 			{ comicId, newStock, newPrice },
 			{
 				onSuccess: () => {
-					toast({
+					toaster.create({
 						title: "Stock and Price updated.",
 						description: "The stock and price have been updated successfully.",
-						status: "success",
+						type: "success",
 						duration: 5000,
-						isClosable: true,
 					});
 				},
 				onError: () => {
-					toast({
+					toaster.create({
 						title: "Error updating stock and price.",
 						description: "There was an error updating the stock and price.",
-						status: "error",
+						type: "error",
 						duration: 5000,
-						isClosable: true,
 					});
 				},
 			}
@@ -190,153 +171,145 @@ const ComicsListTable = () => {
 	if (isError) {
 		return (
 			<Center h="100vh">
-				<Alert status="error">
-					<AlertIcon />
-					{error.message}
-				</Alert>
+				<Alert.Root status="error">
+					<Alert.Indicator />
+					<Alert.Description>{error.message}</Alert.Description>
+				</Alert.Root>
 			</Center>
 		);
 	}
 	return (
 		<Box maxW="1300px" mx="auto" p={4}>
-			<Accordion allowToggle>
-				<AccordionItem>
-					<AccordionButton>
+			<Accordion.Root collapsible>
+				<Accordion.Item value="comics-list">
+					<Accordion.ItemTrigger>
 						<Heading as="h1" size="xl" mb={6} flex="1" textAlign="left">
 							Comics List
 						</Heading>
-						<AccordionIcon />
-					</AccordionButton>
-					<AccordionPanel pb={4}>
+						<Accordion.ItemIndicator />
+					</Accordion.ItemTrigger>
+					<Accordion.ItemContent pb={4}>
 						<SearchBar
 							onSearch={setSearchQuery}
 							searchQuery={searchQuery}
 							totalResults={sortedAndFilteredComics.length}
 						/>
-						<TableContainer>
-							<Table variant="simple">
-								<Thead>
-									<Tr>
-										<Th colSpan={8}>
-											<CheckboxGroup colorScheme="blue" defaultValue={visibleColumns}>
-												<HStack spacing={4}>
-													<Checkbox
-														isChecked={visibleColumns.includes("title")}
-														onChange={() => toggleColumnVisibility("title")}
-													>
-														Title
-													</Checkbox>
-													<Checkbox
-														isChecked={visibleColumns.includes("release_date")}
-														onChange={() => toggleColumnVisibility("release_date")}
-													>
-														Release Date
-													</Checkbox>
-													<Checkbox
-														isChecked={visibleColumns.includes("profiles.username")}
-														onChange={() => toggleColumnVisibility("profiles.username")}
-													>
-														User
-													</Checkbox>
-													<Checkbox
-														isChecked={visibleColumns.includes("profiles.email")}
-														onChange={() => toggleColumnVisibility("profiles.email")}
-													>
-														Email
-													</Checkbox>
-													<Checkbox
-														isChecked={visibleColumns.includes("created_at")}
-														onChange={() => toggleColumnVisibility("created_at")}
-													>
-														Date / Time Added
-													</Checkbox>
-													<Checkbox
-														isChecked={visibleColumns.includes("updated_at")}
-														onChange={() => toggleColumnVisibility("updated_at")}
-													>
-														Date / Time Updated
-													</Checkbox>
-													<Checkbox
-														isChecked={visibleColumns.includes("stock")}
-														onChange={() => toggleColumnVisibility("stock")}
-													>
-														Stock
-													</Checkbox>
-													<Checkbox
-														isChecked={visibleColumns.includes("price")}
-														onChange={() => toggleColumnVisibility("price")}
-													>
-														Price
-													</Checkbox>
-													<Checkbox
-														isChecked={visibleColumns.includes("is_approved")}
-														onChange={() => toggleColumnVisibility("is_approved")}
-													>
-														Approve
-													</Checkbox>
-												</HStack>
-											</CheckboxGroup>
-										</Th>
-									</Tr>
-									<Tr>
+						<Box overflowX="auto">
+							<Table.Root variant="outline">
+								<Table.Header>
+									<Table.Row>
+										<Table.ColumnHeader colSpan={9} px={4} py={3}>
+											<Flex align="center" gap={3} flexWrap="wrap" rowGap={2}>
+												<Text fontSize="xs" fontWeight="semibold" color="fg.muted" textTransform="uppercase" letterSpacing="widest" whiteSpace="nowrap">
+													Columns
+												</Text>
+												<Separator orientation="vertical" h="4" />
+												{([
+													{ col: "title", label: "Title" },
+													{ col: "release_date", label: "Release Date" },
+												] as const).map(({ col, label }) => (
+													<Checkbox.Root key={col} checked={visibleColumns.includes(col)} onCheckedChange={() => toggleColumnVisibility(col)} size="sm">
+														<Checkbox.HiddenInput />
+														<Checkbox.Control><Checkbox.Indicator /></Checkbox.Control>
+														<Checkbox.Label>{label}</Checkbox.Label>
+													</Checkbox.Root>
+												))}
+												<Separator orientation="vertical" h="4" />
+												{([
+													{ col: "profiles.username", label: "User" },
+													{ col: "profiles.email", label: "Email" },
+												] as const).map(({ col, label }) => (
+													<Checkbox.Root key={col} checked={visibleColumns.includes(col)} onCheckedChange={() => toggleColumnVisibility(col)} size="sm">
+														<Checkbox.HiddenInput />
+														<Checkbox.Control><Checkbox.Indicator /></Checkbox.Control>
+														<Checkbox.Label>{label}</Checkbox.Label>
+													</Checkbox.Root>
+												))}
+												<Separator orientation="vertical" h="4" />
+												{([
+													{ col: "created_at", label: "Date Added" },
+													{ col: "updated_at", label: "Date Updated" },
+												] as const).map(({ col, label }) => (
+													<Checkbox.Root key={col} checked={visibleColumns.includes(col)} onCheckedChange={() => toggleColumnVisibility(col)} size="sm">
+														<Checkbox.HiddenInput />
+														<Checkbox.Control><Checkbox.Indicator /></Checkbox.Control>
+														<Checkbox.Label>{label}</Checkbox.Label>
+													</Checkbox.Root>
+												))}
+												<Separator orientation="vertical" h="4" />
+												{([
+													{ col: "stock", label: "Stock" },
+													{ col: "price", label: "Price" },
+													{ col: "is_approved", label: "Approve" },
+												] as const).map(({ col, label }) => (
+													<Checkbox.Root key={col} checked={visibleColumns.includes(col)} onCheckedChange={() => toggleColumnVisibility(col)} size="sm">
+														<Checkbox.HiddenInput />
+														<Checkbox.Control><Checkbox.Indicator /></Checkbox.Control>
+														<Checkbox.Label>{label}</Checkbox.Label>
+													</Checkbox.Root>
+												))}
+											</Flex>
+										</Table.ColumnHeader>
+									</Table.Row>
+									<Table.Row>
 										{visibleColumns.includes("title") && (
-											<Th textAlign="left" onClick={() => requestSort("title")}>
+											<Table.ColumnHeader textAlign="left" onClick={() => requestSort("title")}>
 												Title
-											</Th>
+											</Table.ColumnHeader>
 										)}
 										{visibleColumns.includes("release_date") && (
-											<Th textAlign="center" onClick={() => requestSort("release_date")}>
+											<Table.ColumnHeader textAlign="center" onClick={() => requestSort("release_date")}>
 												Release Date
-											</Th>
+											</Table.ColumnHeader>
 										)}
 										{visibleColumns.includes("profiles.username") && (
-											<Th textAlign="center" onClick={() => requestSort("profiles.username")}>
+											<Table.ColumnHeader textAlign="center" onClick={() => requestSort("profiles.username")}>
 												User
-											</Th>
+											</Table.ColumnHeader>
 										)}
 										{visibleColumns.includes("profiles.email") && (
-											<Th textAlign="center" onClick={() => requestSort("profiles.email")}>
+											<Table.ColumnHeader textAlign="center" onClick={() => requestSort("profiles.email")}>
 												Email
-											</Th>
+											</Table.ColumnHeader>
 										)}
 										{visibleColumns.includes("created_at") && (
-											<Th textAlign="center" onClick={() => requestSort("created_at")}>
+											<Table.ColumnHeader textAlign="center" onClick={() => requestSort("created_at")}>
 												Date / Time Added
-											</Th>
+											</Table.ColumnHeader>
 										)}
 										{visibleColumns.includes("updated_at") && (
-											<Th textAlign="center" onClick={() => requestSort("updated_at")}>
+											<Table.ColumnHeader textAlign="center" onClick={() => requestSort("updated_at")}>
 												Date / Time Updated
-											</Th>
+											</Table.ColumnHeader>
 										)}
-										{visibleColumns.includes("stock") && <Th textAlign="center">Stock</Th>}
-										{visibleColumns.includes("price") && <Th textAlign="center">Price</Th>}
-										{visibleColumns.includes("is_approved") && <Th textAlign="center">Approve</Th>}
-									</Tr>
-								</Thead>
-								<Tbody>
+										{visibleColumns.includes("stock") && <Table.ColumnHeader textAlign="center">Stock</Table.ColumnHeader>}
+										{visibleColumns.includes("price") && <Table.ColumnHeader textAlign="center">Price</Table.ColumnHeader>}
+										{visibleColumns.includes("is_approved") && <Table.ColumnHeader textAlign="center">Approve</Table.ColumnHeader>}
+									</Table.Row>
+								</Table.Header>
+								<Table.Body>
 									{sortedAndFilteredComics.map((comic: Comic) => (
-										<Tr key={comic.id}>
+										<Table.Row key={comic.id}>
 											{visibleColumns.includes("title") && (
-												<Td textAlign="initial">{comic.title}</Td>
+												<Table.Cell textAlign="initial">{comic.title}</Table.Cell>
 											)}
 											{visibleColumns.includes("release_date") && (
-												<Td textAlign="center">{formatDateRelease(comic.release_date)}</Td>
+												<Table.Cell textAlign="center">{formatDateRelease(comic.release_date)}</Table.Cell>
 											)}
 											{visibleColumns.includes("profiles.username") && (
-												<Td textAlign="center">{comic.profiles?.username || "Unknown"}</Td>
+												<Table.Cell textAlign="center">{comic.profiles?.username || "Unknown"}</Table.Cell>
 											)}
 											{visibleColumns.includes("profiles.email") && (
-												<Td textAlign="center">{comic.profiles?.email || "Unknown"}</Td>
+												<Table.Cell textAlign="center">{comic.profiles?.email || "Unknown"}</Table.Cell>
 											)}
 											{visibleColumns.includes("created_at") && (
-												<Td textAlign="center">{formatDate(comic.created_at)}</Td>
+												<Table.Cell textAlign="center">{formatDate(comic.created_at)}</Table.Cell>
 											)}
 											{visibleColumns.includes("updated_at") && (
-												<Td textAlign="center">{formatDate(comic.updated_at)}</Td>
+												<Table.Cell textAlign="center">{formatDate(comic.updated_at)}</Table.Cell>
 											)}
 											{visibleColumns.includes("stock") && (
-												<Td textAlign="center">
+												<Table.Cell textAlign="center">
 													<HStack>
 														<Input
 															size="sm"
@@ -370,10 +343,10 @@ const ComicsListTable = () => {
 															Update
 														</Button>
 													</HStack>
-												</Td>
+												</Table.Cell>
 											)}
 											{visibleColumns.includes("price") && (
-												<Td textAlign="center">
+												<Table.Cell textAlign="center">
 													<HStack>
 														<Input
 															size="sm"
@@ -407,24 +380,29 @@ const ComicsListTable = () => {
 															Update
 														</Button>
 													</HStack>
-												</Td>
+												</Table.Cell>
 											)}
 											{visibleColumns.includes("is_approved") && (
-												<Td textAlign="center">
-													<Switch
-														isChecked={comic.is_approved}
-														onChange={() => toggleApproval(comic)}
-													/>
-												</Td>
+												<Table.Cell textAlign="center">
+													<Switch.Root
+														checked={comic.is_approved}
+														onCheckedChange={() => toggleApproval(comic)}
+													>
+														<Switch.HiddenInput />
+														<Switch.Control>
+															<Switch.Thumb />
+														</Switch.Control>
+													</Switch.Root>
+												</Table.Cell>
 											)}
-										</Tr>
+										</Table.Row>
 									))}
-								</Tbody>
-							</Table>
-						</TableContainer>
-					</AccordionPanel>
-				</AccordionItem>
-			</Accordion>
+								</Table.Body>
+							</Table.Root>
+						</Box>
+					</Accordion.ItemContent>
+				</Accordion.Item>
+			</Accordion.Root>
 		</Box>
 	);
 };

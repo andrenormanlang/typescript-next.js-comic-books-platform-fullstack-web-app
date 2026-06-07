@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useUser } from "../../../contexts/UserContext";
-import { Center, Spinner, Alert, AlertIcon } from "@chakra-ui/react";
+import { Center, Spinner, Alert } from "@chakra-ui/react";
 import UserListTable from "./UserListTable";
 import ComicsListTable from "./ComicsListTable";
 import ReceiptsListTable from "./ReceiptsListTable";
@@ -55,10 +55,10 @@ const AdminPage = () => {
   if (error) {
     return (
       <Center h="100vh">
-        <Alert status="error">
-          <AlertIcon />
-          {error}
-        </Alert>
+        <Alert.Root status="error">
+          <Alert.Indicator />
+          <Alert.Description>{error}</Alert.Description>
+        </Alert.Root>
       </Center>
     );
   }
@@ -66,10 +66,10 @@ const AdminPage = () => {
   if (!isAdmin) {
     return (
       <Center h="100vh">
-        <Alert status="error">
-          <AlertIcon />
-          You do not have permission to access this page. Check your user role.
-        </Alert>
+        <Alert.Root status="error">
+          <Alert.Indicator />
+          <Alert.Description>You do not have permission to access this page. Check your user role.</Alert.Description>
+        </Alert.Root>
       </Center>
     );
   }

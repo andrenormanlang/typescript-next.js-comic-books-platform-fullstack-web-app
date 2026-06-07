@@ -1,23 +1,20 @@
 "use client";
 
+import { useColorModeValue } from "@/components/ui/color-mode";
 import { usePathname, useRouter } from "next/navigation";
-import {
+import {Tag, 
 	Box,
 	Image,
 	Text,
 	VStack,
-	Container,
-	useColorModeValue,
-	Heading,
+	Container, Heading,
 	Button,
 	Center,
 	Spinner,
-	SimpleGrid,
-	Tag,
-	Flex,
+	SimpleGrid, Flex,
 	HStack,
 } from "@chakra-ui/react";
-import { ArrowBackIcon } from "@chakra-ui/icons";
+import { ArrowLeft } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import NextLink from "next/link";
 
@@ -75,8 +72,8 @@ const IssuePage = () => {
 		<Container maxW="1200px" p={4}>
 			<Box mb={4}>
 				<Button
-					leftIcon={<ArrowBackIcon />}
-					colorScheme="teal"
+					
+					colorPalette="teal"
 					variant="outline"
 					onClick={() => router.push("/releases")}
 				>
@@ -85,7 +82,7 @@ const IssuePage = () => {
 			</Box>
 
 			<Flex direction={{ base: "column", md: "row" }} gap={8}>
-				<VStack flex="1" align="start" spacing={4}>
+				<VStack flex="1" align="start" gap={4}>
 					<Box bg={bgColor} p={6} borderRadius="md" borderWidth="1px" borderColor={borderColor} w="100%">
 							<Image
 								src={issue.image}
@@ -96,17 +93,17 @@ const IssuePage = () => {
 								width="100%"
 								mb={4}
 							/>
-							<HStack spacing={4} wrap="wrap" mb={4}>
-								<Tag size="lg" colorScheme="blue">
+							<HStack gap={4} wrap="wrap" mb={4}>
+								<Tag.Root size="lg" colorPalette="blue">
 									 {formatDate(issue.store_date)}
-								</Tag>
+								</Tag.Root>
 							</HStack>
 							<Heading fontFamily="Bangers" letterSpacing="0.05em" color="tomato" size="xl">
 								{issue.series.name} #{issue.number} Vol. {issue.series.volume}
 							</Heading>
 
 
-						<VStack align="start" spacing={3}>
+						<VStack align="start" gap={3}>
 							<Text>
 								<strong>Year Series Began:</strong> {issue.series.year_began}
 							</Text>
@@ -131,7 +128,7 @@ const IssuePage = () => {
 							<Heading size="md" mb={4}>
 								Credits
 							</Heading>
-							<SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+							<SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
 								{issue.credits.map((credit: any) => (
 									<Box key={credit.id}>
 										<Text fontWeight="bold">{credit.creator}</Text>

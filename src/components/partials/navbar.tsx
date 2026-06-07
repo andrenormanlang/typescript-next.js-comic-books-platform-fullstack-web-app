@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
+import { useColorModeValue, useColorMode } from "@/components/ui/color-mode";
 import {
 	Box,
 	Button,
@@ -8,18 +9,13 @@ import {
 	IconButton,
 	Link,
 	useDisclosure,
-	useColorMode,
-	useColorModeValue,
 	Menu,
-	MenuButton,
-	MenuList,
-	MenuItem,
 	Stack,
-	useToast,
 	Badge,
 	Icon,
 } from "@chakra-ui/react";
-import { HamburgerIcon, CloseIcon, MoonIcon, SunIcon, ChevronDownIcon, ChevronUpIcon, AddIcon } from "@chakra-ui/icons";
+import { toaster } from "@/components/ui/toaster";
+import { Menu as HamburgerIcon, X as CloseIcon, Moon as MoonIcon, Sun as SunIcon, ChevronDown as ChevronDownIcon, Plus as AddIcon } from "lucide-react";
 import { VscAccount, VscSignOut } from "react-icons/vsc";
 import ShoppingCartButton from "@/helpers/ShoppingCartButton";
 import { motion, AnimatePresence } from "framer-motion";
@@ -35,10 +31,63 @@ import { fetchCart } from "@/store/cartSlice";
 import AvatarNav from "../../helpers/AvatarNav";
 import CartDrawer from "@/app/comics-store/cart/CartDrawer";
 
+interface MobileMenuItemProps {
+	item: MenuType | SubmenuType;
+	index: number | string;
+	btnStyle: Record<string, any>;
+	marvelBtnStyle: Record<string, any>;
+	onNavigate: () => void;
+}
+
+const MobileMenuItem: React.FC<MobileMenuItemProps> = ({ item, index, btnStyle, marvelBtnStyle, onNavigate }) => {
+	const [isOpen, setIsOpen] = useState(false);
+	const style = item.name === "MARVEL" ? marvelBtnStyle : btnStyle;
+
+	if (!item.submenu) {
+		return (
+			<Button asChild {...btnStyle}>
+				<Link href={(item as SubmenuType).href ?? "#"} onClick={onNavigate}>
+					{item.name}
+				</Link>
+			</Button>
+		);
+	}
+
+	return (
+		<Box width="100%" display="flex" flexDirection="column" alignItems="center" gap={2}>
+			<Button {...style} onClick={() => setIsOpen((o) => !o)}>
+				{item.name}
+				<ChevronDownIcon
+					size={16}
+					style={{
+						marginLeft: "0.4rem",
+						transform: isOpen ? "rotate(180deg)" : "none",
+						transition: "transform 0.2s",
+					}}
+				/>
+			</Button>
+			{isOpen && (
+				<Box width="90%" display="flex" flexDirection="column" alignItems="center" gap={2}>
+					{item.submenu.map((subItem, subIndex) => (
+						<MobileMenuItem
+							key={`${index}-${subIndex}`}
+							item={subItem}
+							index={`${index}-${subIndex}`}
+							btnStyle={btnStyle}
+							marvelBtnStyle={marvelBtnStyle}
+							onNavigate={onNavigate}
+						/>
+					))}
+				</Box>
+			)}
+		</Box>
+	);
+};
+
 const Navbar = () => {
 	const supabase = createClient();
-	const { isOpen, onToggle, onClose } = useDisclosure();
-	const { isOpen: isDrawerOpen, onOpen: onDrawerOpen, onClose: onDrawerClose } = useDisclosure();
+	const { open: isOpen, onToggle, onClose } = useDisclosure();
+	const { open: isDrawerOpen, onOpen: onDrawerOpen, onClose: onDrawerClose } = useDisclosure();
 	const { colorMode, toggleColorMode } = useColorMode();
 	const containerRef = React.useRef(null);
 	const [user, setUser] = useState<User | null>(null);
@@ -47,16 +96,12 @@ const Navbar = () => {
 	const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
 	const cart = useSelector((state: RootState) => state.cart.items);
 	const dispatch = useDispatch<AppDispatch>();
-	const toast = useToast({
-		position: "top",
-	});
 	const [loading, setLoading] = useState(false);
 	const router = useRouter();
 
 	// Move color mode values to component level
 	const profileIconColor = useColorModeValue("blue.500", "blue.200");
 	const signoutIconColor = useColorModeValue("red.500", "red.200");
-	const chevronColor = useColorModeValue("gray.600", "gray.400");
 	const menuBg = useColorModeValue("white", "gray.800");
 	const menuBgTransparent = useColorModeValue("rgba(255, 255, 255, 0.95)", "rgba(26, 32, 44, 0.95)");
 	const menuItemTextColor = useColorModeValue("gray.700", "whiteAlpha.900");
@@ -134,22 +179,18 @@ const Navbar = () => {
 			setUser(null);
 			router.push("/");
 			router.refresh();
-			toast({
+			toaster.create({
 				title: "Signed out successfully",
 				description: "You have been signed out.",
-				status: "success",
+				type: "success",
 				duration: 5000,
-				isClosable: true,
-				position: "top",
 			});
 		} catch (error) {
-			toast({
+			toaster.create({
 				title: "Sign out failed",
 				description: "Failed to sign out. Please try again.",
-				status: "error",
+				type: "error",
 				duration: 5000,
-				isClosable: true,
-				position: "top",
 			});
 			console.error("Sign out error:", error);
 		} finally {
@@ -249,23 +290,6 @@ const Navbar = () => {
 		},
 	};
 
-	const submenuFinalItemStyle = {
-		...buttonStyle,
-		maxWidth: "unset", // Remove max-width restriction
-		width: "100%", // Ensure it takes full width of the MenuList
-		my: "0.1rem", // Reduce vertical margin for closer packing
-		fontSize: { base: "0.9rem", md: "1.1rem" }, // Slightly smaller font size for nested items
-		height: "2rem", // Make them a bit shorter
-		justifyContent: "flex-start", // Left-align text
-		px: "1rem", // Add some horizontal padding
-		_hover: {
-			bg: "blue.600",
-			transform: "none", // Prevent scaling to avoid layout issues in a list
-		},
-		_active: {
-			bg: "blue.700",
-		},
-	};
 
 	const newReleaseButtonStyle = {
 		...buttonStyle,
@@ -296,29 +320,6 @@ const Navbar = () => {
 		},
 	};
 
-	const menuBgColor = useColorModeValue("white", "gray.800");
-	const menuColor = useColorModeValue("black", "white");
-
-	const customMenuListStyle = {
-		borderColor: "gray.600",
-		borderWidth: "0.5px",
-		borderRadius: "md",
-		boxShadow: "lg",
-		minWidth: "fit-content",
-		maxWidth: { base: "220px", md: "310px" },
-		bg: menuBgColor,
-		color: menuColor,
-		outline: "none",
-		padding: "0.5rem",
-		margin: "1",
-		_hover: {
-			bg: menuItemHoverBg,
-		},
-		_focus: {
-			bg: menuItemFocusBg,
-			outline: "none",
-		},
-	};
 
 	const avatarMenuListStyle = {
 		bg: menuBg,
@@ -434,44 +435,19 @@ const Navbar = () => {
 		});
 	}
 
-	const renderMenuItem = (item: MenuType | SubmenuType, index: number | string) => (
-		<Menu key={index} isLazy>
-			<MenuButton
-				as={Button}
-				{...(item.name === "MARVEL" ? marvelButtonStyle : buttonStyle)}
-				rightIcon={<ChevronDownIcon />}
-			>
-				{item.name}
-			</MenuButton>
-			<MenuList {...customMenuListStyle}>
-				{item.submenu?.map((subItem, subIndex) =>
-					subItem.submenu ? (
-						renderMenuItem(subItem, `${index}-${subIndex}`)
-					) : (
-						<Button key={subIndex} as={Link} href={subItem.href} {...submenuFinalItemStyle}>
-							{subItem.name}
-						</Button>
-					),
-				)}
-			</MenuList>
-		</Menu>
-	);
+
 
 	const renderAvatarItem = (name: string, href?: string, onClick?: () => void) => (
-		<Link href={href ?? "#"} onClick={onClick} style={{ textDecoration: "none", width: "100%" }}>
-			<MenuItem
-				{...menuItemStyle}
-				icon={
-					name === "Profile" ? (
-						<Icon as={VscAccount} fontSize="1.2rem" color={profileIconColor} />
-					) : (
-						<Icon as={VscSignOut} fontSize="1.2rem" color={signoutIconColor} />
-					)
-				}
-			>
+		<Menu.Item key={name} value={name.toLowerCase().replace(/\s+/g, "-")} {...menuItemStyle} onClick={onClick} asChild>
+			<Link href={href ?? "#"} style={{ textDecoration: "none", width: "100%" }}>
+				<Icon
+					as={name === "Profile" ? VscAccount : VscSignOut}
+					fontSize="1.2rem"
+					color={name === "Profile" ? profileIconColor : signoutIconColor}
+				/>
 				{name}
-			</MenuItem>
-		</Link>
+			</Link>
+		</Menu.Item>
 	);
 
 	return (
@@ -504,15 +480,15 @@ const Navbar = () => {
 						<Box position="relative" mr={3}>
 							<IconButton
 								aria-label="Cart"
-								icon={<ShoppingCartButton />}
+								
 								onClick={onDrawerOpen}
 								size={{ base: "sm", md: "md" }}
 								variant="outline"
-								colorScheme="blue"
+								colorPalette="blue"
 								_hover={{ bg: "blue.500", color: "white", borderColor: "blue.500" }}
 								_active={{ bg: "blue.600", color: "white", borderColor: "blue.600" }}
 								_focus={{ boxShadow: "outline" }}
-							/>
+							><ShoppingCartButton /></IconButton>
 							<Badge
 								position="absolute"
 								top="0"
@@ -535,70 +511,49 @@ const Navbar = () => {
 						<IconButton
 							onClick={handleOpenMainMenu}
 							aria-label="Open menu"
-							icon={<HamburgerIcon boxSize={{ base: 4, md: 10 }} />}
-							display={{ base: "block" }}
-							zIndex="tooltip"
+							variant="ghost"
+							color="white"
+							_hover={{ bg: "whiteAlpha.200" }}
 							mr={2}
-						/>
+						>
+							<HamburgerIcon size={20} />
+						</IconButton>
 					)}
 
 					{user && (
 						<Flex align="center" ml={4}>
-							<Menu
-								isOpen={isAvatarMenuOpen}
-								onOpen={handleToggleAvatarMenu}
-								onClose={handleToggleAvatarMenu}
-								autoSelect={false}
-								closeOnSelect
-								gutter={4}
+							<Menu.Root
+								open={isAvatarMenuOpen}
+								onOpenChange={(e) => { if (e.open !== isAvatarMenuOpen) handleToggleAvatarMenu(); }}
+								positioning={{ placement: "bottom-end" }}
 							>
-								<MenuButton
-									as={Box}
-									position="relative"
-									display="flex"
-									alignItems="center"
-									cursor="pointer"
-									transition="all 0.2s"
-									_hover={{
-										transform: "scale(1.05)",
-									}}
-									_active={{
-										transform: "scale(0.95)",
-									}}
-								>
-									<AvatarNav uid={user.id} size={{ base: 12, md: 14 }} />
+								<Menu.Trigger asChild>
 									<Box
-										position="absolute"
-										bottom="-15px"
-										left="50%"
-										transform="translateX(-50%)"
+										display="flex"
+										alignItems="center"
+										cursor="pointer"
 										transition="all 0.2s"
-										color={chevronColor}
-										opacity={0.8}
-										_groupHover={{ opacity: 1 }}
+										_hover={{ transform: "scale(1.05)" }}
+										_active={{ transform: "scale(0.95)" }}
 									>
-										{isAvatarMenuOpen ? (
-											<ChevronUpIcon boxSize={{ base: 4, md: 5 }} />
-										) : (
-											<ChevronDownIcon boxSize={{ base: 4, md: 5 }} />
-										)}
+										<AvatarNav uid={user.id} size={{ base: 12, md: 14 }} />
 									</Box>
-								</MenuButton>
-								<MenuList {...avatarMenuListStyle}>
-									{renderAvatarItem("Profile", "/auth/account")}
-									{renderAvatarItem("Sign Out", undefined, handleSignOut)}
-								</MenuList>
-							</Menu>
+								</Menu.Trigger>
+								<Menu.Positioner>
+									<Menu.Content {...avatarMenuListStyle}>
+										{renderAvatarItem("Profile", "/auth/account")}
+										{renderAvatarItem("Sign Out", undefined, handleSignOut)}
+									</Menu.Content>
+								</Menu.Positioner>
+							</Menu.Root>
 						</Flex>
 					)}
 
 					<IconButton
 						aria-label="Toggle theme"
-						icon={colorMode === "dark" ? <SunIcon /> : <MoonIcon />}
 						onClick={toggleColorMode}
 						ml={3}
-						size={{ base: "sm", md: "md" }}
-					/>
+						size={{ base: "sm", md: "md" }}>{colorMode === "dark" ? <SunIcon /> : <MoonIcon />}</IconButton>
 				</Flex>
 			</Flex>
 
@@ -632,33 +587,32 @@ const Navbar = () => {
 							<IconButton
 								onClick={handleCloseMainMenu}
 								aria-label="Close menu"
-								icon={<CloseIcon boxSize={5} />}
 								position="absolute"
 								top="1rem"
 								right="1rem"
 								zIndex="tooltip"
-								bg="transparent"
-								_hover={{ bg: "whiteAlpha.200" }}
-								transition="all 0.2s"
-							/>
+								bg="whiteAlpha.200"
+								color="white"
+								_hover={{ bg: "whiteAlpha.300" }}
+								transition="all 0.2s"><CloseIcon size={24} /></IconButton>
 						</motion.div>
-						<Stack spacing={4} align="center" justify="center" pt="5rem" width="100%" px={4}>
+						<Stack gap={4} align="center" justify="center" pt="5rem" width="100%" px={4}>
 							{!user && (
 								<>
 									<motion.div
 										variants={itemVariants}
 										style={{ width: "100%", display: "flex", justifyContent: "center" }}
 									>
-										<Button as={Link} href="/auth/login" {...buttonStyle}>
-											Login
+										<Button asChild {...buttonStyle}>
+											<Link href="/auth/login">Login</Link>
 										</Button>
 									</motion.div>
 									<motion.div
 										variants={itemVariants}
 										style={{ width: "100%", display: "flex", justifyContent: "center" }}
 									>
-										<Button as={Link} href="/auth/signup" {...buttonStyle}>
-											Sign Up
+										<Button asChild {...buttonStyle}>
+											<Link href="/auth/signup">Sign Up</Link>
 										</Button>
 									</motion.div>
 								</>
@@ -667,8 +621,8 @@ const Navbar = () => {
 								variants={itemVariants}
 								style={{ width: "100%", display: "flex", justifyContent: "center" }}
 							>
-								<Button as={Link} href="/about" {...aboutButtonStyle}>
-									About
+								<Button asChild {...aboutButtonStyle}>
+									<Link href="/about">About</Link>
 								</Button>
 							</motion.div>
 							<motion.div
@@ -676,21 +630,20 @@ const Navbar = () => {
 								style={{ width: "100%", display: "flex", justifyContent: "center" }}
 							>
 								<Button
-									as={Link}
-									href="/comic-suggestion/form"
+									asChild
 									{...buttonStyle}
 									bg="yellow.500"
 									color="purple.500"
 								>
-									GET AI COMICS TIPS!
+									<Link href="/comic-suggestion/form">GET AI COMICS TIPS!</Link>
 								</Button>
 							</motion.div>
 							<motion.div
 								variants={itemVariants}
 								style={{ width: "100%", display: "flex", justifyContent: "center" }}
 							>
-								<Button as={Link} href="/releases" {...newReleaseButtonStyle}>
-									NEW RELEASES!
+								<Button asChild {...newReleaseButtonStyle}>
+									<Link href="/releases">NEW RELEASES!</Link>
 								</Button>
 							</motion.div>
 							{user && (
@@ -698,8 +651,8 @@ const Navbar = () => {
 									variants={itemVariants}
 									style={{ width: "100%", display: "flex", justifyContent: "center" }}
 								>
-									<Button as={Link} href="/comics-store/sell" {...buttonStyle}>
-										Tip Us!
+									<Button asChild {...buttonStyle}>
+										<Link href="/comics-store/sell">Tip Us!</Link>
 									</Button>
 								</motion.div>
 							)}
@@ -707,8 +660,8 @@ const Navbar = () => {
 								variants={itemVariants}
 								style={{ width: "100%", display: "flex", justifyContent: "center" }}
 							>
-								<Button as={Link} href="/blog" {...buttonStyle}>
-									Blog
+								<Button asChild {...buttonStyle}>
+									<Link href="/blog">Blog</Link>
 								</Button>
 							</motion.div>
 							{menuItems.map((item, index) => (
@@ -717,15 +670,23 @@ const Navbar = () => {
 									variants={itemVariants}
 									style={{ width: "100%", display: "flex", justifyContent: "center" }}
 								>
-									{item.submenu ? renderMenuItem(item, index) : null}
+									{item.submenu ? (
+										<MobileMenuItem
+											item={item}
+											index={index}
+											btnStyle={buttonStyle}
+											marvelBtnStyle={marvelButtonStyle}
+											onNavigate={handleCloseMainMenu}
+										/>
+									) : null}
 								</motion.div>
 							))}
 							<motion.div
 								variants={itemVariants}
 								style={{ width: "100%", display: "flex", justifyContent: "center" }}
 							>
-								<Button as={Link} href="/forums" {...buttonStyle}>
-									Forums
+								<Button asChild {...buttonStyle}>
+									<Link href="/forums">Forums</Link>
 								</Button>
 							</motion.div>
 						</Stack>

@@ -3,24 +3,11 @@
 import SearchBar from "@/components/comics-store/search";
 import { useGetReceipts } from "@/hooks/comic-table/useGetReceipts";
 import {
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  TableContainer,
-  Heading,
+  Table, Heading,
   Spinner,
   Center,
   Alert,
-  AlertIcon,
-  useToast,
   Accordion,
-  AccordionItem,
-  AccordionButton,
-  AccordionPanel,
-  AccordionIcon,
   Box,
 } from "@chakra-ui/react";
 import { useState, useEffect, useMemo } from "react";
@@ -38,7 +25,6 @@ type Receipt = {
 
 const ReceiptsListTable = () => {
   const { data: receipts, isLoading, isError, error } = useGetReceipts();
-  const toast = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [localReceipts, setLocalReceipts] = useState<Receipt[]>([]);
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: string } | null>(null);
@@ -104,58 +90,58 @@ const ReceiptsListTable = () => {
   if (isError) {
     return (
       <Center h="100vh">
-        <Alert status="error">
-          <AlertIcon />
-          {error.message}
-        </Alert>
+        <Alert.Root status="error">
+          <Alert.Indicator />
+          <Alert.Description>{error.message}</Alert.Description>
+        </Alert.Root>
       </Center>
     );
   }
 
   return (
     <Box maxW="1300px" mx="auto" p={4}>
-      <Accordion allowToggle>
-        <AccordionItem>
-          <AccordionButton>
+      <Accordion.Root collapsible>
+        <Accordion.Item value="receipts-list">
+          <Accordion.ItemTrigger>
             <Heading as="h1" size="xl" mb={6} flex="1" textAlign="left">
               Receipts List
             </Heading>
-            <AccordionIcon />
-          </AccordionButton>
-          <AccordionPanel pb={4}>
+            <Accordion.ItemIndicator />
+          </Accordion.ItemTrigger>
+          <Accordion.ItemContent pb={4}>
 		  <SearchBar onSearch={setSearchQuery} searchQuery={searchQuery} totalResults={sortedAndFilteredReceipts.length} />
 
-            <TableContainer>
-              <Table variant="simple">
-                <Thead>
-                  <Tr>
-                    <Th onClick={() => requestSort("id")} textAlign="center">Receipt ID</Th>
-                    <Th onClick={() => requestSort("order_id")} textAlign="center">Order ID</Th>
-                    <Th onClick={() => requestSort("created_at")} textAlign="center">Date of Receipt</Th>
-                    <Th onClick={() => requestSort("profiles.username")} textAlign="center">User</Th>
-                    <Th onClick={() => requestSort("profiles.email")} textAlign="center">Email</Th>
-                    <Th onClick={() => requestSort("total_amount")} textAlign="center">Total Amount</Th>
-                    <Th onClick={() => requestSort("currency")} textAlign="center">Currency</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
+            <Box overflowX="auto">
+              <Table.Root variant="outline">
+                <Table.Header>
+                  <Table.Row>
+                    <Table.ColumnHeader onClick={() => requestSort("id")} textAlign="center">Receipt ID</Table.ColumnHeader>
+                    <Table.ColumnHeader onClick={() => requestSort("order_id")} textAlign="center">Order ID</Table.ColumnHeader>
+                    <Table.ColumnHeader onClick={() => requestSort("created_at")} textAlign="center">Date of Receipt</Table.ColumnHeader>
+                    <Table.ColumnHeader onClick={() => requestSort("profiles.username")} textAlign="center">User</Table.ColumnHeader>
+                    <Table.ColumnHeader onClick={() => requestSort("profiles.email")} textAlign="center">Email</Table.ColumnHeader>
+                    <Table.ColumnHeader onClick={() => requestSort("total_amount")} textAlign="center">Total Amount</Table.ColumnHeader>
+                    <Table.ColumnHeader onClick={() => requestSort("currency")} textAlign="center">Currency</Table.ColumnHeader>
+                  </Table.Row>
+                </Table.Header>
+                <Table.Body>
                   {sortedAndFilteredReceipts.map((receipt: Receipt) => (
-                    <Tr key={receipt.id}>
-                      <Td textAlign="center">{receipt.id}</Td>
-                      <Td textAlign="center">{receipt.order_id}</Td>
-                      <Td textAlign="center">{formatDate(receipt.created_at)}</Td>
-                      <Td textAlign="center">{receipt.profiles?.username || "Unknown"}</Td>
-                      <Td textAlign="center">{receipt.profiles?.email || "Unknown"}</Td>
-                      <Td textAlign="center">{receipt.total_amount}</Td>
-                      <Td textAlign="center">{receipt.currency}</Td>
-                    </Tr>
+                    <Table.Row key={receipt.id}>
+                      <Table.Cell textAlign="center">{receipt.id}</Table.Cell>
+                      <Table.Cell textAlign="center">{receipt.order_id}</Table.Cell>
+                      <Table.Cell textAlign="center">{formatDate(receipt.created_at)}</Table.Cell>
+                      <Table.Cell textAlign="center">{receipt.profiles?.username || "Unknown"}</Table.Cell>
+                      <Table.Cell textAlign="center">{receipt.profiles?.email || "Unknown"}</Table.Cell>
+                      <Table.Cell textAlign="center">{receipt.total_amount}</Table.Cell>
+                      <Table.Cell textAlign="center">{receipt.currency}</Table.Cell>
+                    </Table.Row>
                   ))}
-                </Tbody>
-              </Table>
-            </TableContainer>
-          </AccordionPanel>
-        </AccordionItem>
-      </Accordion>
+                </Table.Body>
+              </Table.Root>
+            </Box>
+          </Accordion.ItemContent>
+        </Accordion.Item>
+      </Accordion.Root>
     </Box>
   );
 };

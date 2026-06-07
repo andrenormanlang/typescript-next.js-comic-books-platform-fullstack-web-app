@@ -1,5 +1,6 @@
 "use client";
 
+import { useColorModeValue } from "@/components/ui/color-mode";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -11,9 +12,7 @@ import {
 	SimpleGrid,
 	Spinner,
 	Stack,
-	Text,
-	useColorModeValue,
-} from "@chakra-ui/react";
+	Text } from "@chakra-ui/react";
 import { useSearchParams } from "next/navigation";
 
 type GuiaEditionResult = {
@@ -137,8 +136,8 @@ export default function GuiaEditionPage() {
 				<Box borderWidth="1px" borderColor="red.300" rounded="md" p={4} color="red.300">
 					{error || "No data available."}
 				</Box>
-				<Button as={Link} href="/search/guia-search" mt={4}>
-					Back to search
+				<Button asChild mt={4}>
+					<Link href="/search/guia-search">Back to search</Link>
 				</Button>
 			</Container>
 		);
@@ -148,10 +147,10 @@ export default function GuiaEditionPage() {
 
 	return (
 		<Container maxW="container.lg" py={8}>
-			<Stack spacing={6}>
+			<Stack gap={6}>
 				<Heading size="lg">{edition.title || "Edição"}</Heading>
 
-				<SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+				<SimpleGrid columns={{ base: 1, md: 2 }} gap={6}>
 					<Box bg={cardBg} borderWidth="1px" borderColor={borderColor} rounded="md" p={4}>
 						{cover ? (
 							<Image src={cover} alt={edition.title || "Edição"} w="100%" maxW="360px" rounded="md" />
@@ -161,7 +160,7 @@ export default function GuiaEditionPage() {
 					</Box>
 
 					<Box bg={cardBg} borderWidth="1px" borderColor={borderColor} rounded="md" p={4}>
-						<Stack spacing={2}>
+						<Stack gap={2}>
 							<Text>
 								<strong>Edição:</strong> {edition.editionNumber || "-"}
 							</Text>
@@ -187,17 +186,8 @@ export default function GuiaEditionPage() {
 								<strong>Preço de capa:</strong> {edition.precoCapa || "-"}
 							</Text>
 							{edition.url && (
-								<Button
-									as="a"
-									href={edition.url}
-									target="_blank"
-									rel="noreferrer"
-									mt={2}
-									size="sm"
-									colorScheme="blue"
-									variant="outline"
-								>
-									Open source page
+								<Button asChild mt={2} size="sm" colorPalette="blue" variant="outline">
+									<a href={edition.url} target="_blank" rel="noreferrer">Open source page</a>
 								</Button>
 							)}
 						</Stack>
@@ -209,7 +199,7 @@ export default function GuiaEditionPage() {
 						<Heading size="md" mb={4}>
 							Histórias
 						</Heading>
-						<Stack spacing={4}>
+						<Stack gap={4}>
 							{edition.stories.map((story, idx) => (
 								<Box key={`${story.title || "story"}-${idx}`}>
 									<Text fontWeight="bold">{story.title || `História ${idx + 1}`}</Text>
@@ -270,8 +260,8 @@ export default function GuiaEditionPage() {
 					</Box>
 				)}
 
-				<Button as={Link} href="/search/guia-search" w="fit-content">
-					Back to search
+				<Button asChild w="fit-content">
+					<Link href="/search/guia-search">Back to search</Link>
 				</Button>
 			</Stack>
 		</Container>

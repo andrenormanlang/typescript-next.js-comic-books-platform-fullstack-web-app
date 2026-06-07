@@ -2,23 +2,18 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
+import {NativeSelect, 
 	Box,
 	Button,
 	Input,
-	FormControl,
-	FormLabel,
+	Field,
 	Heading,
-	VStack,
-	Select,
-	Text,
+	VStack, Text,
 	Container,
 	SimpleGrid,
 	Flex,
 	Icon,
-	Card,
-	CardBody,
-	Divider,
+	Card, Separator,
 } from "@chakra-ui/react";
 import { FaBook, FaPencilAlt, FaPaintBrush } from "react-icons/fa";
 import { comicGenres, comicStyles, experienceLevels, purposes } from "@/lib/comicSuggestionOptions";
@@ -52,16 +47,16 @@ export default function ComicSuggestionForm() {
 
 	return (
 		<Container maxW="800px" py={8}>
-			<Card boxShadow="lg" borderRadius="lg" overflow="hidden">
-				<CardBody>
+			<Card.Root boxShadow="lg" borderRadius="lg" overflow="hidden">
+				<Card.Body>
 					<Text mb={6} textAlign="center">
 						Fill out this form to receive AI-powered comic recommendations tailored to your preferences.
 					</Text>
-					<Divider mb={6} />
+					<Separator mb={6} />
 
 					<form onSubmit={handleSubmit}>
-						<SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-							<VStack spacing={4} align="stretch">
+						<SimpleGrid columns={{ base: 1, md: 2 }} gap={6}>
+							<VStack gap={4} align="stretch">
 								<Flex align="center" mb={2}>
 									<Icon as={FaBook} color="blue.500" mr={2} />
 									<Heading as="h3" size="md">
@@ -69,14 +64,14 @@ export default function ComicSuggestionForm() {
 									</Heading>
 								</Flex>
 
-								<FormControl id="age" isRequired>
-									<FormLabel>Age</FormLabel>
+								<Field.Root id="age" required>
+									<Field.Label>Age</Field.Label>
 									<Input type="number" name="age" value={formData.age} onChange={handleChange} />
-								</FormControl>
+								</Field.Root>
 
-								<FormControl id="experience">
-									<FormLabel>Your Comic Experience</FormLabel>
-									<Select
+								<Field.Root id="experience">
+									<Field.Label>Your Comic Experience</Field.Label>
+									<NativeSelect.Root><NativeSelect.Field
 										name="experience"
 										value={formData.experience}
 										onChange={handleChange}
@@ -87,11 +82,11 @@ export default function ComicSuggestionForm() {
 												{level}
 											</option>
 										))}
-									</Select>
-								</FormControl>
+									</NativeSelect.Field></NativeSelect.Root>
+								</Field.Root>
 							</VStack>
 
-							<VStack spacing={4} align="stretch">
+							<VStack gap={4} align="stretch">
 								<Flex align="center" mb={2}>
 									<Icon as={FaPaintBrush} color="blue.500" mr={2} />
 									<Heading as="h3" size="md">
@@ -99,9 +94,9 @@ export default function ComicSuggestionForm() {
 									</Heading>
 								</Flex>
 
-								<FormControl id="genre" isRequired>
-									<FormLabel>Favorite Comic Genre</FormLabel>
-									<Select
+								<Field.Root id="genre" required>
+									<Field.Label>Favorite Comic Genre</Field.Label>
+									<NativeSelect.Root><NativeSelect.Field
 										name="genre"
 										value={formData.genre}
 										onChange={handleChange}
@@ -112,12 +107,12 @@ export default function ComicSuggestionForm() {
 												{genre}
 											</option>
 										))}
-									</Select>
-								</FormControl>
+									</NativeSelect.Field></NativeSelect.Root>
+								</Field.Root>
 
-								<FormControl id="style" isRequired>
-									<FormLabel>Preferred Style</FormLabel>
-									<Select
+								<Field.Root id="style" required>
+									<Field.Label>Preferred Style</Field.Label>
+									<NativeSelect.Root><NativeSelect.Field
 										name="style"
 										value={formData.style}
 										onChange={handleChange}
@@ -128,12 +123,12 @@ export default function ComicSuggestionForm() {
 												{style}
 											</option>
 										))}
-									</Select>
-								</FormControl>
+									</NativeSelect.Field></NativeSelect.Root>
+								</Field.Root>
 
-								<FormControl id="purpose">
-									<FormLabel>Purpose</FormLabel>
-									<Select
+								<Field.Root id="purpose">
+									<Field.Label>Purpose</Field.Label>
+									<NativeSelect.Root><NativeSelect.Field
 										name="purpose"
 										value={formData.purpose}
 										onChange={handleChange}
@@ -144,17 +139,17 @@ export default function ComicSuggestionForm() {
 												{purpose}
 											</option>
 										))}
-									</Select>
-								</FormControl>
+									</NativeSelect.Field></NativeSelect.Root>
+								</Field.Root>
 							</VStack>
 						</SimpleGrid>
 
-						<Button type="submit" colorScheme="blue" width="full" mt={8} size="lg" fontWeight="bold">
+						<Button type="submit" colorPalette="blue" width="full" mt={8} size="lg" fontWeight="bold">
 							Get Personalized Comic Suggestion
 						</Button>
 					</form>
-				</CardBody>
-			</Card>
+				</Card.Body>
+			</Card.Root>
 		</Container>
 	);
 }

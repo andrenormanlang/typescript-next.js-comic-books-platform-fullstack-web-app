@@ -134,7 +134,7 @@ const MarvelSeriesClient: NextPage = () => {
 	}
 
 	return (
-		<Suspense fallback={<div>Loading...</div>}>
+		<Suspense>
 			<Container maxW="container.xl" centerContent p={4}>
 				<SearchBox onSearch={(value) => handleSearchTerm(value)} />
 				{data && data.data && (
@@ -150,7 +150,7 @@ const MarvelSeriesClient: NextPage = () => {
 						</Text>
 					</Box>
 				)}
-				<SimpleGrid columns={{ base: 1, md: 3 }} spacing={30} width="100%">
+				<SimpleGrid columns={{ base: 1, md: 3 }} gap={30} width="100%">
 					{data.data &&
 						Array.isArray(data.data.results) &&
 						data.data.results.map((marvelSeries: MarvelSeriesTypes) => (
@@ -176,7 +176,6 @@ const MarvelSeriesClient: NextPage = () => {
 										<Image
 											src={buildThumbnailUrl(marvelSeries.thumbnail)}
 											alt={marvelSeries.title}
-											fallbackSrc={FALLBACK_THUMBNAIL_URL}
 											maxW="300px"
 											maxH="300px"
 											objectFit="contain"
@@ -184,7 +183,7 @@ const MarvelSeriesClient: NextPage = () => {
 										<Text mt={4} fontWeight="bold" fontSize="1rem" textAlign="center">
 											{marvelSeries.title}
 										</Text>
-										<Text mt={2} fontSize="0.9rem" textAlign="center" noOfLines={2}>
+										<Text mt={2} fontSize="0.9rem" textAlign="center" lineClamp={2}>
 											{marvelSeries.description || "No description available."}
 										</Text>
 									</Box>

@@ -5,11 +5,6 @@ import { Spinner, Center } from "@chakra-ui/react";
 const ComicVinePublishers = () => {
   return (
     <Suspense
-      fallback={
-        <Center height="100vh">
-          <Spinner size="xl" />
-        </Center>
-      }
     >
       <ComicVinePublishersClient />
     </Suspense>
@@ -136,22 +131,7 @@ export default ComicVinePublishers;
 
 // 	return (
 // 		<Suspense
-// 			fallback={
-// 				<div
-// 					style={{
-// 						display: "flex",
-// 						justifyContent: "center",
-// 						alignItems: "center",
-// 						height: "100vh", // Full viewport height
-// 						fontFamily: '"Bangers", cursive', // Assuming "Bangers" font is loaded
-// 						fontSize: "1.5rem", // Larger font size
-// 						color: "red", // Red color for the error message
-// 						textAlign: "center",
-// 						padding: "20px",
-// 						backgroundColor: "#f0f0f0", // Light background for visibility
-// 						borderRadius: "10px",
-// 						boxShadow: "0 4px 8px rgba(0, 0, 0, 0.15)", // Optional shadow for better appearance
-// 					}}
+//}
 // 				>
 // 					Loading...
 // 				</div>
@@ -180,7 +160,7 @@ export default ComicVinePublishers;
 // 				)}
 // 				<SimpleGrid
 // 					columns={{ base: 1, md: 3 }}
-// 					spacing={10}
+// 					gap={10}
 // 					width="100%"
 // 				>
 // 					{validData?.map((publishers: Publishers) => {
@@ -237,7 +217,7 @@ export default ComicVinePublishers;
 // 											fontWeight="bold"
 // 											fontSize="lg"
 // 											color="red"
-// 											noOfLines={1}
+// 											lineClamp={1}
 // 											textAlign="center"
 // 											mt={4}
 // 										>

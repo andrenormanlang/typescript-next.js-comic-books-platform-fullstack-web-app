@@ -1,5 +1,6 @@
 "use client";
 
+import { useColorModeValue } from "@/components/ui/color-mode";
 import { useQuery } from "@tanstack/react-query";
 import {
 	SimpleGrid,
@@ -10,13 +11,7 @@ import {
 	Center,
 	Spinner,
 	Tabs,
-	TabList,
-	TabPanels,
-	Tab,
-	TabPanel,
-	Heading,
-	useColorModeValue,
-	VStack,
+	Heading, VStack,
 	Badge,
 } from "@chakra-ui/react";
 import { motion } from "framer-motion";
@@ -204,7 +199,7 @@ const MetronReleasesClient = () => {
 	};
 
 	const IssueGrid = ({ issues }: { issues: MetronIssue[] }) => (
-		<SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing={6}>
+		<SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} gap={6}>
 			{issues.map((issue) => (
 				<NextLink key={issue.id} href={`/releases/${issue.id}`} passHref>
 					<motion.div
@@ -255,20 +250,15 @@ const MetronReleasesClient = () => {
 									objectFit="cover"
 									width="100%"
 									height="100%"
-									fallback={
-										<Center height="100%">
-											<Spinner />
-										</Center>
-									}
 								/>
 							</Box>
 
 							{/* Content Container - Increased height */}
-							<VStack p={4} align="center" spacing={2} height="170px" justify="center">
+							<VStack p={4} align="center" gap={2} height="170px" justify="center">
 								<Heading
 									size="md"
 									color={textColor}
-									noOfLines={3} // Allow up to 3 lines
+									lineClamp={3} // Allow up to 3 lines
 									textAlign="center"
 									lineHeight="1.2"
 									minHeight="4.8em" // Ensure space for 3 lines + some padding
@@ -328,45 +318,41 @@ const MetronReleasesClient = () => {
 				</Box>
 			)}
 
-			<Tabs
-				isFitted
+			<Tabs.Root
 				variant="enclosed"
-				colorScheme="blue"
-				index={activeView === "recent" ? 0 : 1}
-				onChange={handleTabChange}
+				value={activeView}
+				onValueChange={(e) => handleTabChange(e.value === "recent" ? 0 : 1)}
 			>
-				<TabList mb="1em">
-					<Tab _selected={{ color: "blue.500", borderColor: "blue.500" }}>
+				<Tabs.List mb="1em">
+					<Tabs.Trigger value="recent">
 						Recently Released ({data?.recentCount || 0})
-					</Tab>
-					<Tab _selected={{ color: "blue.500", borderColor: "blue.500" }}>
+					</Tabs.Trigger>
+					<Tabs.Trigger value="upcoming">
 						Upcoming Releases ({data?.upcomingCount || 0})
-					</Tab>
-				</TabList>
+					</Tabs.Trigger>
+				</Tabs.List>
 
-				<TabPanels>
-					<TabPanel>
-						{activeView === "recent" &&
-							(data?.results.length === 0 ? (
-								<Center p={8}>
-									<Text color={textColor}>No recent releases found</Text>
-								</Center>
-							) : (
-								<IssueGrid issues={data?.results || []} />
-							))}
-					</TabPanel>
-					<TabPanel>
-						{activeView === "upcoming" &&
-							(data?.results.length === 0 ? (
-								<Center p={8}>
-									<Text color={textColor}>No upcoming releases found</Text>
-								</Center>
-							) : (
-								<IssueGrid issues={data?.results || []} />
-							))}
-					</TabPanel>
-				</TabPanels>
-			</Tabs>
+				<Tabs.Content value="recent">
+					{activeView === "recent" &&
+						(data?.results.length === 0 ? (
+							<Center p={8}>
+								<Text color={textColor}>No recent releases found</Text>
+							</Center>
+						) : (
+							<IssueGrid issues={data?.results || []} />
+						))}
+				</Tabs.Content>
+				<Tabs.Content value="upcoming">
+					{activeView === "upcoming" &&
+						(data?.results.length === 0 ? (
+							<Center p={8}>
+								<Text color={textColor}>No upcoming releases found</Text>
+							</Center>
+						) : (
+							<IssueGrid issues={data?.results || []} />
+						))}
+				</Tabs.Content>
+			</Tabs.Root>
 
 			{data && data.count > pageSize && (
 				<Box mt={8}>

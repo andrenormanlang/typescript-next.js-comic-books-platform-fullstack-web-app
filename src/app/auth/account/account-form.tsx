@@ -5,7 +5,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import { createClient } from "@/utils/supabase/client";
 import { type User } from "@supabase/supabase-js";
 import Avatar from "./avatar";
-import { Box, Button, FormControl, FormLabel, Input, VStack, Heading, Spinner, Alert, AlertIcon, Center, useColorModeValue, Text, useToast } from "@chakra-ui/react";
+import {Box, Button, Field, Input, VStack, Heading, Spinner, Alert, Center, Text } from "@chakra-ui/react";
+import { useColorModeValue } from "@/components/ui/color-mode";
+import { toaster } from "@/components/ui/toaster";
 import { RootState } from '@/store/store';
 import { setAvatarUrl } from '@/store/avatarSlice';
 import { useForm, SubmitHandler } from "react-hook-form";
@@ -34,8 +36,6 @@ export default function AccountForm({ user }: { user: User | null }) {
   const avatarUrl = useSelector((state: RootState) => state.avatar.url);
   const router = useRouter();
   const dispatch = useDispatch();
-  const toast = useToast();
-
   const { register, handleSubmit, formState: { errors }, setValue } = useForm<FormData>({
     resolver: zodResolver(validationSchema),
     defaultValues: {
@@ -110,23 +110,19 @@ export default function AccountForm({ user }: { user: User | null }) {
 
 	  if (error) throw error;
 
-	  toast({
+	  toaster.create({
 		title: "Profile updated.",
 		description: "Your profile has been updated successfully.",
-		status: "success",
+		type: "success",
 		duration: 5000,
-		isClosable: true,
-		position: "top",
 	  });
 	} catch (error: any) {
 	  setError("Error updating the data!");
-	  toast({
+	  toaster.create({
 		title: "Profile update failed.",
 		description: error.message || "There was an error updating your profile.",
-		status: "error",
+		type: "error",
 		duration: 5000,
-		isClosable: true,
-		position: "top",
 	  });
 	} finally {
 	  setLoading(false);
@@ -139,13 +135,11 @@ export default function AccountForm({ user }: { user: User | null }) {
       router.push("/");
     } catch (error) {
       setError("Error signing out!");
-      toast({
+      toaster.create({
         title: "Sign out failed.",
         description: "There was an error signing out.",
-        status: "error",
+        type: "error",
         duration: 5000,
-        isClosable: true,
-        position: "top",
       });
     }
   };
@@ -164,21 +158,21 @@ export default function AccountForm({ user }: { user: User | null }) {
           Account
         </Heading>
         {error && (
-          <Alert status="error" mb={4}>
-            <AlertIcon />
-            {error}
-          </Alert>
+          <Alert.Root status="error" mb={4}>
+            <Alert.Indicator />
+            <Alert.Description>{error}</Alert.Description>
+          </Alert.Root>
         )}
         {loading ? (
           <Center height="100%">
             <Spinner />
           </Center>
         ) : (
-          <VStack spacing={4} as="form" onSubmit={handleSubmit(updateProfile)}>
-            <FormControl id="email">
-              <FormLabel>Email</FormLabel>
-              <Input type="text" value={user?.email || ''} isDisabled />
-            </FormControl>
+          <VStack gap={4} as="form" onSubmit={handleSubmit(updateProfile)}>
+            <Field.Root id="email">
+              <Field.Label>Email</Field.Label>
+              <Input type="text" value={user?.email || ''} disabled />
+            </Field.Root>
             {user && (
               <Avatar
                 uid={user.id}
@@ -190,33 +184,33 @@ export default function AccountForm({ user }: { user: User | null }) {
                 }}
               />
             )}
-            <FormControl id="fullname" isInvalid={!!errors.fullname}>
-              <FormLabel>Full Name</FormLabel>
+            <Field.Root id="fullname" invalid={!!errors.fullname}>
+              <Field.Label>Full Name</Field.Label>
               <Input
                 type="text"
                 {...register("fullname")}
               />
               {errors.fullname && <Text color="red.500">{errors.fullname.message}</Text>}
-            </FormControl>
-            <FormControl id="username" isInvalid={!!errors.username}>
-              <FormLabel>Username</FormLabel>
+            </Field.Root>
+            <Field.Root id="username" invalid={!!errors.username}>
+              <Field.Label>Username</Field.Label>
               <Input
                 type="text"
                 {...register("username")}
               />
               {errors.username && <Text color="red.500">{errors.username.message}</Text>}
-            </FormControl>
+            </Field.Root>
             {errors.avatarUrl && <Text color="red.500">{errors.avatarUrl.message}</Text>}
             <Button
-              colorScheme="teal"
+              colorPalette="teal"
               width="300px"
               type="submit"
-              isDisabled={loading}
+              disabled={loading}
             >
               {loading ? 'Loading ...' : 'Update'}
             </Button>
             <Button
-              colorScheme="red"
+              colorPalette="red"
               width="300px"
               mt={4}
               onClick={handleSignOut}
@@ -243,7 +237,7 @@ export default function AccountForm({ user }: { user: User | null }) {
 // import { createClient } from "@/utils/supabase/client";
 // import { type User } from "@supabase/supabase-js";
 // import Avatar from "./avatar";
-// import { Box, Button, FormControl, FormLabel, Input, VStack, Heading, Spinner, Alert, AlertIcon, Center, useColorModeValue } from "@chakra-ui/react";
+// import { Box, Button, Input, VStack, Heading, Spinner, Alert, Center } from "@chakra-ui/react";
 // import { useAvatar } from "@/contexts/AvatarContext";
 
 // export default function AccountForm({ user }: { user: User | null }) {
@@ -336,19 +330,19 @@ export default function AccountForm({ user }: { user: User | null }) {
 //         </Heading>
 //         {error && (
 //           <Alert status="error" mb={4}>
-//             <AlertIcon />
+//             <Alert.Indicator />
 //             {error}
 //           </Alert>
 //         )}
 //         {loading ? (
 //           <Spinner />
 //         ) : (
-//           <VStack spacing={4}>
-//             <FormControl id="email">
-//               <FormLabel>Email</FormLabel>
+//           <VStack gap={4}>
+//             <Field.Root id="email">
+//               <Field.Label>Email</Field.Label>
 //               <Input type="text" value={user?.email} isDisabled />
-//             </FormControl>
-//             <Avatar
+//             </Field.Root>
+//             <Avatar.Root
 //               uid={user?.id ?? null}
 //               url={avatarUrl}
 //               size={150}
@@ -357,48 +351,48 @@ export default function AccountForm({ user }: { user: User | null }) {
 //                 updateProfile({ fullname, username, website, avatarUrl: url });
 //               }}
 //             />
-//             <FormControl id="fullName">
-//               <FormLabel>Full Name</FormLabel>
+//             <Field.Root id="fullName">
+//               <Field.Label>Full Name</Field.Label>
 //               <Input
 //                 type="text"
 //                 value={fullname || ''}
 //                 onChange={(e) => setFullname(e.target.value)}
 //               />
-//             </FormControl>
-//             <FormControl id="username">
-//               <FormLabel>Username</FormLabel>
+//             </Field.Root>
+//             <Field.Root id="username">
+//               <Field.Label>Username</Field.Label>
 //               <Input
 //                 type="text"
 //                 value={username || ''}
 //                 onChange={(e) => setUsername(e.target.value)}
 //               />
-//             </FormControl>
-//             <FormControl id="website">
-//               <FormLabel>Website</FormLabel>
+//             </Field.Root>
+//             <Field.Root id="website">
+//               <Field.Label>Website</Field.Label>
 //               <Input
 //                 type="url"
 //                 value={website || ''}
 //                 onChange={(e) => setWebsite(e.target.value)}
 //               />
-//             </FormControl>
-//             <FormControl id="isAdmin">
-//               <FormLabel>Admin Status</FormLabel>
+//             </Field.Root>
+//             <Field.Root id="isAdmin">
+//               <Field.Label>Admin Status</Field.Label>
 //               <Input
 //                 type="text"
 //                 value={is_admin ? 'Admin' : 'User'}
 //                 isDisabled
 //               />
-//             </FormControl>
+//             </Field.Root>
 //             <Button
-//               colorScheme="teal"
+//               colorPalette="teal"
 //               width="full"
 //               onClick={() => updateProfile({ fullname, username, website, avatarUrl })}
-//               isDisabled={loading}
+//               disabled={loading}
 //             >
 //               {loading ? 'Loading ...' : 'Update'}
 //             </Button>
 //             <form action="/auth/signout" method="post">
-//               <Button colorScheme="red" width="full" type="submit">
+//               <Button colorPalette="red" width="full" type="submit">
 //                 Sign out
 //               </Button>
 //             </form>

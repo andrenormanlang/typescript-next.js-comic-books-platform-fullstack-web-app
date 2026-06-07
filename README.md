@@ -43,9 +43,9 @@ Our blog provides full, accurate, and extensive descriptions of various topics r
 
 ### :computer: Frontend
 
-- **:zap: NextJS 14 App Router:** Next.js ensures the app is fast, scalable, and optimized for the best performance.
+- **:zap: NextJS 16 App Router:** Next.js ensures the app is fast, scalable, and optimized for the best performance.
 - **:shield: TypeScript:** Provides static typing, which helps catch errors early and improves the overall quality of the codebase.
-- **:art: Chakra UI:** A modular and accessible component library that makes it easy to build beautiful interfaces.
+- **:art: Chakra UI v3:** A modular and accessible component library that makes it easy to build beautiful interfaces.
 
 ### :gear: Backend
 
@@ -77,13 +77,13 @@ To get started with the project, follow these steps:
 3. **:package: Install dependencies:**
 
     ```bash
-    npm install
+    pnpm install
     ```
 
 4. **:computer: Start the development server:**
 
     ```bash
-    npm run dev
+    pnpm run dev
     ```
 
 ## :crystal_ball: Future Features & Ideas

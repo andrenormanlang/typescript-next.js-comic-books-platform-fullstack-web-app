@@ -1,4 +1,5 @@
-import { Box, Image, Text, useColorModeValue } from "@chakra-ui/react";
+import { useColorModeValue } from "@/components/ui/color-mode";
+import { Box, Image, Text } from "@chakra-ui/react";
 
 import { useRouter } from 'next/navigation';
 // Define the shape of a character object

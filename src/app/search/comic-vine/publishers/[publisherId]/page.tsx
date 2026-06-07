@@ -1,27 +1,20 @@
 "use client";
 
+import { useColorModeValue } from "@/components/ui/color-mode";
 import React, { Suspense } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import {
+import {Tag, 
 	Box,
 	Image,
 	Text,
 	VStack,
-	HStack,
-	Tag,
-	Flex,
-	Container,
-	useColorModeValue,
-	Button,
+	HStack, Flex,
+	Container, Button,
 	Center,
 	Spinner,
 	Accordion,
-	AccordionItem,
-	AccordionButton,
-	AccordionIcon,
-	AccordionPanel,
 } from "@chakra-ui/react";
-import { ArrowBackIcon } from "@chakra-ui/icons";
+import { ArrowLeft } from "lucide-react";
 import { NextPage } from "next";
 import { useSearchParams } from "next/navigation";
 import DOMPurify from "dompurify";
@@ -170,11 +163,11 @@ const ComicVineCharacter: NextPage = () => {
 		>
 			<Container maxW="1150px" p={4}>
 				<Box mb={4}>
-					<Button leftIcon={<ArrowBackIcon />} colorScheme="teal" variant="outline" onClick={handleBack}>
+					<Button  colorPalette="teal" variant="outline" onClick={handleBack}>
 						Back to Grid
 					</Button>
 				</Box>
-				<VStack spacing={2}>
+				<VStack gap={2}>
 					{/* Content Box */}
 					<Flex
 						bg={bgColor}
@@ -188,7 +181,7 @@ const ComicVineCharacter: NextPage = () => {
 						// maxWidth: { base: "90vw", sm: "500px", md: "800px", lg: "1000px", xl: "1300px" },
 						width={{ base: "90vw", sm: "400px", md: "700px", lg: "900px", xl: "1200px" }}
 					>
-						<VStack spacing={4} align="">
+						<VStack gap={4} align="">
 							{/* Image */}
 							<Box
 								bg={bgColor}
@@ -202,14 +195,13 @@ const ComicVineCharacter: NextPage = () => {
 							>
 								<Image
 									borderRadius="md"
-									boxSize={{ base: "100%", md: "300px" }}
+									maxW={{ base: "100%", md: "300px" }}
 									objectFit="contain"
 									p={2}
 									src={imageUrl}
 									alt={`Cover of ${publisher.name}`}
 									mb={{ base: 2, md: 0 }}
 									mx={{ base: "auto", md: 0 }}
-									maxWidth={{ base: "100%", md: "300px" }}
 								/>
 							</Box>
 
@@ -253,13 +245,13 @@ const ComicVineCharacter: NextPage = () => {
 								<Text fontWeight="bold" fontSize={{ base: "1rem", md: "lg" }} mb={2}>
 									Aliases:
 								</Text>
-								<HStack spacing={2} wrap="wrap">
+								<HStack gap={2} wrap="wrap">
 									{aliasesArray.map((alias: string, index: React.Key | null | undefined) => (
-										<Tag
+										<Tag.Root
 											key={index}
 											borderRadius="full"
 											variant="solid"
-											colorScheme="teal"
+											colorPalette="teal"
 											fontWeight={600}
 											fontSize={{ base: "1rem", md: "md" }}
 											px={3}
@@ -267,8 +259,8 @@ const ComicVineCharacter: NextPage = () => {
 											m={1}
 											_hover={{ transform: "scale(1.05)", cursor: "pointer" }}
 										>
-											{alias}
-										</Tag>
+											<Tag.Label>{alias}</Tag.Label>
+										</Tag.Root>
 									))}
 								</HStack>
 							</Box>
@@ -288,44 +280,40 @@ const ComicVineCharacter: NextPage = () => {
 				</VStack>
 			</Container>
 			<Container {...contentContainerStyle}>
-				<Accordion allowToggle>
-					<AccordionItem>
-						<h2>
-							<AccordionButton>
-								<Box as="span" color="red" flex="1" textAlign="left">
-									<Text fontWeight="bold" fontSize={{ base: "1rem", md: "lg" }} mb={2}>
-										FULL DESCRIPTION:
-									</Text>
-								</Box>
-								<AccordionIcon />
-							</AccordionButton>
-						</h2>
-						<AccordionPanel pb={4}>
+				<Accordion.Root collapsible>
+					<Accordion.Item value="full-description">
+						<Accordion.ItemTrigger>
+							<Box as="span" color="red" flex="1" textAlign="left">
+								<Text fontWeight="bold" fontSize={{ base: "1rem", md: "lg" }} mb={2}>
+									FULL DESCRIPTION:
+								</Text>
+							</Box>
+							<Accordion.ItemIndicator />
+						</Accordion.ItemTrigger>
+						<Accordion.ItemContent pb={4}>
 							<ComicVinePublisherDescription content={htmlContent} />
-						</AccordionPanel>
-					</AccordionItem>
-				</Accordion>
-			</Container >
+						</Accordion.ItemContent>
+					</Accordion.Item>
+				</Accordion.Root>
+			</Container>
 			<Container {...contentContainerStyle}>
-				<Accordion allowToggle>
-					<AccordionItem>
-						<h2>
-							<AccordionButton>
-								<Box as="span" color="red" flex="1" textAlign="left">
-									<Text fontWeight="bold" fontSize={{ base: "1rem", md: "lg" }} mb={2}>
-										PUBLISHER CHARACTERS:
-									</Text>
-								</Box>
-								<AccordionIcon />
-							</AccordionButton>
-						</h2>
-						<AccordionPanel pb={4}>
+				<Accordion.Root collapsible>
+					<Accordion.Item value="publisher-characters">
+						<Accordion.ItemTrigger>
+							<Box as="span" color="red" flex="1" textAlign="left">
+								<Text fontWeight="bold" fontSize={{ base: "1rem", md: "lg" }} mb={2}>
+									PUBLISHER CHARACTERS:
+								</Text>
+							</Box>
+							<Accordion.ItemIndicator />
+						</Accordion.ItemTrigger>
+						<Accordion.ItemContent pb={4}>
 						{sortedCharacters && sortedCharacters.map((character:Character ) => (
           <CharacterCard key={character.id} character={character} />
         ))}
-						</AccordionPanel>
-					</AccordionItem>
-				</Accordion>
+						</Accordion.ItemContent>
+					</Accordion.Item>
+				</Accordion.Root>
 			</Container>
 		</Suspense>
 	);

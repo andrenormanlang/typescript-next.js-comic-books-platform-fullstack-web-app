@@ -1,8 +1,9 @@
-// components/RichTextEditor.tsx
 "use client";
 
+import { useColorMode } from "@/components/ui/color-mode";
+// components/RichTextEditor.tsx
 import React, { useCallback } from "react";
-import { useColorMode } from "@chakra-ui/react";
+import { } from "@chakra-ui/react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import TextStyle from "@tiptap/extension-text-style";

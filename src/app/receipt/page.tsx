@@ -1,17 +1,13 @@
+import { useColorModeValue } from "@/components/ui/color-mode";
 // app/auth/receipt/page.tsx
 
 import React, { Suspense } from "react";
 import Receipt from "@/components/Receipt";
-import { Spinner, Center } from "@chakra-ui/react";
+import {List,  Spinner, Center } from "@chakra-ui/react";
 
 export default function ReceiptPage() {
   return (
     <Suspense
-      fallback={
-        <Center minH="100vh">
-          <Spinner size="xl" />
-        </Center>
-      }
     >
       <Receipt />
     </Suspense>
@@ -24,7 +20,7 @@ export default function ReceiptPage() {
 
 // import { useEffect, useState } from 'react';
 // import { useRouter, useSearchParams } from 'next/navigation';
-// import { Box, Text, Spinner, Center, List, ListItem, Heading, Stack, Divider, Image, useColorModeValue } from '@chakra-ui/react';
+// import { Box, Text, Spinner, Center, Heading, Stack, Separator, Image } from '@chakra-ui/react';
 
 // const Receipt = () => {
 //   const router = useRouter();
@@ -84,16 +80,16 @@ export default function ReceiptPage() {
 //     <Center>
 //       <Box bg={bg} p={8} rounded="md" shadow="md" maxW="md" width="100%">
 //         <Heading size="lg" mb={4} textAlign="center" color={headingColor}>Thank you for your purchase!</Heading>
-//         <Divider mb={4} />
-//         <Stack spacing={2} mb={4} color={textColor}>
+//         <Separator mb={4} />
+//         <Stack gap={2} mb={4} color={textColor}>
 //           <Text fontWeight="bold">Order ID:</Text>
 //           <Text>{order.order_id}</Text>
 //         </Stack>
-//         <Divider my={4} />
+//         <Separator my={4} />
 //         <Heading size="md" mb={2} color={headingColor}>Items:</Heading>
-//         <List spacing={3}>
+//         <List.Root gap={3}>
 //           {order.items.map((item: any) => (
-//             <ListItem key={item.id} display="flex" alignItems="center" color={textColor}>
+//             <List.Item key={item.id} display="flex" alignItems="center" color={textColor}>
 //               <Image
 //                 src={item.image}
 //                 alt={item.title}
@@ -106,10 +102,10 @@ export default function ReceiptPage() {
 //                 <Text>${(item.price / 100).toFixed(2)} x {item.quantity}</Text>
 //                 <Text>Total: ${((item.price * item.quantity) / 100).toFixed(2)}</Text>
 //               </Box>
-//             </ListItem>
+//             </List.Item>
 //           ))}
-//         </List>
-//         <Divider my={4} />
+//         </List.Root>
+//         <Separator my={4} />
 //         <Center>
 //           <Text fontWeight="bold" fontSize="2xl" color={totalColor}>Total Amount: ${(order.total_amount / 100).toFixed(2)}</Text>
 //         </Center>

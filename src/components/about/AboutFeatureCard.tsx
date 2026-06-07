@@ -1,6 +1,7 @@
 "use client";
 
-import { Box, VStack, Heading, Text, useColorModeValue } from "@chakra-ui/react";
+import { useColorModeValue } from "@/components/ui/color-mode";
+import { Box, VStack, Heading, Text } from "@chakra-ui/react";
 
 interface AboutFeatureCardProps {
 	title: string;
@@ -29,7 +30,7 @@ const AboutFeatureCard = ({ title, description, icon, items }: AboutFeatureCardP
 				bg: hoverBg,
 			}}
 		>
-			<VStack spacing={4} align="flex-start">
+			<VStack gap={4} align="flex-start">
 				<Box fontSize="2xl" mb={2}>
 					{icon}
 				</Box>
@@ -39,7 +40,7 @@ const AboutFeatureCard = ({ title, description, icon, items }: AboutFeatureCardP
 				<Text color={textColor}>{description}</Text>
 				{items && items.length > 0 && (
 					<Box w="100%">
-						<VStack align="flex-start" spacing={2}>
+						<VStack align="flex-start" gap={2}>
 							{items.map((item, index) => (
 								<Text key={index} color={textColor} fontSize="sm">
 									• {item}

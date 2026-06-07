@@ -1,10 +1,12 @@
-'use client';
+"use client";
 
+import { useColorModeValue } from "@/components/ui/color-mode";
 import React from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
-import { Box, Text, Heading, IconButton, useColorModeValue, useToast, Accordion, AccordionItem, AccordionButton, AccordionPanel, AccordionIcon, Tooltip } from '@chakra-ui/react';
-import { CopyIcon } from '@chakra-ui/icons';
+import { Box, Text, Heading, IconButton, Accordion, Tooltip } from '@chakra-ui/react';
+import { toaster } from "@/components/ui/toaster";
+import { Copy } from 'lucide-react';
 import copy from 'copy-to-clipboard';
 import withAuth from '@/utils/withAuth'; 
 
@@ -12,25 +14,22 @@ const AccessTokenDisplay = () => {
   const accessToken = useSelector((state: RootState) => state.auth.accessToken);
   const bg = useColorModeValue('gray.100', 'gray.700');
   const color = useColorModeValue('black', 'white');
-  const toast = useToast();
 
   const handleCopy = () => {
     if (accessToken) {
       copy(accessToken);
-      toast({
+      toaster.create({
         title: 'Access Token Copied',
         description: 'The access token has been copied to your clipboard.',
-        status: 'success',
+        type: 'success',
         duration: 3000,
-        isClosable: true,
       });
     } else {
-      toast({
+      toaster.create({
         title: 'No Access Token',
         description: 'There is no access token to copy.',
-        status: 'error',
+        type: 'error',
         duration: 3000,
-        isClosable: true,
       });
     }
   };
@@ -46,34 +45,33 @@ const AccessTokenDisplay = () => {
       mt={8}
       textAlign="center"
     >
-      <Accordion allowToggle>
-        <AccordionItem>
+      <Accordion.Root collapsible>
+        <Accordion.Item value="access-token">
           <Heading as="h2" size="lg" mb={4} color={color}>
-            <AccordionButton>
-              <Box flex="1" textAlign="left">
-                Access Token
-              </Box>
-              <Tooltip label="Copy Token" fontSize="md">
-                <IconButton
-                  aria-label="Copy access token"
-                  icon={<CopyIcon />}
-                  onClick={handleCopy}
-                  colorScheme="teal"
-                  variant="outline"
-                  size="sm"
-                  mr={2}
-                />
-              </Tooltip>
-              <AccordionIcon />
-            </AccordionButton>
+            <Accordion.ItemTrigger>
+              Access Token
+              <Tooltip.Root>
+                <Tooltip.Trigger asChild>
+                  <IconButton
+                    aria-label="Copy access token"
+                    onClick={handleCopy}
+                    colorPalette="teal"
+                    variant="outline"
+                    size="sm"
+                    mr={2}><Copy size={16} /></IconButton>
+                </Tooltip.Trigger>
+                <Tooltip.Content>Copy Token</Tooltip.Content>
+              </Tooltip.Root>
+              <Accordion.ItemIndicator />
+            </Accordion.ItemTrigger>
           </Heading>
-          <AccordionPanel pb={4}>
+          <Accordion.ItemContent pb={4}>
             <Text color={color} wordBreak="break-all">
               {accessToken || 'No access token available'}
             </Text>
-          </AccordionPanel>
-        </AccordionItem>
-      </Accordion>
+          </Accordion.ItemContent>
+        </Accordion.Item>
+      </Accordion.Root>
     </Box>
   );
 };

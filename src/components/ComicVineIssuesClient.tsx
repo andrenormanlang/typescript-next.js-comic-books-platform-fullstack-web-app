@@ -137,7 +137,7 @@ const ComicVineIssuesClient = () => {
           </Text>
         </Box>
       )}
-      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={10} width="100%">
+      <SimpleGrid columns={{ base: 1, md: 3 }} gap={10} width="100%">
         {validData?.map((comic: ComicVine) => {
           const plainDescription = htmlToText(comic.description || "", {
             wordwrap: 130,
@@ -182,7 +182,7 @@ const ComicVineIssuesClient = () => {
                   <Text
                     fontWeight="bold"
                     fontSize="lg"
-                    noOfLines={1}
+                    lineClamp={1}
                     textAlign="center"
                     mt={4}
                   >

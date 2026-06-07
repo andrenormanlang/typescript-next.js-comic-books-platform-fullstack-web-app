@@ -1,6 +1,6 @@
-// components/blog/BlogPostListClient.tsx
 "use client";
 
+// components/blog/BlogPostListClient.tsx
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/utils/supabase/client";
@@ -13,11 +13,11 @@ import {
   Text,
   Flex,
   Image,
-  useToast,
   Center,
   IconButton,
 } from "@chakra-ui/react";
-import { EditIcon, DeleteIcon } from "@chakra-ui/icons";
+import { toaster } from "@/components/ui/toaster";
+import { Pencil, Trash2 } from "lucide-react";
 import { BlogPost } from "@/types/blog/blog.type";
 import ComicSpinner from "@/helpers/ComicSpinner";
 import { useUser } from "@/contexts/UserContext";
@@ -32,7 +32,6 @@ export default function BlogPostListClient({ initialPosts }: BlogPostListClientP
   const [isAdmin, setIsAdmin] = useState(false);
 
   const router = useRouter();
-  const toast = useToast();
   const { user } = useUser();
 
   useEffect(() => {
@@ -88,12 +87,11 @@ export default function BlogPostListClient({ initialPosts }: BlogPostListClientP
     if (data) {
       setPosts(data as BlogPost[]);
     } else {
-      toast({
+      toaster.create({
         title: "Error",
         description: error?.message,
-        status: "error",
+        type: "error",
         duration: 5000,
-        isClosable: true,
       });
     }
     setLoading(false);
@@ -115,32 +113,29 @@ export default function BlogPostListClient({ initialPosts }: BlogPostListClientP
 
   const deletePost = async (postId: string) => {
     if (!user || !isAdmin) {
-      toast({
+      toaster.create({
         title: "Error",
         description: "Only admin users can delete blog posts.",
-        status: "error",
+        type: "error",
         duration: 5000,
-        isClosable: true,
       });
       return;
     }
 
     const { error } = await supabase.from("blog_posts").delete().eq("id", postId);
     if (error) {
-      toast({
+      toaster.create({
         title: "Error",
         description: error.message,
-        status: "error",
+        type: "error",
         duration: 5000,
-        isClosable: true,
       });
     } else {
-      toast({
+      toaster.create({
         title: "Success",
         description: "Blog post deleted successfully.",
-        status: "success",
+        type: "success",
         duration: 5000,
-        isClosable: true,
       });
       // Real-time subscription automatically removes the post from `posts`.
     }
@@ -163,7 +158,7 @@ export default function BlogPostListClient({ initialPosts }: BlogPostListClientP
           </Button>
         )}
       </Flex>
-      <VStack spacing={4} align="stretch">
+      <VStack gap={4} align="stretch">
         {posts.map((post) => (
           <Box
             key={post.id}
@@ -184,7 +179,7 @@ export default function BlogPostListClient({ initialPosts }: BlogPostListClientP
               <Image
                 src={post.imageUrl}
                 alt={post.title}
-                boxSize={{ base: "100%", md: "150px" }}
+                maxW={{ base: "100%", md: "150px" }}
                 objectFit="cover"
                 mb={{ base: 4, md: 0 }}
                 mr={{ md: 4 }}
@@ -205,27 +200,23 @@ export default function BlogPostListClient({ initialPosts }: BlogPostListClientP
                   year: "numeric",
                 }).format(new Date(post.created_at))}
               </Text>
-              <Box noOfLines={3} className="ql-editor" dangerouslySetInnerHTML={{ __html: post.content }} />
+              <Box lineClamp={3} className="ql-editor" dangerouslySetInnerHTML={{ __html: post.content }} />
               {isAdmin && (
                 <Flex mt={4} justifyContent="flex-start">
                   <IconButton
-                    icon={<EditIcon />}
                     onClick={(e) => {
                       e.stopPropagation(); // prevent box onClick
                       router.push(`/blog/${post.id}/edit`);
                     }}
                     aria-label="Edit Post"
-                    mr={2}
-                  />
+                    mr={2}><Pencil size={16} /></IconButton>
                   <IconButton
-                    icon={<DeleteIcon />}
                     onClick={(e) => {
                       e.stopPropagation();
                       deletePost(post.id);
                     }}
                     aria-label="Delete Post"
-                    colorScheme="red"
-                  />
+                    colorPalette="red"><Trash2 size={16} /></IconButton>
                 </Flex>
               )}
             </Box>

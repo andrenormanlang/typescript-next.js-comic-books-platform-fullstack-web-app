@@ -1,5 +1,4 @@
-
-'use client';
+"use client";
 
 import React, { useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
@@ -72,15 +71,11 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ onUpload }) => {
         </Box>
       )}
       <Box mt={4}>
-        <Button
-          as="label"
-          htmlFor="imageUpload"
-          colorScheme="teal"
-          isLoading={uploading}
-          loadingText="Uploading"
-        >
+        <Button asChild
+          colorPalette="teal"
+        ><label htmlFor="imageUpload">
           Upload Image
-        </Button>
+        </label></Button>
         <input
           style={{
             visibility: 'hidden',

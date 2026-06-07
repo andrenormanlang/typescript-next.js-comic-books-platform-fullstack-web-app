@@ -1,26 +1,20 @@
-'use client';
+"use client";
 
+import { useColorModeValue } from "@/components/ui/color-mode";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
+import {Field,
   Box,
-  Heading,
-  FormControl,
-  FormLabel,
-  Input,
+  Heading, Input,
   Button,
   Text,
   Center,
   Spinner,
-  useToast,
-  InputGroup,
-  InputRightElement,
-  IconButton,
-  useColorModeValue,
-} from "@chakra-ui/react";
+  InputGroup, IconButton } from "@chakra-ui/react";
+import { toaster } from "@/components/ui/toaster";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
-import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
+import { Eye, EyeOff } from "lucide-react";
 import { z, ZodError } from "zod";
 import { useDispatch } from 'react-redux';
 import { setAccessToken } from '@/store/authSlice';
@@ -43,7 +37,6 @@ export default function LoginServer({ message }: LoginProps) {
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
-  const toast = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ email: "", password: "" });
 
@@ -83,12 +76,11 @@ export default function LoginServer({ message }: LoginProps) {
     } catch (err) {
       if (err instanceof ZodError) {
         err.errors.forEach((error) => {
-          toast({
+          toaster.create({
             title: "Validation Error",
             description: error.message,
-            status: "error",
+            type: "error",
             duration: 9000,
-            isClosable: true,
           });
         });
         return;
@@ -98,26 +90,22 @@ export default function LoginServer({ message }: LoginProps) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      toast({
+      toaster.create({
         title: "Authentication Failed",
         description: error.message,
-        status: "error",
+        type: "error",
         duration: 9000,
-        isClosable: true,
-        position: "top",
       });
       router.push("/auth/login?message=Could not authenticate user");
     } else {
       dispatch(setAccessToken(data.session.access_token));
       setIsAuthenticated(true);
       router.refresh();
-      toast({
+      toaster.create({
         title: "Logged In Successfully",
         description: "You have successfully logged in.",
-        status: "success",
+        type: "success",
         duration: 5000,
-        isClosable: true,
-        position: "top",
       });
       router.push("/");
     }
@@ -150,8 +138,8 @@ export default function LoginServer({ message }: LoginProps) {
           Sign In
         </Heading>
         <form onSubmit={signIn}>
-          <FormControl id="email" mb={4}>
-            <FormLabel>Email</FormLabel>
+          <Field.Root id="email" mb={4}>
+            <Field.Label>Email</Field.Label>
             <Input
               type="email"
               name="email"
@@ -159,10 +147,17 @@ export default function LoginServer({ message }: LoginProps) {
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             />
-          </FormControl>
-          <FormControl id="password" mb={4}>
-            <FormLabel>Password</FormLabel>
-            <InputGroup>
+          </Field.Root>
+          <Field.Root id="password" mb={4}>
+            <Field.Label>Password</Field.Label>
+            <InputGroup endElement={
+              <IconButton
+                onClick={() => setShowPassword(!showPassword)}
+                variant="ghost"
+                aria-label="Toggle Password Visibility">
+                {showPassword ? <EyeOff /> : <Eye />}
+              </IconButton>
+            }>
               <Input
                 type={showPassword ? "text" : "password"}
                 name="password"
@@ -170,17 +165,9 @@ export default function LoginServer({ message }: LoginProps) {
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               />
-              <InputRightElement>
-                <IconButton
-                  icon={showPassword ? <ViewOffIcon /> : <ViewIcon />}
-                  onClick={() => setShowPassword(!showPassword)}
-                  variant="ghost"
-                  aria-label="Toggle Password Visibility"
-                />
-              </InputRightElement>
             </InputGroup>
-          </FormControl>
-          <Button type="submit" colorScheme="teal" width="full" mb={4}>
+          </Field.Root>
+          <Button type="submit" colorPalette="teal" width="full" mb={4}>
             Sign In
           </Button>
           {message && (
@@ -190,12 +177,12 @@ export default function LoginServer({ message }: LoginProps) {
           )}
         </form>
         <Link href="/auth/forgot-password" passHref>
-          <Button variant="link" colorScheme="teal" width="full" mb={2}>
+          <Button variant="plain" colorPalette="teal" width="full" mb={2}>
             Forgotten Password?
           </Button>
         </Link>
         <Link href="/auth/signup" passHref>
-          <Button variant="link" colorScheme="teal" width="full">
+          <Button variant="plain" colorPalette="teal" width="full">
             Don’t have an Account? Sign Up
           </Button>
         </Link>
