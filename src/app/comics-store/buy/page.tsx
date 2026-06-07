@@ -15,6 +15,7 @@ import {
 	Dialog,
 	Badge,
 	Stack,
+	Portal,
 } from "@chakra-ui/react";
 import { toaster } from "@/components/ui/toaster";
 import { motion } from "framer-motion";
@@ -430,22 +431,26 @@ const ComicsBuy: NextPage = () => {
 			)}
 
 			<Dialog.Root open={isOpen} onOpenChange={(e) => { if (!e.open) onClose(); }} role="alertdialog">
-				<Dialog.Backdrop />
-				<Dialog.Content>
-					<Dialog.Header><Dialog.Title fontSize="lg" fontWeight="bold">Delete Comic</Dialog.Title></Dialog.Header>
-					<Dialog.Body>
-						Are you sure you want to delete the comic titled {selectedComic?.title}?
-					</Dialog.Body>
-					<Dialog.Footer>
-						<Button onClick={onClose}>
-							Cancel
-						</Button>
-						<Button colorPalette="red" onClick={handleDelete} ml={3}>
-							Delete
-						</Button>
-					</Dialog.Footer>
-					<Dialog.CloseTrigger />
-				</Dialog.Content>
+				<Portal>
+					<Dialog.Backdrop />
+					<Dialog.Positioner>
+						<Dialog.Content>
+							<Dialog.Header><Dialog.Title fontSize="lg" fontWeight="bold">Delete Comic</Dialog.Title></Dialog.Header>
+							<Dialog.Body>
+								Are you sure you want to delete the comic titled {selectedComic?.title}?
+							</Dialog.Body>
+							<Dialog.Footer>
+								<Button onClick={onClose}>
+									Cancel
+								</Button>
+								<Button colorPalette="red" onClick={handleDelete} ml={3}>
+									Delete
+								</Button>
+							</Dialog.Footer>
+							<Dialog.CloseTrigger />
+						</Dialog.Content>
+					</Dialog.Positioner>
+				</Portal>
 			</Dialog.Root>
 		</Container>
 	);

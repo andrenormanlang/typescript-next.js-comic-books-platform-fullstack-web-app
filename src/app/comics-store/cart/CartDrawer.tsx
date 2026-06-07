@@ -12,6 +12,7 @@ import {
 	Alert,
 	Input,
 	Dialog,
+	Portal,
 } from "@chakra-ui/react";
 import { toaster } from "@/components/ui/toaster";
 import { Trash2 } from "lucide-react";
@@ -375,31 +376,35 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 			</Drawer.Root>
 
 			<Dialog.Root open={isDeleteDialogOpen} onOpenChange={(e) => { if (!e.open) setIsDeleteDialogOpen(false); }} role="alertdialog">
-				<Dialog.Backdrop />
-				<Dialog.Content>
-					<Dialog.Header><Dialog.Title fontSize="lg" fontWeight="bold">Delete Comic</Dialog.Title></Dialog.Header>
-					<Dialog.Body>
-						Are you sure you want to delete this comic from your cart?
-					</Dialog.Body>
-					<Dialog.Footer>
-						<Button onClick={() => setIsDeleteDialogOpen(false)}>
-							Cancel
-						</Button>
-						<Button
-							colorPalette="red"
-							onClick={() => {
-								if (selectedComicId) {
-									handleRemoveFromCart(selectedComicId);
-								}
-								setIsDeleteDialogOpen(false);
-							}}
-							ml={3}
-						>
-							Delete
-						</Button>
-					</Dialog.Footer>
-					<Dialog.CloseTrigger />
-				</Dialog.Content>
+				<Portal>
+					<Dialog.Backdrop />
+					<Dialog.Positioner>
+						<Dialog.Content>
+							<Dialog.Header><Dialog.Title fontSize="lg" fontWeight="bold">Delete Comic</Dialog.Title></Dialog.Header>
+							<Dialog.Body>
+								Are you sure you want to delete this comic from your cart?
+							</Dialog.Body>
+							<Dialog.Footer>
+								<Button onClick={() => setIsDeleteDialogOpen(false)}>
+									Cancel
+								</Button>
+								<Button
+									colorPalette="red"
+									onClick={() => {
+										if (selectedComicId) {
+											handleRemoveFromCart(selectedComicId);
+										}
+										setIsDeleteDialogOpen(false);
+									}}
+									ml={3}
+								>
+									Delete
+								</Button>
+							</Dialog.Footer>
+							<Dialog.CloseTrigger />
+						</Dialog.Content>
+					</Dialog.Positioner>
+				</Portal>
 			</Dialog.Root>
 
 			{isCheckoutOpen && clientSecret && (

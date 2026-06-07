@@ -67,9 +67,7 @@ const ComicVineCharacterDescription: React.FC<ComicVineCharacterDescriptionProps
 	const maxWidth = useBreakpointValue({ base: "300px", md: "600px" });
 
 	const ImageLinkWrapper: React.FC<ImageLinkWrapperProps> = ({ href, children }) => (
-		<a href={href} target="_blank" rel="noopener noreferrer">
-			{children}
-		</a>
+		<>{children}</>
 	);
 
 	const options : HTMLReactParserOptions  = {
@@ -191,7 +189,7 @@ const ComicVineCharacterDescription: React.FC<ComicVineCharacterDescriptionProps
 								return (
 									<a
 										href={href}
-										style={{ ...linkStyle, display: "block", marginBottom: "1rem" }}
+										style={{ fontWeight: "bold", color: "teal", textDecoration: "underline" }}
 										key={index}
 										target="_blank"
 										rel="noopener noreferrer"

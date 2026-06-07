@@ -1,6 +1,6 @@
 "use client";
 
-import {Checkbox, Switch, 
+import {Checkbox, Switch,
 	Table, Heading,
 	Spinner,
 	Center,
@@ -8,7 +8,7 @@ import {Checkbox, Switch,
 	Box,
 	Input,
 	Button,
-	HStack, CheckboxGroup,
+	HStack,
 	Flex,
 } from "@chakra-ui/react";
 import { toaster } from "@/components/ui/toaster";
@@ -178,7 +178,7 @@ const ComicsListTable = () => {
 	}
 	return (
 		<Box maxW="1300px" mx="auto" p={4}>
-			<Accordion.Root >
+			<Accordion.Root collapsible>
 				<Accordion.Item value="comics-list">
 					<Accordion.ItemTrigger>
 						<Heading as="h1" size="xl" mb={6} flex="1" textAlign="left">
@@ -196,65 +196,35 @@ const ComicsListTable = () => {
 							<Table.Root variant="outline">
 								<Table.Header>
 									<Table.Row>
-										<Table.ColumnHeader colSpan={8}>
-											<CheckboxGroup colorPalette="blue" defaultValue={visibleColumns}>
-												<HStack gap={4}>
-													<Checkbox.Root
-														checked={visibleColumns.includes("title")}
-														onChange={() => toggleColumnVisibility("title")}
-													>
-														Title
-													</Checkbox.Root>
-													<Checkbox.Root
-														checked={visibleColumns.includes("release_date")}
-														onChange={() => toggleColumnVisibility("release_date")}
-													>
-														Release Date
-													</Checkbox.Root>
-													<Checkbox.Root
-														checked={visibleColumns.includes("profiles.username")}
-														onChange={() => toggleColumnVisibility("profiles.username")}
-													>
-														User
-													</Checkbox.Root>
-													<Checkbox.Root
-														checked={visibleColumns.includes("profiles.email")}
-														onChange={() => toggleColumnVisibility("profiles.email")}
-													>
-														Email
-													</Checkbox.Root>
-													<Checkbox.Root
-														checked={visibleColumns.includes("created_at")}
-														onChange={() => toggleColumnVisibility("created_at")}
-													>
-														Date / Time Added
-													</Checkbox.Root>
-													<Checkbox.Root
-														checked={visibleColumns.includes("updated_at")}
-														onChange={() => toggleColumnVisibility("updated_at")}
-													>
-														Date / Time Updated
-													</Checkbox.Root>
-													<Checkbox.Root
-														checked={visibleColumns.includes("stock")}
-														onChange={() => toggleColumnVisibility("stock")}
-													>
-														Stock
-													</Checkbox.Root>
-													<Checkbox.Root
-														checked={visibleColumns.includes("price")}
-														onChange={() => toggleColumnVisibility("price")}
-													>
-														Price
-													</Checkbox.Root>
-													<Checkbox.Root
-														checked={visibleColumns.includes("is_approved")}
-														onChange={() => toggleColumnVisibility("is_approved")}
-													>
-														Approve
-													</Checkbox.Root>
-												</HStack>
-											</CheckboxGroup>
+										<Table.ColumnHeader colSpan={9}>
+											<HStack gap={4} flexWrap="wrap">
+												{(["title", "release_date", "profiles.username", "profiles.email", "created_at", "updated_at", "stock", "price", "is_approved"] as const).map((col) => {
+													const label: Record<string, string> = {
+														title: "Title",
+														release_date: "Release Date",
+														"profiles.username": "User",
+														"profiles.email": "Email",
+														created_at: "Date / Time Added",
+														updated_at: "Date / Time Updated",
+														stock: "Stock",
+														price: "Price",
+														is_approved: "Approve",
+													};
+													return (
+														<Checkbox.Root
+															key={col}
+															checked={visibleColumns.includes(col)}
+															onCheckedChange={() => toggleColumnVisibility(col)}
+														>
+															<Checkbox.HiddenInput />
+															<Checkbox.Control>
+																<Checkbox.Indicator />
+															</Checkbox.Control>
+															<Checkbox.Label>{label[col]}</Checkbox.Label>
+														</Checkbox.Root>
+													);
+												})}
+											</HStack>
 										</Table.ColumnHeader>
 									</Table.Row>
 									<Table.Row>
@@ -392,8 +362,13 @@ const ComicsListTable = () => {
 												<Table.Cell textAlign="center">
 													<Switch.Root
 														checked={comic.is_approved}
-														onChange={() => toggleApproval(comic)}
-													/>
+														onCheckedChange={() => toggleApproval(comic)}
+													>
+														<Switch.HiddenInput />
+														<Switch.Control>
+															<Switch.Thumb />
+														</Switch.Control>
+													</Switch.Root>
 												</Table.Cell>
 											)}
 										</Table.Row>

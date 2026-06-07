@@ -45,7 +45,7 @@ const AccessTokenDisplay = () => {
       mt={8}
       textAlign="center"
     >
-      <Accordion.Root >
+      <Accordion.Root collapsible>
         <Accordion.Item value="access-token">
           <Heading as="h2" size="lg" mb={4} color={color}>
             <Accordion.ItemTrigger>

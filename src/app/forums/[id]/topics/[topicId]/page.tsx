@@ -4,7 +4,7 @@ import { useColorModeValue } from "@/components/ui/color-mode";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, use } from "react";
 import { supabase } from "@/utils/supabaseClient";
-import {Avatar, Dialog, 
+import {Avatar, Dialog,
   Box,
   Spinner,
   Heading,
@@ -15,6 +15,7 @@ import {Avatar, Dialog,
   Image,
   Flex,
   Badge, useDisclosure,
+  Portal,
 } from "@chakra-ui/react";
 import { toaster } from "@/components/ui/toaster";
 import { Params, Post } from "@/types/forum/forum.type";
@@ -239,20 +240,24 @@ const PostPage = (props: { params: Promise<Params['params']> }) => {
       </VStack>
 
       <Dialog.Root open={isOpen} onOpenChange={(e) => !e.open && (onClose)()}>
-        <Dialog.Backdrop />
-        <Dialog.Content>
-          <Dialog.Header><Dialog.Title>Delete Post</Dialog.Title></Dialog.Header>
-          <Dialog.CloseTrigger />
-          <Dialog.Body>
-            <Text>Are you sure you want to delete this post?</Text>
-          </Dialog.Body>
-          <Dialog.Footer>
-            <Button colorPalette="red" mr={3} onClick={handleDeletePost}>
-              Yes, Delete
-            </Button>
-            <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          </Dialog.Footer>
-        </Dialog.Content>
+        <Portal>
+          <Dialog.Backdrop />
+          <Dialog.Positioner>
+            <Dialog.Content>
+              <Dialog.Header><Dialog.Title>Delete Post</Dialog.Title></Dialog.Header>
+              <Dialog.CloseTrigger />
+              <Dialog.Body>
+                <Text>Are you sure you want to delete this post?</Text>
+              </Dialog.Body>
+              <Dialog.Footer>
+                <Button colorPalette="red" mr={3} onClick={handleDeletePost}>
+                  Yes, Delete
+                </Button>
+                <Button variant="ghost" onClick={onClose}>Cancel</Button>
+              </Dialog.Footer>
+            </Dialog.Content>
+          </Dialog.Positioner>
+        </Portal>
       </Dialog.Root>
     </Container>
   );

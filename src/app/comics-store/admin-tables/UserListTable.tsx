@@ -85,7 +85,7 @@ const UserListTable = () => {
 
 	return (
 		<Box maxW="1300px" mx="auto" p={4}>
-			<Accordion.Root >
+			<Accordion.Root collapsible>
 				<Accordion.Item value="users-list">
 					<Accordion.ItemTrigger>
 						<Heading as="h1" size="xl" mb={6} flex="1" textAlign="left">

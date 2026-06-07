@@ -4,7 +4,7 @@ import { useColorModeValue } from "@/components/ui/color-mode";
 import { useRouter, useParams } from "next/navigation"; // Import useParams
 import { useEffect, useState } from "react"; // Removed 'use'
 import { supabase } from "@/utils/supabaseClient";
-import {Avatar, Dialog, 
+import {Avatar, Dialog,
   Box,
   Spinner,
   Heading,
@@ -14,6 +14,7 @@ import {Avatar, Dialog,
   Container, Table, HStack,
   Tooltip,
   Flex, useDisclosure,
+  Portal,
 } from "@chakra-ui/react";
 import { toaster } from "@/components/ui/toaster";
 import { Forum, Topic } from "@/types/forum/forum.type"; // Removed Params import
@@ -258,20 +259,24 @@ const ForumPage = () => { // Removed props parameter
       </Box>
 
       <Dialog.Root open={isOpen} onOpenChange={(e) => !e.open && (onClose)()}>
-        <Dialog.Backdrop />
-        <Dialog.Content>
-          <Dialog.Header><Dialog.Title>Delete Topic</Dialog.Title></Dialog.Header>
-          <Dialog.CloseTrigger />
-          <Dialog.Body>
-            <Text>Are you sure you want to delete this topic?</Text>
-          </Dialog.Body>
-          <Dialog.Footer>
-            <Button colorPalette="red" mr={3} onClick={handleDelete}>
-              Yes, Delete
-            </Button>
-            <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          </Dialog.Footer>
-        </Dialog.Content>
+        <Portal>
+          <Dialog.Backdrop />
+          <Dialog.Positioner>
+            <Dialog.Content>
+              <Dialog.Header><Dialog.Title>Delete Topic</Dialog.Title></Dialog.Header>
+              <Dialog.CloseTrigger />
+              <Dialog.Body>
+                <Text>Are you sure you want to delete this topic?</Text>
+              </Dialog.Body>
+              <Dialog.Footer>
+                <Button colorPalette="red" mr={3} onClick={handleDelete}>
+                  Yes, Delete
+                </Button>
+                <Button variant="ghost" onClick={onClose}>Cancel</Button>
+              </Dialog.Footer>
+            </Dialog.Content>
+          </Dialog.Positioner>
+        </Portal>
       </Dialog.Root>
     </Container>
   );

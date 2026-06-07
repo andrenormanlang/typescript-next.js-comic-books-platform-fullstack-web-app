@@ -280,7 +280,7 @@ const ComicVineCharacter: NextPage = () => {
 				</VStack>
 			</Container>
 			<Container {...contentContainerStyle}>
-				<Accordion.Root >
+				<Accordion.Root collapsible>
 					<Accordion.Item value="full-description">
 						<Accordion.ItemTrigger>
 							<Box as="span" color="red" flex="1" textAlign="left">
@@ -297,7 +297,7 @@ const ComicVineCharacter: NextPage = () => {
 				</Accordion.Root>
 			</Container>
 			<Container {...contentContainerStyle}>
-				<Accordion.Root >
+				<Accordion.Root collapsible>
 					<Accordion.Item value="publisher-characters">
 						<Accordion.ItemTrigger>
 							<Box as="span" color="red" flex="1" textAlign="left">
