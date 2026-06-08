@@ -108,7 +108,7 @@ function ArticleCard({ article, onClick }: ArticleCardProps) {
 
 export default function ComicsNewsClient() {
   const { data: articles, isLoading, isError } = useGetTrendingNews();
-  const [selected, setSelected] = useState<{ url: string; rssUrl: string } | null>(null);
+  const [selected, setSelected] = useState<DispatchArticle | null>(null);
 
   if (isLoading) {
     return (
@@ -132,19 +132,18 @@ export default function ComicsNewsClient() {
         Comics News
       </Heading>
 
-      <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
+      <SimpleGrid columns={1} spacing={4} maxW="2xl" mx="auto">
         {articles.map((article) => (
           <ArticleCard
             key={article.id}
             article={article}
-            onClick={(a) => setSelected({ url: a.id, rssUrl: a.rssUrl })}
+            onClick={(a) => setSelected(a)}
           />
         ))}
       </SimpleGrid>
 
       <ArticleModal
-        articleUrl={selected?.url ?? null}
-        rssUrl={selected?.rssUrl ?? null}
+        article={selected}
         onClose={() => setSelected(null)}
       />
     </Box>

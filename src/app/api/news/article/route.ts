@@ -9,15 +9,14 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   const url = searchParams.get("url");
-  const sortKey = searchParams.get("sortKey");
 
-  if (!url || !sortKey) {
-    return NextResponse.json({ error: "url and sortKey are required" }, { status: 400 });
+  if (!url) {
+    return NextResponse.json({ error: "url is required" }, { status: 400 });
   }
 
   try {
     const res = await fetch(
-      `${DISPATCH_API}/smart/article/${encodeURIComponent(url)}?sortKey=${encodeURIComponent(sortKey)}`,
+      `${DISPATCH_API}/smart/article/${encodeURIComponent(url)}?sortKey=articles`,
       { next: { revalidate: 300 } }
     );
     if (!res.ok) {
