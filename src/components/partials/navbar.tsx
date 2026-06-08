@@ -438,6 +438,20 @@ const Navbar = () => {
 		},
 	};
 
+	const newsButtonStyle = {
+		...buttonStyle,
+		bg: "orange.500",
+		color: "white",
+		_hover: {
+			bg: "orange.600",
+			transform: "scale(1.05)",
+			transition: "all 0.2s",
+		},
+		_active: {
+			bg: "orange.700",
+		},
+	};
+
 
 	const avatarMenuListStyle = {
 		bg: menuBg,
@@ -763,6 +777,14 @@ const Navbar = () => {
 							>
 								<Button asChild {...newReleaseButtonStyle}>
 									<Link href="/releases">NEW RELEASES!</Link>
+								</Button>
+							</motion.div>
+							<motion.div
+								variants={itemVariants}
+								style={{ width: "100%", display: "flex", justifyContent: "center" }}
+							>
+								<Button asChild {...newsButtonStyle}>
+									<Link href="/news">COMICS NEWS!</Link>
 								</Button>
 							</motion.div>
 							{user && (
