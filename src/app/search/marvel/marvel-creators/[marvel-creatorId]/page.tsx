@@ -168,8 +168,8 @@ const MarvelCreator: NextPage = () => {
 							<Heading fontFamily="Bangers" letterSpacing="0.05em" color="tomato" size="lg">
 								{result?.fullName || "No Title"}
 							</Heading>
-							<Text p={4} bg={bgColor} borderRadius="md" borderWidth="1px" borderColor={borderColor}>
-								{solicitationText}
+							<Box p={4} bg={bgColor} borderRadius="md" borderWidth="1px" borderColor={borderColor}>
+								<Text>{solicitationText}</Text>
 								<Flex wrap="wrap" mt={2}>
 									{result?.urls?.map((urlItem: UrlItem) => (
 										<Tag.Root
@@ -184,13 +184,7 @@ const MarvelCreator: NextPage = () => {
 										</Tag.Root>
 									))}
 								</Flex>
-
-								<Flex
-									direction="column" // Set direction to column to stack children vertically
-									align="stretch" // Stretch children to take full width
-									w="full"
-								></Flex>
-							</Text>
+							</Box>
 						</VStack>
 					</Flex>
 					<Flex
@@ -223,7 +217,6 @@ const MarvelCreator: NextPage = () => {
 												key={charactersItem.name}
 											>
 												<FlexContainer
-													as="a"
 													p={2}
 													boxShadow="md"
 													borderRadius="md"
@@ -253,7 +246,6 @@ const MarvelCreator: NextPage = () => {
 												key={comicItem.name}
 											>
 												<FlexContainer
-													as="a"
 													p={2}
 													boxShadow="md"
 													borderRadius="md"
@@ -283,7 +275,6 @@ const MarvelCreator: NextPage = () => {
 												key={seriesItem.name}
 											>
 												<FlexContainer
-													as="a"
 													p={2}
 													boxShadow="md"
 													borderRadius="md"
@@ -313,7 +304,6 @@ const MarvelCreator: NextPage = () => {
 												key={eventItem.name}
 											>
 												<FlexContainer
-													as="a"
 													p={2}
 													boxShadow="md"
 													borderRadius="md"
@@ -343,7 +333,6 @@ const MarvelCreator: NextPage = () => {
 												key={storyItem.name}
 											>
 												<FlexContainer
-													as="a"
 													p={2}
 													boxShadow="md"
 													borderRadius="md"

@@ -156,14 +156,13 @@ const MarvelSeries: NextPage = () => {
 						<Heading fontFamily="Bangers" letterSpacing="0.05em" color="tomato" size="lg">
 							{result?.title || "Unknown Event"}
 						</Heading>
-						<Text
+						<Box
 							p={4}
 							bg={bgColor}
 							borderRadius="md"
-							// borderWidth="1px"
 							borderColor={borderColor}
 						>
-							{solicitationText}
+							<Text>{solicitationText}</Text>
 							<Flex wrap="wrap" mt={2}>
 								{result?.urls?.map((urlItem: UrlItem) => (
 									<Tag.Root
@@ -179,7 +178,7 @@ const MarvelSeries: NextPage = () => {
 									</Tag.Root>
 								))}
 							</Flex>
-						</Text>
+						</Box>
 					</VStack>
 				</Flex>
 				<Flex
@@ -210,7 +209,6 @@ const MarvelSeries: NextPage = () => {
 											key={creator.name}
 										>
 											<FlexContainer
-												as="a"
 												p={2}
 												boxShadow="md"
 												borderRadius="md"
@@ -241,7 +239,6 @@ const MarvelSeries: NextPage = () => {
 											key={charactersItem.name}
 										>
 											<FlexContainer
-												as="a"
 												p={2}
 												boxShadow="md"
 												borderRadius="md"
@@ -271,7 +268,6 @@ const MarvelSeries: NextPage = () => {
 											key={comicItem.name}
 										>
 											<FlexContainer
-												as="a"
 												p={2}
 												boxShadow="md"
 												borderRadius="md"
@@ -301,7 +297,6 @@ const MarvelSeries: NextPage = () => {
 											key={seriesItem.name}
 										>
 											<FlexContainer
-												as="a"
 												p={2}
 												boxShadow="md"
 												borderRadius="md"
@@ -331,7 +326,6 @@ const MarvelSeries: NextPage = () => {
 											key={eventItem.name}
 										>
 											<FlexContainer
-												as="a"
 												p={2}
 												boxShadow="md"
 												borderRadius="md"
@@ -361,7 +355,6 @@ const MarvelSeries: NextPage = () => {
 											key={storyItem.name}
 										>
 											<FlexContainer
-												as="a"
 												p={2}
 												boxShadow="md"
 												borderRadius="md"

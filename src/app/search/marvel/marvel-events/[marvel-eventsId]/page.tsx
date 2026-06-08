@@ -253,7 +253,7 @@ const MarvelEvent: NextPage = () => {
                                             passHref
                                             key={creator.name}
                                         >
-                                             <FlexContainer as="a" p={2} boxShadow="md" borderRadius="md" _hover={linkHoverStyle}>
+                                             <FlexContainer p={2} boxShadow="md" borderRadius="md" _hover={linkHoverStyle}>
                                                 <Text textAlign="start">{`${creator.name} - ${creator.role}`}</Text>
                                             </FlexContainer>
                                         </NextLink>
@@ -288,7 +288,7 @@ const MarvelEvent: NextPage = () => {
                                         passHref
                                         key={charactersItem.name}
                                     >
-                                        <FlexContainer as="a" p={2} boxShadow="md" borderRadius="md" _hover={linkHoverStyle}>
+                                        <FlexContainer p={2} boxShadow="md" borderRadius="md" _hover={linkHoverStyle}>
                                             <Text textAlign="start">
                                                 {charactersItem.name}
                                             </Text>
@@ -327,7 +327,7 @@ const MarvelEvent: NextPage = () => {
                                             passHref
                                             key={comicItem.name}
                                         >
-                                            <FlexContainer as="a" p={2} boxShadow="md" borderRadius="md" _hover={linkHoverStyle}>
+                                            <FlexContainer p={2} boxShadow="md" borderRadius="md" _hover={linkHoverStyle}>
                                                 <Text textAlign="start">
                                                     {comicItem.name}
                                                 </Text>
@@ -366,7 +366,7 @@ const MarvelEvent: NextPage = () => {
                                             passHref
                                             key={seriesItem.name}
                                         >
-                                            <FlexContainer as="a" p={2} boxShadow="md" borderRadius="md" _hover={linkHoverStyle}>
+                                            <FlexContainer p={2} boxShadow="md" borderRadius="md" _hover={linkHoverStyle}>
                                                 <Text textAlign="start">
                                                     {seriesItem.name}
                                                 </Text>
@@ -404,7 +404,7 @@ const MarvelEvent: NextPage = () => {
                                             passHref
                                             key={storyItem.name}
                                         >
-                                            <FlexContainer as="a" p={2} boxShadow="md" borderRadius="md" _hover={linkHoverStyle}>
+                                            <FlexContainer p={2} boxShadow="md" borderRadius="md" _hover={linkHoverStyle}>
                                                 <Text textAlign="start">
                                                     {storyItem.name}
                                                 </Text>

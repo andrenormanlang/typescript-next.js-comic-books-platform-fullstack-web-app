@@ -15,7 +15,7 @@ import {
 	Icon,
 } from "@chakra-ui/react";
 import { toaster } from "@/components/ui/toaster";
-import { Menu as HamburgerIcon, X as CloseIcon, Moon as MoonIcon, Sun as SunIcon, ChevronDown as ChevronDownIcon, Plus as AddIcon } from "lucide-react";
+import { Menu as HamburgerIcon, X as CloseIcon, Moon as MoonIcon, Sun as SunIcon, ChevronDown as ChevronDownIcon, ChevronRight as ChevronRightIcon, Plus as AddIcon } from "lucide-react";
 import { VscAccount, VscSignOut } from "react-icons/vsc";
 import ShoppingCartButton from "@/helpers/ShoppingCartButton";
 import { motion, AnimatePresence } from "framer-motion";
@@ -37,49 +37,167 @@ interface MobileMenuItemProps {
 	btnStyle: Record<string, any>;
 	marvelBtnStyle: Record<string, any>;
 	onNavigate: () => void;
+	depth?: number;
 }
 
-const MobileMenuItem: React.FC<MobileMenuItemProps> = ({ item, index, btnStyle, marvelBtnStyle, onNavigate }) => {
+const MobileMenuItem: React.FC<MobileMenuItemProps> = ({ item, index, btnStyle, marvelBtnStyle, onNavigate, depth = 0 }) => {
 	const [isOpen, setIsOpen] = useState(false);
-	const style = item.name === "MARVEL" ? marvelBtnStyle : btnStyle;
 
-	if (!item.submenu) {
+	// ── Depth 0: top-level big button ──────────────────────────────────────
+	if (depth === 0) {
+		if (!item.submenu) {
+			return (
+				<Button asChild {...(item.name === "MARVEL" ? marvelBtnStyle : btnStyle)}>
+					<Link href={(item as SubmenuType).href ?? "#"} onClick={onNavigate}>
+						{item.name}
+					</Link>
+				</Button>
+			);
+		}
 		return (
-			<Button asChild {...btnStyle}>
-				<Link href={(item as SubmenuType).href ?? "#"} onClick={onNavigate}>
+			<Box width="100%" maxWidth="220px" display="flex" flexDirection="column" alignItems="center">
+				<Button
+					{...(item.name === "MARVEL" ? marvelBtnStyle : btnStyle)}
+					width="100%"
+					onClick={() => setIsOpen((o) => !o)}
+				>
 					{item.name}
-				</Link>
-			</Button>
+					<ChevronDownIcon
+						size={16}
+						style={{
+							marginLeft: "0.4rem",
+							transform: isOpen ? "rotate(180deg)" : "none",
+							transition: "transform 0.2s",
+						}}
+					/>
+				</Button>
+				<AnimatePresence>
+					{isOpen && (
+						<motion.div
+							initial={{ opacity: 0, height: 0 }}
+							animate={{ opacity: 1, height: "auto" }}
+							exit={{ opacity: 0, height: 0 }}
+							transition={{ duration: 0.2, ease: "easeInOut" }}
+							style={{ overflow: "hidden", width: "100%" }}
+						>
+							<Box
+								mt={2}
+								bg="whiteAlpha.100"
+								borderRadius="xl"
+								border="1px solid"
+								borderColor="whiteAlpha.200"
+								p={1.5}
+							>
+								{item.submenu.map((subItem, subIndex) => (
+									<MobileMenuItem
+										key={`${index}-${subIndex}`}
+										item={subItem}
+										index={`${index}-${subIndex}`}
+										btnStyle={btnStyle}
+										marvelBtnStyle={marvelBtnStyle}
+										onNavigate={onNavigate}
+										depth={1}
+									/>
+								))}
+							</Box>
+						</motion.div>
+					)}
+				</AnimatePresence>
+			</Box>
 		);
 	}
 
-	return (
-		<Box width="100%" display="flex" flexDirection="column" alignItems="center" gap={2}>
-			<Button {...style} onClick={() => setIsOpen((o) => !o)}>
+	// ── Depth 1+: items rendered inside a panel ─────────────────────────────
+	const isMarvelItem = item.name === "MARVEL";
+
+	if (!item.submenu) {
+		// Leaf node — centered link row with matching Bangers font
+		return (
+			<Link
+				href={(item as SubmenuType).href ?? "#"}
+				onClick={onNavigate}
+				display="flex"
+				alignItems="center"
+				justifyContent="center"
+				px={3}
+				py={1.5}
+				borderRadius="md"
+				color={depth === 1 ? "white" : "whiteAlpha.800"}
+				fontFamily="Bangers"
+				fontSize={depth === 1 ? "1.05rem" : "0.9rem"}
+				letterSpacing={depth === 1 ? "0.15rem" : "0.1rem"}
+				textDecoration="none"
+				transition="all 0.15s"
+				_hover={{ bg: "whiteAlpha.150", color: "white", textDecoration: "none" }}
+			>
 				{item.name}
+			</Link>
+		);
+	}
+
+	// Category header — centered, expandable section with Bangers font
+	return (
+		<Box>
+			<Box
+				display="flex"
+				alignItems="center"
+				justifyContent="center"
+				gap={1.5}
+				px={3}
+				py={2}
+				borderRadius="md"
+				cursor="pointer"
+				bg={isOpen ? "whiteAlpha.150" : "transparent"}
+				transition="all 0.15s"
+				onClick={() => setIsOpen((o) => !o)}
+				_hover={{ bg: "whiteAlpha.150" }}
+			>
+				<Box
+					fontFamily="Bangers"
+					fontSize={depth === 1 ? "1.05rem" : "0.9rem"}
+					color={isMarvelItem ? "red.400" : "white"}
+					letterSpacing={isMarvelItem ? "-0.05rem" : "0.15rem"}
+				>
+					{item.name}
+				</Box>
 				<ChevronDownIcon
-					size={16}
+					size={13}
 					style={{
-						marginLeft: "0.4rem",
+						color: isMarvelItem ? "rgba(255,100,100,0.8)" : "rgba(255,255,255,0.6)",
 						transform: isOpen ? "rotate(180deg)" : "none",
 						transition: "transform 0.2s",
 					}}
 				/>
-			</Button>
-			{isOpen && (
-				<Box width="90%" display="flex" flexDirection="column" alignItems="center" gap={2}>
-					{item.submenu.map((subItem, subIndex) => (
-						<MobileMenuItem
-							key={`${index}-${subIndex}`}
-							item={subItem}
-							index={`${index}-${subIndex}`}
-							btnStyle={btnStyle}
-							marvelBtnStyle={marvelBtnStyle}
-							onNavigate={onNavigate}
-						/>
-					))}
-				</Box>
-			)}
+			</Box>
+			<AnimatePresence>
+				{isOpen && (
+					<motion.div
+						initial={{ opacity: 0, height: 0 }}
+						animate={{ opacity: 1, height: "auto" }}
+						exit={{ opacity: 0, height: 0 }}
+						transition={{ duration: 0.15, ease: "easeInOut" }}
+						style={{ overflow: "hidden" }}
+					>
+						<Box
+							display="flex"
+							flexDirection="column"
+							py={1}
+						>
+							{item.submenu.map((subItem, subIndex) => (
+								<MobileMenuItem
+									key={`${index}-${subIndex}`}
+									item={subItem}
+									index={`${index}-${subIndex}`}
+									btnStyle={btnStyle}
+									marvelBtnStyle={marvelBtnStyle}
+									onNavigate={onNavigate}
+									depth={depth + 1}
+								/>
+							))}
+						</Box>
+					</motion.div>
+				)}
+			</AnimatePresence>
 		</Box>
 	);
 };
