@@ -1,21 +1,17 @@
 "use client";
 
 import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalCloseButton,
-  ModalBody,
+  Dialog,
+  Portal,
   Box,
   Text,
-  Heading,
   Badge,
   Link,
   Image,
   Spinner,
   Center,
   Flex,
+  CloseButton,
 } from "@chakra-ui/react";
 import { useGetArticle } from "@/hooks/news/useGetArticle";
 
@@ -59,87 +55,109 @@ export default function ArticleModal({ articleUrl, rssUrl, onClose }: ArticleMod
     : article?.pubDate;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="2xl" scrollBehavior="inside">
-      <ModalOverlay bg="blackAlpha.800" backdropFilter="blur(4px)" />
-      <ModalContent bg="gray.900" color="white" mx={4} borderRadius="xl">
-        <ModalHeader
-          fontFamily="'Bangers', cursive"
-          fontSize="2xl"
-          letterSpacing="wide"
-          pr={10}
-          lineHeight="1.3"
-        >
-          {article?.title ?? (isLoading ? "Loading…" : "Article")}
-        </ModalHeader>
-        <ModalCloseButton />
-        <ModalBody pb={8}>
-          {isLoading && (
-            <Center py={12}>
-              <Spinner size="xl" color="blue.400" />
-            </Center>
-          )}
-          {article && (
-            <Box>
-              {imageUrl && (
-                <Image
-                  src={imageUrl}
-                  alt={article.title}
-                  w="100%"
-                  borderRadius="lg"
-                  mb={4}
-                  objectFit="cover"
-                  maxH="320px"
-                />
-              )}
-
-              <Flex gap={3} align="center" mb={4} flexWrap="wrap">
-                <Badge colorScheme="blue" fontSize="sm">
-                  {sourceLabel(article.rssUrl)}
-                </Badge>
-                {pubDate && (
-                  <Text fontSize="sm" color="gray.400">
-                    {pubDate}
-                  </Text>
-                )}
-              </Flex>
-
-              {plainDescription && (
-                <Text
-                  fontWeight="semibold"
-                  fontSize="md"
-                  mb={5}
-                  color="gray.200"
-                  lineHeight="1.7"
-                >
-                  {plainDescription}
-                </Text>
-              )}
-
-              {article.rwBody ? (
-                <Text color="gray.300" lineHeight="1.9" fontSize="sm" whiteSpace="pre-wrap">
-                  {article.rwBody}
-                </Text>
-              ) : (
-                <Text color="gray.500" fontStyle="italic" fontSize="sm">
-                  Full article rewrite not yet available.
-                </Text>
-              )}
-
-              <Link
-                href={article.id}
-                isExternal
-                mt={6}
-                display="inline-block"
-                color="blue.400"
-                fontSize="sm"
-                _hover={{ color: "blue.300", textDecoration: "underline" }}
+    <Dialog.Root
+      open={isOpen}
+      onOpenChange={(e) => { if (!e.open) onClose(); }}
+      size="lg"
+      scrollBehavior="inside"
+    >
+      <Portal>
+        <Dialog.Backdrop />
+        <Dialog.Positioner>
+          <Dialog.Content bg="gray.900" color="white">
+            <Dialog.Header>
+              <Dialog.Title
+                fontFamily="'Bangers', cursive"
+                fontSize="2xl"
+                letterSpacing="wide"
+                lineHeight="1.3"
+                pr={8}
               >
-                Read original article →
-              </Link>
-            </Box>
-          )}
-        </ModalBody>
-      </ModalContent>
-    </Modal>
+                {article?.title ?? (isLoading ? "Loading…" : "Article")}
+              </Dialog.Title>
+            </Dialog.Header>
+
+            <Dialog.CloseTrigger asChild>
+              <CloseButton position="absolute" top={3} right={3} />
+            </Dialog.CloseTrigger>
+
+            <Dialog.Body pb={8}>
+              {isLoading && (
+                <Center py={12}>
+                  <Spinner size="xl" color="blue.400" />
+                </Center>
+              )}
+
+              {article && (
+                <Box>
+                  {imageUrl && (
+                    <Image
+                      src={imageUrl}
+                      alt={article.title}
+                      w="100%"
+                      borderRadius="lg"
+                      mb={4}
+                      objectFit="cover"
+                      maxH="320px"
+                    />
+                  )}
+
+                  <Flex gap={3} align="center" mb={4} flexWrap="wrap">
+                    <Badge colorScheme="blue" fontSize="sm">
+                      {sourceLabel(article.rssUrl)}
+                    </Badge>
+                    {pubDate && (
+                      <Text fontSize="sm" color="gray.400">
+                        {pubDate}
+                      </Text>
+                    )}
+                  </Flex>
+
+                  {plainDescription && (
+                    <Text
+                      fontWeight="semibold"
+                      fontSize="md"
+                      mb={5}
+                      color="gray.200"
+                      lineHeight="1.7"
+                    >
+                      {plainDescription}
+                    </Text>
+                  )}
+
+                  {article.rwBody ? (
+                    <Text
+                      color="gray.300"
+                      lineHeight="1.9"
+                      fontSize="sm"
+                      whiteSpace="pre-wrap"
+                    >
+                      {article.rwBody}
+                    </Text>
+                  ) : (
+                    <Text color="gray.500" fontStyle="italic" fontSize="sm">
+                      Full article rewrite not yet available.
+                    </Text>
+                  )}
+
+                  <Link
+                    href={article.id}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    mt={6}
+                    display="inline-block"
+                    color="blue.400"
+                    fontSize="sm"
+                    _hover={{ color: "blue.300", textDecoration: "underline" }}
+                  >
+                    Read original article →
+                  </Link>
+                </Box>
+              )}
+            </Dialog.Body>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Portal>
+    </Dialog.Root>
   );
 }
