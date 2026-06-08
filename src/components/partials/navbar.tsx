@@ -405,6 +405,10 @@ const Navbar = () => {
 					submenu: [{ name: "Get Some!", href: "/search/comicbooks-api" }],
 				},
 				{
+					name: "Metron Cloud",
+					submenu: [{ name: "Issues", href: "/search/metron/metron-issues" }],
+				},
+				{
 					name: "MARVEL",
 					submenu: [
 						{ name: "Comics", href: "/search/marvel/marvel-comics" },
@@ -415,10 +419,7 @@ const Navbar = () => {
 						// { name: "Stories", href: "/search/marvel/marvel-stories" },
 					],
 				},
-				{
-					name: "Metron Cloud",
-					submenu: [{ name: "Issues", href: "/search/metron/metron-issues" }],
-				},
+
 			],
 		},
 	];
@@ -480,7 +481,7 @@ const Navbar = () => {
 						<Box position="relative" mr={3}>
 							<IconButton
 								aria-label="Cart"
-								
+
 								onClick={onDrawerOpen}
 								size={{ base: "sm", md: "md" }}
 								variant="outline"

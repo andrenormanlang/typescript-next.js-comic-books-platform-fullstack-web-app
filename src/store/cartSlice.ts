@@ -1,6 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { createClient } from '@/utils/supabase/client';
-import { RootState } from './store';
 import { CartItem } from '@/types/comics-store/comic-detail.type';
 
 const supabase = createClient();
@@ -54,7 +53,7 @@ interface RemoveFromCartPayload {
   comicId: string;
 }
 
-export const addToCart = createAsyncThunk<AddToCartResponse, AddToCartPayload, { state: RootState }>(
+export const addToCart = createAsyncThunk<AddToCartResponse, AddToCartPayload, { state: { cart: CartState } }>(
   'cart/addToCart',
   async ({ userId, comicId, quantity, title, image, price, currency, stock }, { rejectWithValue }) => {
     try {
