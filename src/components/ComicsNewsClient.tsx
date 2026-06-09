@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useGetTrendingNews, DispatchArticle } from "@/hooks/news/useGetTrendingNews";
 import {
   Spinner,
@@ -89,7 +89,7 @@ function ArticleCard({ article, onClick }: ArticleCardProps) {
       flexDirection="column"
     >
       {/* Image */}
-      <Box h="200px" bg="gray.700" overflow="hidden" flexShrink={0}>
+      {/* <Box h="200px" bg="gray.700" overflow="hidden" flexShrink={0}>
         {imageUrl ? (
           <Image
             src={imageUrl}
@@ -105,7 +105,7 @@ function ArticleCard({ article, onClick }: ArticleCardProps) {
             <Text fontSize="4xl">📰</Text>
           </Center>
         )}
-      </Box>
+      </Box> */}
 
       {/* Content */}
       <Box p={5} flex="1" display="flex" flexDirection="column" gap={3}>
@@ -123,8 +123,8 @@ function ArticleCard({ article, onClick }: ArticleCardProps) {
         <Heading
           as="h3"
           size="md"
-          fontFamily="'Bangers', cursive"
-          letterSpacing="wide"
+          fontFamily="var(--font-archivo-black), sans-serif"
+          letterSpacing="normal"
           lineHeight="1.3"
           color="white"
           _groupHover={{ color: "orange.300" }}
@@ -148,10 +148,14 @@ function ArticleCard({ article, onClick }: ArticleCardProps) {
   );
 }
 
+const PAGE_SIZE = 12;
+
 export default function ComicsNewsClient() {
   const { data: articles, isLoading, isError } = useGetTrendingNews();
   const [selected, setSelected] = useState<DispatchArticle | null>(null);
   const [search, setSearch] = useState("");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const filtered = useMemo(() => {
     if (!articles) return [];
@@ -164,6 +168,30 @@ export default function ComicsNewsClient() {
       return title.includes(q) || desc.includes(q) || source.includes(q);
     });
   }, [articles, search]);
+
+  // Reset to first page whenever the search changes
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [search]);
+
+  // Reveal more cards when the sentinel scrolls into view
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((c) => Math.min(c + PAGE_SIZE, filtered.length));
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [filtered.length]);
+
+  const visible = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
 
   if (isLoading) {
     return (
@@ -185,7 +213,7 @@ export default function ComicsNewsClient() {
     <Box px={{ base: 4, md: 8 }} py={8} maxW="7xl" mx="auto">
       {/* Header */}
       <Box mb={8} textAlign="center">
-        <Heading
+        {/* <Heading
           fontFamily="'Bangers', cursive"
           fontSize={{ base: "4xl", md: "6xl" }}
           letterSpacing="wider"
@@ -193,7 +221,7 @@ export default function ComicsNewsClient() {
           mb={1}
         >
           Comics News
-        </Heading>
+        </Heading> */}
         <Text color="gray.400" fontSize="sm" mb={6}>
           {articles?.length ?? 0} articles from {new Set(articles?.map((a) => sourceLabel(a.rssUrl))).size ?? 0} sources
         </Text>
@@ -243,15 +271,25 @@ export default function ComicsNewsClient() {
           </Text>
         </Center>
       ) : (
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={6}>
-          {filtered.map((article) => (
-            <ArticleCard
-              key={article.id}
-              article={article}
-              onClick={setSelected}
-            />
-          ))}
-        </SimpleGrid>
+        <>
+          <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={6}>
+            {visible.map((article) => (
+              <ArticleCard
+                key={article.id}
+                article={article}
+                onClick={setSelected}
+              />
+            ))}
+          </SimpleGrid>
+
+          {/* Infinite scroll sentinel */}
+          <Box ref={sentinelRef} h="1px" mt={8} />
+          {hasMore && (
+            <Center py={4}>
+              <Spinner size="sm" color="orange.400" />
+            </Center>
+          )}
+        </>
       )}
 
       <ArticleModal article={selected} onClose={() => setSelected(null)} />

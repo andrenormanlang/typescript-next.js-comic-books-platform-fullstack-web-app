@@ -67,9 +67,9 @@ export default function ArticleModal({ article, onClose }: ArticleModalProps) {
           <Dialog.Content bg="gray.900" color="white">
             <Dialog.Header>
               <Dialog.Title
-                fontFamily="'Bangers', cursive"
+                fontFamily="var(--font-archivo-black), sans-serif"
                 fontSize="2xl"
-                letterSpacing="wide"
+                letterSpacing="normal"
                 lineHeight="1.3"
                 pr={8}
               >
