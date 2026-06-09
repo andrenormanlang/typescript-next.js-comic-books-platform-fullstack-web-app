@@ -7,15 +7,15 @@ type SearchParams = {
 };
 
 interface PageProps {
-  searchParams?: SearchParams;
+  searchParams?: Promise<SearchParams>;
 }
 
-export default function Login({ searchParams }: PageProps) {
-  // Extract the 'message' parameter. It could be a string or an array of strings.
+export default async function Login({ searchParams }: PageProps) {
+  const params = await searchParams;
   let message: string | undefined;
 
-  if (searchParams) {
-    const msg = searchParams.message;
+  if (params) {
+    const msg = params.message;
     if (Array.isArray(msg)) {
       message = msg[0];
     } else {

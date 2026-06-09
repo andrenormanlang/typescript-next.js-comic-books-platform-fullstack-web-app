@@ -17,13 +17,9 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    if (error) {
-      throw new Error(`Failed to fetch user: ${error.message}`);
-    }
-
-    return NextResponse.json({ user }, {
+    return NextResponse.json({ user: user ?? null }, {
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',

@@ -1,137 +1,139 @@
-# :thought_balloon: Retro Pop Comics :books:
+# 🎨 Retro Pop Comics
 
-## :star2: Classic Comic Book Search, Collectors Store, and Community
+[retro-pop-comics.com](https://retro-pop-comics.com) — a vintage and modern comic book marketplace with AI-powered features, a live comics news feed, a community forum, and a blog.
 
-Welcome to my mega project dedicated to comic book lovers and collectors! This platform is a comprehensive comics search tool connected to Comic Vine, SuperHero & Comic Books APIs, enriched with an interactive webshop for selling & buying used comics, a vibrant forum, and an informative blog!
+Built with **Next.js 16** (App Router, Turbopack), **Supabase**, **Chakra UI v3**, and **Stripe**.
 
-## :rocket: Features
+---
 
-### :calendar: Comic Releases
+## ✨ Features
 
-Stay up-to-date with comic releases using our integrated Metron API support:
+| Area | Description |
+| --- | --- |
+| 🛒 **Comics Store** | Buy and sell comics with listing management and Stripe checkout |
+| 📰 **Comics News** | Live AI-rewritten articles from 11 sources, infinite scroll, real-time search |
+| 🤖 **Comic Suggestion** | AI-powered comic recommendations via Google Gemini |
+| ✏️ **Blog** | Rich-text posts with TipTap editor |
+| 💬 **Forums** | Threaded discussion boards |
+| 🔐 **Auth** | Supabase email/password with confirm, forgot-password, and reset flows |
+| 👤 **Account** | Profile management and avatar upload to AWS S3 |
 
-- Browse recently released comics from the past 30 days
-- Preview upcoming releases for the next 30 days
-- Chronological ordering for better timeline visibility
-- Advanced search capabilities across all releases
-- Detailed comic information including cover art and series details
+---
 
-### :mag: Comics Search Engine
+## 🛠️ Tech Stack
 
-Utilize a powerful search tool linked with [Comic Vine API](https://comicvine.gamespot.com/api/), [SuperHero API](https://www.superheroapi.com/) & [Marvel Comics API](https://developer.marvel.com/documentation/apiresults) to find your favorite classic comics & characters. Our search engine ensures you have access to a vast database of comic book information, making it easy to locate rare and vintage issues.
+| Layer | Technology |
+| --- | --- |
+| 🚀 Framework | Next.js 16 (App Router, Turbopack) |
+| 🔷 Language | TypeScript |
+| 🎨 UI | Chakra UI v3, Lucide React, Framer Motion |
+| 🔤 Fonts | Google Fonts via `next/font` (Bangers, Archivo Black, Inter) |
+| 🗄️ Auth & Database | Supabase (`@supabase/ssr`, Postgres via Prisma ORM) |
+| 💳 Payments | Stripe |
+| 🔄 Data fetching | TanStack React Query v5 |
+| 📝 Rich text editor | TipTap |
+| ☁️ File storage | AWS S3 |
+| 📡 Comics news backend | [retro-pop-dispatch](../retro-pop-dispatch) (AWS Lambda + DynamoDB + OpenAI) |
+| 📦 Package manager | pnpm |
 
-### :shopping_cart: Comics Webshop
+---
 
-An easy-to-navigate webshop for selling & purchasing beloved comic book classics. Whether you're looking to complete your collection or find new treasures, our webshop offers a seamless experience for buyers and sellers alike.
+## 📁 Project Structure
 
-### :speech_balloon: Community Forum
+```text
+src/
+├── app/
+│   ├── auth/             # Login, signup, confirm, forgot/reset password, account
+│   ├── blog/             # Blog list, single post, create, edit
+│   ├── comic-suggestion/ # AI comic recommendation form
+│   ├── comics-store/     # Buy, sell, edit listings, admin tables
+│   ├── forums/           # Forum boards, topics, posts
+│   ├── news/             # Comics news feed (powered by retro-pop-dispatch)
+│   └── api/              # Next.js API routes (proxy layer to Supabase / Dispatch)
+├── components/           # Shared UI components
+├── hooks/                # TanStack React Query data-fetching hooks
+├── lib/                  # Supabase client, Stripe helpers, utilities
+└── types/                # Shared TypeScript types
+```
 
-A dedicated space for discussions, sharing insights, and connecting with fellow comic book enthusiasts. Join the conversation, share your knowledge, and learn from others who share your passion for classic comics.
+---
 
-### :pencil: Blog
+## ✅ Prerequisites
 
-Our blog provides full, accurate, and extensive descriptions of various topics related to the comic book world. Directed towards classic comic book collectors and enthusiasts, our blog features news, reviews, and articles that delve deep into the history and culture of comic books.
+- Node.js 20+
+- pnpm (`npm install -g pnpm`)
+- A [Supabase](https://supabase.com) project
+- A [Stripe](https://stripe.com) account (test keys are fine locally)
+- The `retro-pop-dispatch` backend deployed (for the news feed)
 
-### :robot: AI-Powered Features
+---
 
-- **:bulb: Comic Suggestions**: Get personalized comic recommendations based on your reading history and preferences using Google's Gemini AI
-- **:mag_right: Smart Search**: Enhanced search capabilities with natural language processing
-- **:memo: Content Generation**: AI-assisted blog post and description generation
-- **:busts_in_silhouette: Character Analysis**: Deep insights into comic characters and their relationships
+## ⚙️ Setup
 
-## :wrench: Technology
+```bash
+pnpm install
+```
 
-### :computer: Frontend
+Create `.env.local` in the project root:
 
-- **:zap: NextJS 16 App Router:** Next.js ensures the app is fast, scalable, and optimized for the best performance.
-- **:shield: TypeScript:** Provides static typing, which helps catch errors early and improves the overall quality of the codebase.
-- **:art: Chakra UI v3:** A modular and accessible component library that makes it easy to build beautiful interfaces.
+```bash
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://<your-project>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
+SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>
 
-### :gear: Backend
+# Stripe
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
 
-- **:nodejs: NodeJS:** A JavaScript runtime that powers our server-side logic and handles requests efficiently.
-- **:cloud: Supabase BaaS:** A backend-as-a-service platform that provides authentication, database, storage, and real-time capabilities out of the box.
-- **:package: Redux Toolkit:** A powerful state management library that helps manage and centralize application state.
+# Comics news backend (retro-pop-dispatch)
+RETROPOP_DISPATCH_API_URL=https://bue12b3514.execute-api.eu-north-1.amazonaws.com/dev
 
-### :toolbox: Utilities
+# AWS S3 (avatar uploads)
+AWS_REGION=eu-north-1
+AWS_ACCESS_KEY_ID=<your-access-key>
+AWS_SECRET_ACCESS_KEY=<your-secret-key>
+S3_BUCKET_NAME=<your-bucket>
 
-- **:arrows_counterclockwise: React Query:** A data-fetching library that simplifies server state management.
-- **:white_check_mark: Zod Validation & React Hook Form:** Ensures form validation is robust and user-friendly.
+# Google Gemini (comic suggestions)
+GEMINI_API_KEY=<your-gemini-key>
+```
 
-## :rocket: Getting Started
+---
 
-To get started with the project, follow these steps:
+## 💻 Development
 
-1. **:inbox_tray: Clone the repository:**
+```bash
+pnpm dev
+```
 
-    ```bash
-    git clone https://github.com/your-username/retro-pop-comics.git
-    ```
+App runs at `http://localhost:3000` with Turbopack.
 
-2. **:file_folder: Navigate to the project directory:**
+---
 
-    ```bash
-    cd retro-pop-comics
-    ```
+## 🏗️ Build & checks
 
-3. **:package: Install dependencies:**
+```bash
+pnpm build        # production build
+pnpm type-check   # TypeScript check without emitting
+pnpm lint         # ESLint
+```
 
-    ```bash
-    pnpm install
-    ```
+---
 
-4. **:computer: Start the development server:**
+## 📰 Comics News Feed
 
-    ```bash
-    pnpm run dev
-    ```
+The `/news` page pulls AI-rewritten comics articles from the `retro-pop-dispatch` backend:
 
-## :crystal_ball: Future Features & Ideas
+1. `src/app/api/news/trending/route.ts` fetches all 11 RSS feeds in parallel, checks which articles have an AI rewrite ready, and returns up to 40 results sorted by publish date.
+2. `ComicsNewsClient` renders them in an infinite-scroll grid (12 cards initially, +12 on scroll) with real-time client-side search by title, source, or topic.
+3. Clicking a card opens a modal that fetches the full AI-rewritten body on demand.
 
-### :sparkles: Planned Enhancements
+See [retro-pop-dispatch](../retro-pop-dispatch/README.md) for backend setup and deployment.
 
-1. **:busts_in_silhouette: Social Features**
-   - :bookmark_tabs: Reading Lists & Collections
-   - :bust_in_silhouette: User Profile Customization
-   - :incoming_envelope: Social Sharing of Collections
-   - :star: Comic Rating System
+---
 
-2. **:brain: Enhanced AI Integration**
-   - :book: Comic Plot Summarization
-   - :twisted_rightwards_arrows: Character Relationship Mapping
-   - :art: Art Style Analysis
-   - :chart_with_upwards_trend: Rarity & Value Prediction
+## 🚀 Deployment
 
-3. **:card_index_dividers: Collection Management**
-   - :camera: Barcode Scanning for Physical Comics
-   - :medal_sports: Condition Grading Assistant
-   - :moneybag: Collection Value Tracking
-   - :mag: Missing Issues Finder
-
-4. **:globe_with_meridians: Community Features**
-   - :books: Comic Book Club Events
-   - :woman_technologist: Virtual Comic Conventions
-   - :question: Expert Q&A Sessions
-   - :handshake: Trading System
-
-5. **:mortar_board: Content & Education**
-   - :timeline: Interactive Comic Timeline
-   - :artist: Comic Creation Tutorials
-   - :newspaper: Industry News Aggregation
-   - :paintbrush: Digital Comic Creation Tools
-
-6. **:gear: Technical Improvements**
-   - :iphone: Mobile App Development
-   - :arrow_down: Offline Reading Mode
-   - :filter: Advanced Search Filters
-   - :chart_with_upwards_trend: Real-time Price Updates
-
-## :handshake: Contributing
-
-If you'd like to contribute, please fork the repository and create a pull request. I appreciate your help in making Retro Pop Comics better for everyone.
-
-## :page_with_curl: License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more information.
-
-:sparkles: Thank you for being a part of the Retro Pop Comics community! :sparkles:
+The app is deployed to [Vercel](https://vercel.com). Add the same environment variables from `.env.local` to the Vercel project settings under **Settings → Environment Variables**.
