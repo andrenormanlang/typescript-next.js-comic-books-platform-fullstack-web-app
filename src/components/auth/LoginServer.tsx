@@ -10,7 +10,7 @@ import {Field,
   Text,
   Center,
   Spinner,
-  InputGroup, IconButton } from "@chakra-ui/react";
+  InputGroup, IconButton, Alert } from "@chakra-ui/react";
 import { toaster } from "@/components/ui/toaster";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
@@ -171,9 +171,10 @@ export default function LoginServer({ message }: LoginProps) {
             Sign In
           </Button>
           {message && (
-            <Text color="red.500" textAlign="center" mb={4}>
-              {message}
-            </Text>
+            <Alert.Root status="info" borderRadius="md" mb={4}>
+              <Alert.Indicator />
+              <Alert.Description>{message}</Alert.Description>
+            </Alert.Root>
           )}
         </form>
         <Link href="/auth/forgot-password" passHref>
