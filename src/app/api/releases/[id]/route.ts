@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
 	const authHeaderValue = process.env.METRON_API_AUTH_HEADER;
 
 	if (!authHeaderValue) {
@@ -9,7 +9,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 		});
 	}
 
-	const { id } = params;
+	const { id } = await params;
 	const url = `https://metron.cloud/api/issue/${id}/`;
 
 	try {
