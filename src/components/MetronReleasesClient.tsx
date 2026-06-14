@@ -11,7 +11,8 @@ import {
 	Center,
 	Spinner,
 	Tabs,
-	Heading, VStack,
+	Heading,
+	VStack,
 	Badge,
 } from "@chakra-ui/react";
 import { motion } from "framer-motion";
@@ -321,15 +322,12 @@ const MetronReleasesClient = () => {
 			<Tabs.Root
 				variant="enclosed"
 				value={activeView}
+				textAlign="center" // centers the inline-flex list
 				onValueChange={(e) => handleTabChange(e.value === "recent" ? 0 : 1)}
 			>
 				<Tabs.List mb="1em">
-					<Tabs.Trigger value="recent">
-						Recently Released ({data?.recentCount || 0})
-					</Tabs.Trigger>
-					<Tabs.Trigger value="upcoming">
-						Upcoming Releases ({data?.upcomingCount || 0})
-					</Tabs.Trigger>
+					<Tabs.Trigger value="recent">Recently Released ({data?.recentCount || 0})</Tabs.Trigger>
+					<Tabs.Trigger value="upcoming">Upcoming Releases ({data?.upcomingCount || 0})</Tabs.Trigger>
 				</Tabs.List>
 
 				<Tabs.Content value="recent">
