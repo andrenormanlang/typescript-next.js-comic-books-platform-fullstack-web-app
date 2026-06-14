@@ -110,6 +110,9 @@ S3_BUCKET_NAME=<your-bucket>
 
 # Google Gemini (comic suggestions)
 GEMINI_API_KEY=<your-gemini-key>
+
+# AWS Gateway URL for comics news feed (if using a custom deployment of retro-pop-dispatch)
+RETROPOP_DISPATCH_API_URL=https://<your-api-gateway-url>
 ```
 
 ---
