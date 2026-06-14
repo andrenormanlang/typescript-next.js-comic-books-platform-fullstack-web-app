@@ -24,6 +24,17 @@ const passwordValidation = new RegExp(
 );
 
 const validationSchema = z.object({
+  fullname: z
+    .string()
+    .min(1, { message: 'Full name is required' })
+    .refine((name) => {
+      const names = name.trim().split(/\s+/);
+      return names.length >= 2 && names.every((n) => n.length >= 2);
+    }, { message: 'Full name must be at least two names with 2 characters each' }),
+  username: z
+    .string()
+    .min(3, { message: 'Username must be at least 3 characters' })
+    .regex(/^[a-zA-Z0-9_]+$/, { message: 'Username can only contain letters, numbers and underscores' }),
   email: z
     .string()
     .min(5, { message: 'Must have at least 5 characters' })
@@ -91,13 +102,17 @@ export default function SignupForm() {
   }, [router, supabase.auth]);
 
   const signUp: SubmitHandler<SchemaProps> = async (data) => {
-    const { email, password } = data;
+    const { email, password, fullname, username } = data;
 
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/api/auth/callback`,
+        data: {
+          full_name: fullname,
+          username,
+        },
       },
     });
 
@@ -146,8 +161,24 @@ export default function SignupForm() {
           Sign Up
         </Heading>
         <form onSubmit={handleSubmit(signUp)}>
-          <Field.Root id="email" mb={4} invalid={!!errors.email}>
-            <Field.Label>Email</Field.Label>
+          <Field.Root id="fullname" mb={4} required invalid={!!errors.fullname}>
+            <Field.Label>
+              Full Name <Field.RequiredIndicator />
+            </Field.Label>
+            <Input type="text" {...register('fullname')} />
+            {errors.fullname && <Text color="red.500">{errors.fullname.message}</Text>}
+          </Field.Root>
+          <Field.Root id="username" mb={4} required invalid={!!errors.username}>
+            <Field.Label>
+              Username <Field.RequiredIndicator />
+            </Field.Label>
+            <Input type="text" {...register('username')} />
+            {errors.username && <Text color="red.500">{errors.username.message}</Text>}
+          </Field.Root>
+          <Field.Root id="email" mb={4} required invalid={!!errors.email}>
+            <Field.Label>
+              Email <Field.RequiredIndicator />
+            </Field.Label>
             <Input type="email" {...register('email', { required: true })} />
             {errors.email && <Text color="red.500">{errors.email.message}</Text>}
           </Field.Root>

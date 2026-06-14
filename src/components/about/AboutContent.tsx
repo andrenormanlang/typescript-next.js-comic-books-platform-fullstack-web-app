@@ -1,48 +1,80 @@
 "use client";
 
-import { useColorModeValue } from "@/components/ui/color-mode";
 import { Container, SimpleGrid, Box, Heading, Text, Image } from "@chakra-ui/react";
-import AboutFeatureCard from "./AboutFeatureCard";
+import AboutFeatureCard, { type AboutFeatureCardProps } from "./AboutFeatureCard";
 
-const features = [
+// Conditional `{ base, _dark }` props resolve to a stable className on server and
+// client, avoiding the hydration mismatch that `useColorModeValue` causes under SSR.
+const headingColor = { base: "blue.600", _dark: "blue.300" };
+const textColor = { base: "gray.600", _dark: "gray.300" };
+const missionBg = { base: "blue.50", _dark: "blue.900" };
+
+const features: AboutFeatureCardProps[] = [
 	{
-		title: "Comic Database Access",
-		description: "Access comprehensive comic databases from multiple trusted sources",
+		title: "Comic Database Search",
+		description: "Search issues, characters, and creators across multiple trusted sources.",
 		icon: "🔍",
 		items: [
-			"Comic Vine - Extensive issues and character database",
-			"Marvel Comics API - Official Marvel content",
-			"Metron Cloud - Professional comic grading",
-			"Superhero API - Character information",
+			"Comic Vine — issues, characters & publishers",
+			"Marvel — comics, creators & series",
+			"Metron Cloud — community-driven issue data",
+			"Superhero API — character profiles & stats",
+			"Quadrinhos Brasil — Brazilian comics guide",
+			"getcomics.org — browse the latest drops",
 		],
 	},
 	{
-		title: "AI-Powered Features",
-		description: "Get personalized comic recommendations powered by advanced AI",
+		title: "AI Comic Recommendations",
+		description: "Tell us your taste and let AI surface your next great read.",
 		icon: "🤖",
 		items: [
-			"Personalized comic suggestions",
-			"Reading history analysis",
-			"Interest-based recommendations",
-			"Hidden gem discoveries",
+			"Personalized picks from your preferences",
+			"Suggestions enriched with covers & details",
+			"Discover hidden gems and deep cuts",
+			"Powered by Google Gemini",
 		],
 	},
 	{
-		title: "Community Features",
-		description: "Join our vibrant community of comic enthusiasts",
-		icon: "💫",
+		title: "Community & Blog",
+		description: "Connect with fellow collectors and share your take.",
+		icon: "💬",
 		items: [
-			"Active discussion forums",
-			"Latest news and reviews blog",
-			"User profiles and collections",
-			"Community recommendations",
+			"Discussion forums with topics & replies",
+			"Community blog with a rich-text editor",
+			"User profiles with custom avatars",
+			"Reviews, opinions, and news pieces",
 		],
 	},
 	{
-		title: "Shop Features",
-		description: "Experience secure and convenient comic shopping",
-		icon: "⚡",
-		items: ["Digital marketplace", "New releases section", "Vintage collections", "Secure payment processing"],
+		title: "Comic Marketplace",
+		description: "Buy and sell comics with secure, hassle-free checkout.",
+		icon: "🛒",
+		items: [
+			"Browse and buy from the store",
+			"List your own comics to sell",
+			"Cart & secure Stripe payments",
+			"Order history & downloadable receipts",
+		],
+	},
+	{
+		title: "New Releases",
+		description: "Keep up with what's hitting the shelves each week.",
+		icon: "🆕",
+		items: [
+			"Weekly new release listings",
+			"Detailed release pages with covers",
+			"Never miss an upcoming drop",
+		],
+	},
+	{
+		title: "Comics News",
+		description: "The latest headlines from across the comic world.",
+		icon: "📰",
+		items: [
+			"Trending news feed",
+			"Full in-app article reader",
+			"Stay current with the industry",
+		],
 	},
 ];
 
@@ -51,7 +83,14 @@ export default function AboutContent() {
 		<Box as="main" py={{ base: 20, md: 28 }}>
 			<Container maxW="container.xl">
 				{/* Hero Section */}
-				<Box mb={20} display="flex" flexDirection={{ base: "column", md: "row" }} alignItems="center" gap={8}>
+				<Box
+					as="section"
+					mb={20}
+					display="flex"
+					flexDirection={{ base: "column", md: "row" }}
+					alignItems="center"
+					gap={8}
+				>
 					<Box flex="1">
 						<Heading
 							as="h1"
@@ -59,51 +98,54 @@ export default function AboutContent() {
 							mb={6}
 							fontFamily="Bangers"
 							letterSpacing="wider"
-							color={useColorModeValue("blue.600", "blue.300")}
+							color={headingColor}
 						>
 							Welcome to Retro Pop Comics
 						</Heading>
-						<Text fontSize="xl" color={useColorModeValue("gray.600", "gray.300")} lineHeight="tall">
-							Where the golden age of comics meets modern collecting! We&apos;re passionate about bringing
-							you the finest selection of vintage and contemporary comic books, all in one convenient
-							digital marketplace.
+						<Text fontSize="xl" color={textColor} lineHeight="tall">
+							Where the golden age of comics meets modern collecting! Search the biggest comic
+							databases, get AI-powered recommendations, follow new releases and news, swap stories with
+							the community, and shop &mdash; all in one place.
 						</Text>
 					</Box>
 					<Box flex="1" position="relative" height={{ base: "300px", md: "400px" }} width="100%">
 						<Image
 							src="/halftone.png"
-							alt="Retro Pop Comics Background"
+							alt=""
+							aria-hidden="true"
+							loading="lazy"
 							objectFit="cover"
 							borderRadius="1rem"
-							style={{
-								mixBlendMode: "multiply",
-							}}
 							w="100%"
 							h="100%"
+							// multiply darkens black dots onto the light page; in dark mode
+							// invert the dots to white and screen (lighten) so they stay visible.
+							mixBlendMode={{ base: "multiply", _dark: "screen" }}
+							filter={{ base: "none", _dark: "invert(1)" }}
 						/>
 					</Box>
 				</Box>
 
 				{/* Features Grid */}
-				<SimpleGrid columns={{ base: 1, md: 2 }} gap={{ base: 8, lg: 12 }} mb={20}>
-					{features.map((feature, index) => (
-						<AboutFeatureCard key={index} {...feature} />
+				<SimpleGrid as="section" columns={{ base: 1, md: 2 }} gap={{ base: 8, lg: 12 }} mb={20}>
+					{features.map((feature) => (
+						<AboutFeatureCard key={feature.title} {...feature} />
 					))}
 				</SimpleGrid>
 
 				{/* Mission Statement */}
-				<Box p={8} borderRadius="xl" bg={useColorModeValue("blue.50", "blue.900")} textAlign="center">
+				<Box as="section" p={8} borderRadius="xl" bg={missionBg} textAlign="center">
 					<Heading
 						as="h2"
 						size="lg"
 						mb={4}
 						fontFamily="Bangers"
 						letterSpacing="wide"
-						color={useColorModeValue("blue.600", "blue.300")}
+						color={headingColor}
 					>
 						Our Mission
 					</Heading>
-					<Text fontSize="lg" color={useColorModeValue("gray.600", "gray.300")} maxW="3xl" mx="auto">
+					<Text fontSize="lg" color={textColor} maxW="3xl" mx="auto">
 						At Retro Pop Comics, we&apos;re dedicated to creating the ultimate hub for comic book
 						enthusiasts. We combine cutting-edge technology with a passion for comics to deliver an
 						unmatched collecting and community experience.

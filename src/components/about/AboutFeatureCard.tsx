@@ -1,37 +1,36 @@
 "use client";
 
-import { useColorModeValue } from "@/components/ui/color-mode";
-import { Box, VStack, Heading, Text } from "@chakra-ui/react";
+import { Box, VStack, Heading, Text, List } from "@chakra-ui/react";
 
-interface AboutFeatureCardProps {
+export interface AboutFeatureCardProps {
 	title: string;
 	description: string;
 	icon: string;
 	items?: string[];
 }
 
-const AboutFeatureCard = ({ title, description, icon, items }: AboutFeatureCardProps) => {
-	const bgColor = useColorModeValue("white", "gray.800");
-	const borderColor = useColorModeValue("gray.200", "gray.700");
-	const hoverBg = useColorModeValue("gray.50", "gray.700");
-	const textColor = useColorModeValue("gray.600", "gray.300");
+// Colors are expressed as `{ base, _dark }` conditional props so they resolve to a
+// single, stable className on both server and client (no hydration mismatch).
+const textColor = { base: "gray.600", _dark: "gray.300" };
 
+const AboutFeatureCard = ({ title, description, icon, items }: AboutFeatureCardProps) => {
 	return (
 		<Box
+			as="article"
 			p={6}
-			bg={bgColor}
+			bg={{ base: "white", _dark: "gray.800" }}
 			borderWidth="1px"
-			borderColor={borderColor}
+			borderColor={{ base: "gray.200", _dark: "gray.700" }}
 			borderRadius="lg"
 			transition="all 0.3s"
 			_hover={{
 				transform: "translateY(-4px)",
 				shadow: "lg",
-				bg: hoverBg,
+				bg: { base: "gray.50", _dark: "gray.700" },
 			}}
 		>
 			<VStack gap={4} align="flex-start">
-				<Box fontSize="2xl" mb={2}>
+				<Box as="span" fontSize="2xl" mb={2} aria-hidden="true">
 					{icon}
 				</Box>
 				<Heading size="md" fontFamily="Bangers" letterSpacing="wide">
@@ -39,15 +38,11 @@ const AboutFeatureCard = ({ title, description, icon, items }: AboutFeatureCardP
 				</Heading>
 				<Text color={textColor}>{description}</Text>
 				{items && items.length > 0 && (
-					<Box w="100%">
-						<VStack align="flex-start" gap={2}>
-							{items.map((item, index) => (
-								<Text key={index} color={textColor} fontSize="sm">
-									• {item}
-								</Text>
-							))}
-						</VStack>
-					</Box>
+					<List.Root w="100%" gap={2} color={textColor} fontSize="sm" ps={4} listStyleType="disc">
+						{items.map((item) => (
+							<List.Item key={item}>{item}</List.Item>
+						))}
+					</List.Root>
 				)}
 			</VStack>
 		</Box>
