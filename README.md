@@ -1,6 +1,6 @@
 # 🎨 Retro Pop Comics
 
-[retro-pop-comics.com](https://retro-pop-comics.com) — a vintage and modern comic book marketplace with AI-powered features, a live comics news feed, a community forum, and a blog.
+[retro-pop-comics.com](https://retro-pop-comics.com) — a vintage and modern comic book marketplace with multi-source comic database search, AI-powered recommendations, a live comics news feed, new-release tracking, a community forum, and a blog.
 
 Built with **Next.js 16** (App Router, Turbopack), **Supabase**, **Chakra UI v3**, and **Stripe**.
 
@@ -10,6 +10,8 @@ Built with **Next.js 16** (App Router, Turbopack), **Supabase**, **Chakra UI v3*
 
 | Area | Description |
 | --- | --- |
+| 🔍 **Comic Database Search** | Search issues, characters, creators & publishers across Comic Vine, Marvel, Metron Cloud, Superhero API, Quadrinhos Brasil, and getcomics.org |
+| 🆕 **New Releases** | Weekly new-release listings with detailed release pages |
 | 🛒 **Comics Store** | Buy and sell comics with listing management and Stripe checkout |
 | 📰 **Comics News** | Live AI-rewritten articles from 11 sources, infinite scroll, real-time search |
 | 🤖 **Comic Suggestion** | AI-powered comic recommendations via Google Gemini |
@@ -28,9 +30,10 @@ Built with **Next.js 16** (App Router, Turbopack), **Supabase**, **Chakra UI v3*
 | 🔷 Language | TypeScript |
 | 🎨 UI | Chakra UI v3, Lucide React, Framer Motion |
 | 🔤 Fonts | Google Fonts via `next/font` (Bangers, Archivo Black, Inter) |
-| 🗄️ Auth & Database | Supabase (`@supabase/ssr`, Postgres via Prisma ORM) |
+| 🗄️ Auth & Database | Supabase (`@supabase/ssr`, Postgres) |
 | 💳 Payments | Stripe |
-| 🔄 Data fetching | TanStack React Query v5 |
+| 🔄 Server state | TanStack React Query v5 |
+| 🗃️ Client state | Redux Toolkit (`react-redux`) |
 | 📝 Rich text editor | TipTap |
 | ☁️ File storage | AWS S3 |
 | 📡 Comics news backend | [retro-pop-dispatch](../retro-pop-dispatch) (AWS Lambda + DynamoDB + OpenAI) |
@@ -44,15 +47,24 @@ Built with **Next.js 16** (App Router, Turbopack), **Supabase**, **Chakra UI v3*
 src/
 ├── app/
 │   ├── auth/             # Login, signup, confirm, forgot/reset password, account
+│   ├── search/           # Comic database search (Comic Vine, Marvel, Metron, etc.)
+│   ├── releases/         # New release listings and detail pages
 │   ├── blog/             # Blog list, single post, create, edit
 │   ├── comic-suggestion/ # AI comic recommendation form
-│   ├── comics-store/     # Buy, sell, edit listings, admin tables
+│   ├── comics-store/     # Buy, sell, edit listings, cart, admin tables
 │   ├── forums/           # Forum boards, topics, posts
 │   ├── news/             # Comics news feed (powered by retro-pop-dispatch)
+│   ├── receipt/          # Order receipts
+│   ├── payment-success/  # Stripe checkout success
+│   ├── admin/            # Admin area
 │   └── api/              # Next.js API routes (proxy layer to Supabase / Dispatch)
 ├── components/           # Shared UI components
+├── store/                # Redux Toolkit store and slices (cart, avatar, auth, user)
 ├── hooks/                # TanStack React Query data-fetching hooks
-├── lib/                  # Supabase client, Stripe helpers, utilities
+├── lib/                  # Stripe helpers, validations, React Query provider
+├── utils/                # Supabase client/server helpers
+├── helpers/              # Shared helper components and utilities
+├── contexts/             # React context providers
 └── types/                # Shared TypeScript types
 ```
 
