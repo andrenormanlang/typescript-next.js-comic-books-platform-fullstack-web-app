@@ -6,6 +6,8 @@ const bangers = Bangers({
   weight: "400",
   subsets: ["latin"],
   display: "swap",
+  // Only used for .menu-item, loaded client-side — no need to preload on first paint.
+  preload: false,
 });
 
 export default function GlobalStyles() {

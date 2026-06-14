@@ -1,13 +1,13 @@
 // app/layout.tsx
-import { Inter, Libre_Franklin, Archivo_Black } from "next/font/google";
+import { Inter, Archivo_Black } from "next/font/google";
 import { Metadata } from "next";
 import ClientProviders from "@/components/client-providers";
 import GlobalStyles from "@/components/global-styles";
 // import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
-const libreFranklin = Libre_Franklin({ subsets: ["latin"] });
-const archivoBlack = Archivo_Black({ weight: "400", subsets: ["latin"], variable: "--font-archivo-black" });
+// Only used on demand via var(--font-archivo-black) in news/article components, so skip the eager preload.
+const archivoBlack = Archivo_Black({ weight: "400", subsets: ["latin"], variable: "--font-archivo-black", preload: false });
 
 export const metadata = {
 	metadataBase: new URL("https://retro-pop-comics.com"), // Replace with your actual domain
@@ -54,7 +54,7 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
 	return (
-		<html lang="en" data-bs-theme="dark" className={`${inter.className} ${libreFranklin.className} ${archivoBlack.variable}`} suppressHydrationWarning>
+		<html lang="en" data-bs-theme="dark" className={`${inter.className} ${archivoBlack.variable}`} suppressHydrationWarning>
 			<head>
 				{/* <script crossOrigin="anonymous" src="//unpkg.com/react-scan/dist/auto.global.js" defer /> */}
 			</head>
