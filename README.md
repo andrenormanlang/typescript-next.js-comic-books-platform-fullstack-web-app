@@ -14,6 +14,7 @@ Built with **Next.js 16** (App Router, Turbopack), **Supabase**, **Chakra UI v3*
 | 🆕 **New Releases** | Weekly new-release listings with detailed release pages |
 | 🛒 **Comics Store** | Buy and sell comics with listing management and Stripe checkout |
 | 📰 **Comics News** | Live AI-rewritten articles from 11 sources, infinite scroll, real-time search |
+| 🗞️ **Daily Pull Digest** | AI summary of the day's comics news — 5 themed highlights (publisher + topic) above the news grid, refreshed each morning |
 | 🤖 **Comic Suggestion** | AI-powered comic recommendations via Google Gemini |
 | ✏️ **Blog** | Rich-text posts with TipTap editor |
 | 💬 **Forums** | Threaded discussion boards |
@@ -144,6 +145,8 @@ The `/news` page pulls AI-rewritten comics articles from the `retro-pop-dispatch
 1. `src/app/api/news/trending/route.ts` fetches all 11 RSS feeds in parallel, checks which articles have an AI rewrite ready, and returns up to 40 results sorted by publish date.
 2. `ComicsNewsClient` renders them in an infinite-scroll grid (12 cards initially, +12 on scroll) with real-time client-side search by title, source, or topic.
 3. Clicking a card opens a modal that fetches the full AI-rewritten body on demand.
+
+At the top of the page, a **Daily Pull Digest** shows 5 AI-generated highlights of the last 24 hours — each tagged with a publisher and topic and linking into the same article modal. It is served by the dispatch `GET /news/digest` endpoint and refreshed each morning (~06:00 Malmö time). If no digest is available it simply hides, leaving the grid unaffected.
 
 See [retro-pop-dispatch](../retro-pop-dispatch/README.md) for backend setup and deployment.
 
