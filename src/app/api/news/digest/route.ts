@@ -7,9 +7,15 @@ export async function GET() {
     return NextResponse.json({ error: "RETROPOP_DISPATCH_API_URL is not set" }, { status: 500 });
   }
 
+  // Hard cap so this route can never hang the serverless function (the backend read is a fast
+  // DynamoDB lookup; anything slower means it's unavailable → degrade to no digest).
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+
   try {
     const res = await fetch(`${DISPATCH_API}/news/digest`, {
       next: { revalidate: 1800 },
+      signal: controller.signal,
     });
     // Non-blocking: never break the news page if the digest is unavailable.
     if (!res.ok) {
@@ -20,5 +26,7 @@ export async function GET() {
   } catch (err) {
     console.error("News digest fetch error:", err);
     return NextResponse.json({ digest: null });
+  } finally {
+    clearTimeout(timeout);
   }
 }
