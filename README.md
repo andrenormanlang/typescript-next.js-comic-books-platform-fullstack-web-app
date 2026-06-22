@@ -137,6 +137,22 @@ pnpm lint         # ESLint
 
 ---
 
+## 🧭 Spec-Driven Development (SDD)
+
+This app is **continuously developed using Spec-Driven Development**: every non-trivial change is specified, planned, and split into tasks *before* code is written, so intent and architecture stay explicit as the app grows.
+
+- **[`CLAUDE_SDD.md`](./CLAUDE_SDD.md)** — this repo's constitution: stack, directory map, conventions, env vars, commands, and the guardrails every change must follow. Read it before starting work.
+- This repo is one of **two deployables** in the parent **`retro-pop-project/` workspace** (which also contains [`retro-pop-dispatch`](../retro-pop-dispatch)). The shared SDD assets live at the workspace root (the parent folder, not committed to this repo):
+  - `CLAUDE_SDD.md` — the workspace constitution (the four-phase loop + cross-repo HTTP contract rules).
+  - `specs/<feature>/` — one folder per feature: `spec.md` (what & why, tech-free) → `plan.md` (how, real repo-qualified files) → `tasks.md` (ordered, verifiable steps).
+  - `claude-sdd/` — lifecycle staging (`todo/` → `done/`).
+
+**The loop:** Specify → Plan → Tasks → Implement. Every spec & plan declares its target repo(s) — `retro-pop`, `retro-pop-dispatch`, or `both`. A cross-repo feature is a single spec that defines the HTTP contract on both sides (the **Daily Pull Digest** is one such feature: generated in `retro-pop-dispatch`, rendered here).
+
+**Definition of done (frontend):** code matches the plan, `pnpm type-check` and `pnpm lint` pass, and the spec's acceptance criteria are demonstrably met.
+
+---
+
 ## 📰 Comics News Feed
 
 The `/news` page pulls AI-rewritten comics articles from the `retro-pop-dispatch` backend:

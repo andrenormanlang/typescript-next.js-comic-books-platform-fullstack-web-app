@@ -15,6 +15,7 @@ import {
   Input,
 } from "@chakra-ui/react";
 import ArticleModal from "./ArticleModal";
+import DailyPullDigest from "./news/DailyPullDigest";
 
 const SOURCE_COLORS: Record<string, string> = {
   "bleedingcool.com": "red",
@@ -255,6 +256,9 @@ export default function ComicsNewsClient() {
           />
         </Box>
       </Box>
+
+      {/* Daily Pull Digest — AI summary of the day; shares the grid's ArticleModal */}
+      {!search && <DailyPullDigest onOpenArticle={setSelected} />}
 
       {/* Results count when searching */}
       {search && (
