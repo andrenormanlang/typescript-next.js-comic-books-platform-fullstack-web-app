@@ -21,8 +21,18 @@ function extractImageUrl(html: string): string | null {
   return match ? match[1] : null;
 }
 
+// Decode HTML entities (e.g. &#8230; → "…", &#8217; → "'") that RSS feeds
+// leave encoded inside their description text.
+function decodeEntities(text: string): string {
+  if (typeof document === "undefined") return text;
+  const el = document.createElement("textarea");
+  el.innerHTML = text;
+  return el.value;
+}
+
 function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+  const withoutTags = html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+  return decodeEntities(withoutTags);
 }
 
 function sourceLabel(rssUrl: string): string {
@@ -45,7 +55,10 @@ export default function ArticleModal({ article, onClose }: ArticleModalProps) {
   const imageUrl =
     article?.imageUrl ??
     (article?.description ? extractImageUrl(article.description) : null);
-  const plainDescription = article?.description ? stripHtml(article.description) : null;
+  // Prefer the AI-rephrased lead; fall back to the (now entity-decoded) excerpt.
+  const plainDescription =
+    processed?.rephrasedDescription?.trim() ||
+    (article?.description ? stripHtml(article.description) : null);
   const pubDate = article?.pubTS
     ? new Date(article.pubTS * 1000).toLocaleDateString("en-US", {
         month: "long",
