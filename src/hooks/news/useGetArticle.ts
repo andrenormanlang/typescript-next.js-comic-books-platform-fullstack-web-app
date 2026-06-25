@@ -9,6 +9,8 @@ export interface ProcessedArticle {
   rwDescription?: string;
   rwAvailability?: string;
   slug?: string;
+  imageUrl?: string;
+  images?: string[];
 }
 
 async function fetchArticle(url: string): Promise<ProcessedArticle> {

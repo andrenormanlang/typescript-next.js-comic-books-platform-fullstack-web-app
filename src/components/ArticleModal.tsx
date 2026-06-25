@@ -52,9 +52,22 @@ export default function ArticleModal({ article, onClose }: ArticleModalProps) {
   const { data: processed, isLoading } = useGetArticle(article?.id ?? null);
   const isOpen = !!article;
 
-  const imageUrl =
+  // Gallery: scraped images from the processed article, falling back to the
+  // list item's images, then any single lead image / first <img> in the excerpt.
+  const galleryImages =
+    processed?.images && processed.images.length
+      ? processed.images
+      : article?.images && article.images.length
+      ? article.images
+      : [];
+  const heroImage =
+    galleryImages[0] ??
     article?.imageUrl ??
+    processed?.imageUrl ??
     (article?.description ? extractImageUrl(article.description) : null);
+  // Remaining shots shown as a grid below the body (hero is rendered up top).
+  const restImages = galleryImages.filter((url) => url !== heroImage);
+  const imageUrl = heroImage;
   // Prefer the AI-rephrased lead; fall back to the (now entity-decoded) excerpt.
   const plainDescription =
     processed?.rephrasedDescription?.trim() ||
@@ -149,6 +162,27 @@ export default function ArticleModal({ article, onClose }: ArticleModalProps) {
                 <Text color="gray.500" fontStyle="italic" fontSize="sm">
                   Full article rewrite not yet available.
                 </Text>
+              )}
+
+              {restImages.length > 0 && (
+                <Box
+                  mt={6}
+                  display="grid"
+                  gridTemplateColumns="repeat(auto-fill, minmax(140px, 1fr))"
+                  gap={3}
+                >
+                  {restImages.map((src) => (
+                    <Image
+                      key={src}
+                      src={src}
+                      alt={article?.title}
+                      w="100%"
+                      borderRadius="md"
+                      objectFit="cover"
+                      loading="lazy"
+                    />
+                  ))}
+                </Box>
               )}
 
               {article?.id && (

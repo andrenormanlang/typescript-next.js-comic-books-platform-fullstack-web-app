@@ -10,6 +10,7 @@ export interface DispatchArticle {
   slug?: string;
   rssUrl: string;
   imageUrl?: string;
+  images?: string[];
   likes?: { users: string[] };
   dislikes?: { users: string[] };
   msgCount?: number;
