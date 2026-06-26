@@ -13,34 +13,18 @@ import {
   Flex,
   CloseButton,
 } from "@chakra-ui/react";
+import DOMPurify from "dompurify";
 import { useGetArticle } from "@/hooks/news/useGetArticle";
 import { DispatchArticle } from "@/hooks/news/useGetTrendingNews";
+import { stripHtml, extractImageUrl, sourceLabel } from "@/helpers/news/text";
 
-function extractImageUrl(html: string): string | null {
-  const match = html.match(/<img[^>]+src="([^"]+)"/);
-  return match ? match[1] : null;
-}
-
-// Decode HTML entities (e.g. &#8230; → "…", &#8217; → "'") that RSS feeds
-// leave encoded inside their description text.
-function decodeEntities(text: string): string {
-  if (typeof document === "undefined") return text;
-  const el = document.createElement("textarea");
-  el.innerHTML = text;
-  return el.value;
-}
-
-function stripHtml(html: string): string {
-  const withoutTags = html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
-  return decodeEntities(withoutTags);
-}
-
-function sourceLabel(rssUrl: string): string {
-  try {
-    return new URL(rssUrl).hostname.replace(/^www\./, "");
-  } catch {
-    return rssUrl;
-  }
+// Sanitize raw RSS description HTML for safe rendering as a fallback when no AI
+// rewrite exists. Browser-only (DOMPurify needs `window`); returns null on the
+// server, where this fallback branch never renders anyway (modal is client-driven).
+function sanitizeDescriptionHtml(html?: string | null): string | null {
+  if (!html || typeof window === "undefined") return null;
+  const clean = DOMPurify.sanitize(html, { USE_PROFILES: { html: true } });
+  return clean.trim() || null;
 }
 
 interface ArticleModalProps {
@@ -52,13 +36,26 @@ export default function ArticleModal({ article, onClose }: ArticleModalProps) {
   const { data: processed, isLoading } = useGetArticle(article?.id ?? null);
   const isOpen = !!article;
 
+  const hasRewrite = !!processed?.rwBody;
+  // When there's no AI rewrite (e.g. the backend couldn't scrape the source),
+  // fall back to the original RSS description HTML so the reader still gets the
+  // article's content and inline image instead of an empty "not available" note.
+  const descriptionHtml =
+    !hasRewrite && !isLoading ? sanitizeDescriptionHtml(article?.description) : null;
+
   const imageUrl =
     article?.imageUrl ??
     (article?.description ? extractImageUrl(article.description) : null);
+  // The fallback HTML carries its own inline image, so suppress the standalone
+  // header image in that case to avoid showing it twice.
+  const showTopImage = !!imageUrl && !descriptionHtml;
   // Prefer the AI-rephrased lead; fall back to the (now entity-decoded) excerpt.
+  // Hide the plain lead when we're rendering the full description HTML below
+  // (it would just duplicate the same text).
   const plainDescription =
     processed?.rephrasedDescription?.trim() ||
     (article?.description ? stripHtml(article.description) : null);
+  const showLead = !!plainDescription && !descriptionHtml;
   const pubDate = article?.pubTS
     ? new Date(article.pubTS * 1000).toLocaleDateString("en-US", {
         month: "long",
@@ -95,9 +92,9 @@ export default function ArticleModal({ article, onClose }: ArticleModalProps) {
             </Dialog.CloseTrigger>
 
             <Dialog.Body pb={8}>
-              {imageUrl && (
+              {showTopImage && (
                 <Image
-                  src={imageUrl}
+                  src={imageUrl!}
                   alt={article?.title}
                   w="100%"
                   borderRadius="lg"
@@ -120,7 +117,7 @@ export default function ArticleModal({ article, onClose }: ArticleModalProps) {
                 )}
               </Flex>
 
-              {plainDescription && (
+              {showLead && (
                 <Text
                   fontWeight="semibold"
                   fontSize="md"
@@ -145,6 +142,23 @@ export default function ArticleModal({ article, onClose }: ArticleModalProps) {
                 >
                   {processed.rwBody}
                 </Text>
+              ) : descriptionHtml ? (
+                <Box
+                  color="gray.300"
+                  lineHeight="1.9"
+                  fontSize="sm"
+                  css={{
+                    "& p": { marginBottom: "1rem" },
+                    "& img": {
+                      maxWidth: "100%",
+                      height: "auto",
+                      borderRadius: "0.5rem",
+                      margin: "0.75rem 0",
+                    },
+                    "& a": { color: "var(--chakra-colors-blue-400)", textDecoration: "underline" },
+                  }}
+                  dangerouslySetInnerHTML={{ __html: descriptionHtml }}
+                />
               ) : (
                 <Text color="gray.500" fontStyle="italic" fontSize="sm">
                   Full article rewrite not yet available.

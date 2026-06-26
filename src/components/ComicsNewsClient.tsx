@@ -16,6 +16,7 @@ import {
 } from "@chakra-ui/react";
 import ArticleModal from "./ArticleModal";
 import DailyPullDigest from "./news/DailyPullDigest";
+import { stripHtml, extractImageUrl, sourceLabel } from "@/helpers/news/text";
 
 const SOURCE_COLORS: Record<string, string> = {
   "bleedingcool.com": "red",
@@ -30,23 +31,6 @@ const SOURCE_COLORS: Record<string, string> = {
   "superherohype.com": "yellow",
   "comicbookroundup.com": "gray",
 };
-
-function sourceLabel(rssUrl: string): string {
-  try {
-    return new URL(rssUrl).hostname.replace(/^www\./, "");
-  } catch {
-    return rssUrl;
-  }
-}
-
-function extractImageUrl(html: string): string | null {
-  const match = html.match(/<img[^>]+src="([^"]+)"/);
-  return match ? match[1] : null;
-}
-
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
-}
 
 function formatDate(pubTS?: number, pubDate?: string): string {
   if (pubTS) {
