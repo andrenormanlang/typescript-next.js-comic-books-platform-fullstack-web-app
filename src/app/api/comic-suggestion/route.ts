@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { jsonrepair } from "jsonrepair";
 import { z } from "zod";
 import { comicGenres, comicStyles, experienceLevels, purposes } from "@/lib/comicSuggestionOptions";
@@ -22,6 +22,19 @@ const SuggestionResponseJsonSchema = {
 	},
 	required: ["title", "description", "reason", "year", "type", "publisher", "artist", "writer"],
 } as const;
+
+// Try the newest model first; fall back when it's overloaded, rate-limited or not answering.
+const MODELS = [
+	{ name: "gemini-3.8-flash", timeoutMs: 12_000 },
+	{ name: "gemini-3.6-flash", timeoutMs: 20_000 },
+] as const;
+
+// After the primary model fails, skip it for a while so every request doesn't wait on it.
+const PRIMARY_COOLDOWN_MS = 2 * 60 * 1000;
+let primaryCooldownUntil = 0;
+
+// Upstream errors worth retrying on another model (a 400 would fail on any model).
+const FALLBACK_STATUSES = new Set([404, 429, 500, 503, 504]);
 
 const SYSTEM_INSTRUCTION =
 	"You are a strict JSON generator. Output ONLY a single JSON object matching the provided schema. No markdown, no code fences, no commentary.";
@@ -187,7 +200,10 @@ export async function GET(request: NextRequest) {
 		const baseConfig = {
 			responseMimeType: "application/json",
 			responseJsonSchema: SuggestionResponseJsonSchema,
-			maxOutputTokens: 900,
+			// Thinking tokens count against maxOutputTokens on Gemini 3; keep thinking low and leave headroom
+			// so the JSON isn't truncated.
+			maxOutputTokens: 4096,
+			thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
 			temperature: 0.6,
 			seed: randomSeed,
 			systemInstruction: {
@@ -216,13 +232,46 @@ export async function GET(request: NextRequest) {
 			return validated.data;
 		};
 
+		let modelUsed: string | null = null;
+
 		const generateTextOnce = async (contents: string, config: any) => {
-			const result = await ai.models.generateContent({
-				model: "gemini-3-flash-preview",
-				contents,
-				config,
-			});
-			return (result.text ?? "").trim();
+			const models = Date.now() < primaryCooldownUntil ? MODELS.slice(1) : MODELS;
+			let lastError: unknown;
+
+			for (const model of models) {
+				const signal = AbortSignal.timeout(model.timeoutMs);
+				try {
+					const result = await ai.models.generateContent({
+						model: model.name,
+						contents,
+						config: { ...config, abortSignal: signal },
+					});
+					const finishReason = result.candidates?.[0]?.finishReason;
+					if (finishReason && finishReason !== "STOP") {
+						console.warn("Gemini finished early:", {
+							model: model.name,
+							finishReason,
+							usage: result.usageMetadata,
+						});
+					}
+					modelUsed = model.name;
+					return (result.text ?? "").trim();
+				} catch (error) {
+					const timedOut = signal.aborted;
+					const status = getErrorStatus(error);
+					if (!timedOut && !(status && FALLBACK_STATUSES.has(status))) throw error;
+
+					console.warn(
+						`Gemini model ${model.name} unavailable:`,
+						timedOut ? `timed out after ${model.timeoutMs}ms` : `HTTP ${status}`,
+					);
+					if (model.name === MODELS[0].name) primaryCooldownUntil = Date.now() + PRIMARY_COOLDOWN_MS;
+					lastError = error;
+				}
+			}
+
+			// Every model is down or hanging: report it as an overload so the 503 handling below applies.
+			throw Object.assign(new Error("ALL_MODELS_UNAVAILABLE"), { status: 503, cause: lastError });
 		};
 
 		let text: string | null = null;
@@ -268,7 +317,6 @@ export async function GET(request: NextRequest) {
 					text = await generateTextOnce(correctivePrompt, {
 						...baseConfig,
 						temperature: 0.2,
-						maxOutputTokens: 900,
 					});
 					if (!text) throw new Error("EMPTY_RESPONSE");
 					suggestion = parseAndValidate(text);
@@ -308,6 +356,7 @@ export async function GET(request: NextRequest) {
 				link: null,
 			},
 			meta: {
+				model: modelUsed,
 				selectedGenre,
 				style: userStyle ?? null,
 				experience: userExperience ?? null,
