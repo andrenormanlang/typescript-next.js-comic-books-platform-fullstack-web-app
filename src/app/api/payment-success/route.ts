@@ -1,97 +1,46 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+// Read-only order status + receipt for the logged-in buyer.
+// Receipts are created by the stripe-webhook Edge Function; this route never
+// writes. The success page polls it until status is "paid".
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/utils/supabase/server";
+import { supabaseAdmin } from "@/utils/supabase/admin-client";
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const orderId = searchParams.get('orderId');
-  const userId = searchParams.get('userId');
+	const orderId = Number(new URL(request.url).searchParams.get("orderId"));
+	if (!Number.isInteger(orderId) || orderId <= 0) {
+		return NextResponse.json({ error: "Missing or invalid orderId" }, { status: 400 });
+	}
 
-  if (!orderId || !userId) {
-    return new NextResponse('Missing required fields', { status: 400 });
-  }
+	const supabase = await createClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+	if (!user) {
+		return NextResponse.json({ error: "You need to be logged in" }, { status: 401 });
+	}
 
-  try {
-    // Check if a receipt already exists for this order
-    const { data: existingReceipt, error: existingReceiptError } = await supabase
-      .from('receipts')
-      .select('*')
-      .eq('order_id', orderId)
-      .eq('user_id', userId)
-      .single();
+	// Admin client + explicit user_id filter: only the buyer sees their order.
+	const { data: order, error: orderError } = await supabaseAdmin
+		.from("orders")
+		.select("id, status")
+		.eq("id", orderId)
+		.eq("user_id", user.id)
+		.maybeSingle();
 
-    if (existingReceiptError && existingReceiptError.code !== 'PGRST116') { // 'PGRST116' is a Supabase specific error code for 'no rows found'
-      throw existingReceiptError;
-    }
+	if (orderError) {
+		console.error("Fetching order failed:", orderError);
+		return NextResponse.json({ error: "Could not load your order" }, { status: 500 });
+	}
+	if (!order) {
+		return NextResponse.json({ error: "Order not found" }, { status: 404 });
+	}
 
-    if (existingReceipt) {
-      return new NextResponse(JSON.stringify({ message: 'Receipt already exists', receipt: existingReceipt }), {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-    }
+	let receipt = null;
+	if (order.status === "paid") {
+		const { data } = await supabaseAdmin.from("receipts").select("*").eq("order_id", order.id).maybeSingle();
+		receipt = data;
+	}
 
-    // Fetch order details
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('id', orderId)
-      .single();
-
-    if (orderError) throw orderError;
-
-    // Create a receipt
-    const { data: receiptData, error: receiptError } = await supabase
-      .from('receipts')
-      .insert({
-        user_id: userId,
-        order_id: orderId,
-        total_amount: order.total_amount,
-        currency: order.currency,
-        items: order.items,
-      })
-      .select();
-
-    if (receiptError) throw receiptError;
-
-    // Log the receipt details
-    console.log('Receipt Details:', receiptData[0]);
-
-    // Clear the cart
-    console.log('Attempting to clear cart for user:', userId);
-    const { error: clearCartError } = await supabase
-      .from('cart')
-      .delete()
-      .eq('user_id', userId);
-
-    if (clearCartError) throw clearCartError;
-
-    console.log('Cart cleared successfully for user:', userId);
-
-    return new NextResponse(JSON.stringify({ message: 'Payment succeeded and receipt generated', receipt: receiptData[0] }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-  } catch (error: any) {
-    console.error('Error processing payment success:', error);
-    return new NextResponse(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-  }
+	return NextResponse.json({ status: order.status, receipt });
 }
-
-
-
-
-

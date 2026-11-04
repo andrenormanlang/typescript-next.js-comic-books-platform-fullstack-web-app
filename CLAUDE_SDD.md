@@ -48,7 +48,7 @@ src/
 │   ├── auth/                   # login, signup, confirm, forgot/reset password, account, callbacks
 │   ├── search/                 # comic-vine/ marvel/ metron/ superheros/ guia-search/ comicbooks-api/
 │   ├── releases/               # new-release list + [id] detail
-│   ├── comics-store/           # buy, buy/[id], sell, edit/[id], admin-tables
+│   ├── comics-store/           # buy, buy/[id], sell, edit/[id], admin-tables, wishlist
 │   ├── comic-suggestion/       # AI recommendation form
 │   ├── blog/                   # list, [id], create, edit/[id]
 │   ├── forums/                 # [id] board, topics/[topicId], create-topic, create-post, edit/[id]
@@ -59,19 +59,33 @@ src/
 ├── hooks/                      # React Query data hooks, grouped by domain (marvel/, forum/, news/, …)
 ├── store/                      # Redux: store.ts, hooks.ts, {auth,user,avatar,cart}Slice.ts
 ├── contexts/                   # ReduxProvider, UserContext, AvatarContext
-├── lib/                        # orders.ts, validations/, react-query-provider, stripe + supabase-server helpers
+├── lib/                        # validations/, storage/thumbnail.ts, react-query-provider, stripe + supabase-server helpers
 ├── utils/
 │   └── supabase/               # client.ts (browser), server.ts (RSC), admin-client.ts (service role), middleware.ts
 ├── helpers/                    # shared helper components/utilities
 └── types/                      # shared TS types, grouped by domain
 middleware.ts                   # route protection (see §5)
+supabase/
+├── config.toml                 # CLI config; Edge Functions deployed with verify_jwt = false
+├── migrations/                 # SQL migrations (schema, RLS, functions, cron, triggers) — source of truth
+└── functions/                  # Deno Edge Functions
+    ├── _shared/                # admin client, stripe, gemini, http (internal-secret check), orders, thumbs
+    ├── stripe-webhook/         # Stripe → mark order paid / release stock (the ONLY place orders become paid)
+    ├── checkout-maintenance/   # pg_cron every 10 min: expire unpaid holds, settle missed webhooks
+    ├── on-listing-created/     # "comics-sell" insert trigger: Gemini listing check + admin email (Resend)
+    └── on-image-uploaded/      # storage.objects insert trigger: 320px JPEG thumbs in <bucket>/thumbs/
 ```
+
+**Checkout model:** adding to the cart does **not** touch stock. `/api/create-order` calls the
+`reserve_order` SQL function (atomic, prices from the DB, 30-min hold) and creates the PaymentIntent.
+`stripe-webhook` calls `mark_order_paid` (receipt + cart cleanup); `checkout-maintenance` releases
+expired holds via `release_order`. Never decrement stock or create receipts from the browser.
 
 **API surface** (`src/app/api/`), grouped:
 
 - **Store/commerce:** `comics-store/{buy,sell,sell-bulk,update-bulk,delete-bulk,toggle-approval}`,
-  `create-order`, `confirm-payment`, `payment-success`, `clear-cart`, `generate-receipt`,
-  `orders/[id]`, `update-stock`, `comics-admin`, `receipts-admin`.
+  `create-order` (reserve + PaymentIntent), `payment-success` (read-only status/receipt), `wishlist`,
+  `clear-cart`, `generate-receipt`, `orders/[id]`, `comics-admin`, `receipts-admin`.
 - **External comic DBs (proxy):** `comic-vine/*`, `marvel/*`, `metron/*`, `superhero/*`,
   `characters-list`, `comicbooks-api/*`, `guia-search`, `random-cover`, `image-proxy`.
 - **Content/community:** `blog/{get-posts,post}`, `forum/{create-forums,create-topics,create-posts,fetch-topics}`.
@@ -83,9 +97,9 @@ middleware.ts                   # route protection (see §5)
 
 ## 3. Data & integration model
 
-- **Database = Supabase Postgres.** There is no ORM/migration file in-repo; schema is managed in the
-  Supabase project. A plan that adds/changes tables must state the SQL (and RLS policy) it needs and
-  call out that it must be applied in Supabase, not via a local migration tool.
+- **Database = Supabase Postgres.** Schema changes are SQL migrations in `supabase/migrations/`
+  (applied with `npx supabase db push`). Older tables predate this and were created in the dashboard;
+  a plan that adds/changes tables must add a migration with the SQL and RLS policies it needs.
 - **Three Supabase clients — pick deliberately:**
   - `utils/supabase/client.ts` — browser/client components (anon key).
   - `utils/supabase/server.ts` — Server Components / route handlers (cookie-bound session).
@@ -164,6 +178,12 @@ S3_BUCKET_NAME=
 # Google Gemini (comic suggestions) — server-only
 GEMINI_API_KEY=
 ```
+
+Edge Function secrets live in Supabase, not in the Next.js env (`npx supabase secrets set …`):
+`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `GEMINI_API_KEY`, `RESEND_API_KEY`,
+`NOTIFY_FROM_EMAIL`, `INTERNAL_HOOK_SECRET`, `SITE_URL`. The database side reads `project_url` and
+`internal_hook_secret` from Vault (see `supabase/migrations/20261104120100_checkout_cron.sql`).
+`STRIPE_WEBHOOK_SECRET` is no longer needed by the Next.js app.
 
 Rule: any new secret is **server-only** unless it is genuinely public, in which case it gets a
 `NEXT_PUBLIC_` prefix and you accept it ships to the browser.

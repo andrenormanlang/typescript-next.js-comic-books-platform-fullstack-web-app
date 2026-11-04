@@ -1,0 +1,20 @@
+# Minimal Supabase CLI config for retro-pop.
+# Link once with: npx supabase link --project-ref okepievzdelqzjwhsueu
+project_id = "retro-pop"
+
+[db]
+major_version = 15
+
+# Stripe calls this directly; it authenticates with the Stripe signature.
+[functions.stripe-webhook]
+verify_jwt = false
+
+# Called by pg_cron / database triggers; they authenticate with x-internal-secret.
+[functions.checkout-maintenance]
+verify_jwt = false
+
+[functions.on-listing-created]
+verify_jwt = false
+
+[functions.on-image-uploaded]
+verify_jwt = false

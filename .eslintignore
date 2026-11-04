@@ -15,3 +15,6 @@ next.config.js
 next.config.mjs
 postcss.config.js
 tailwind.config.ts
+
+# Supabase Edge Functions are Deno code; checked with `deno check`
+supabase/functions/

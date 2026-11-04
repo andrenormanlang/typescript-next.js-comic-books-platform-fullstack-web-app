@@ -1,7 +1,7 @@
 "use client";
 
 import { useColorModeValue } from "@/components/ui/color-mode";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {List, 
   Box,
@@ -13,20 +13,17 @@ import {List,
   Image, Badge,
   Button,
 } from '@chakra-ui/react';
-import { createClient } from '@supabase/supabase-js';
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+import { useOrderStatus } from '@/hooks/comics-sale/useOrderStatus';
+import { useUser } from '@/contexts/UserContext';
 
 const PaymentSuccessReceipt = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const orderId = searchParams?.get('orderId');
-  const userId = searchParams?.get('userId');
-  const [loading, setLoading] = useState(true);
-  const [receipt, setReceipt] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { user } = useUser();
+  const { data, error: queryError, isLoading } = useOrderStatus(orderId);
+  const status = data?.status;
+  const receipt = data?.receipt;
 
   // Define color variables for light and dark modes
   const bg = useColorModeValue('gray.50', 'gray.800');
@@ -36,40 +33,34 @@ const PaymentSuccessReceipt = () => {
   const badgeBg = useColorModeValue('blue.100', 'blue.700');
   const badgeColor = useColorModeValue('blue.800', 'blue.200');
 
+  // Let the cart drawer refresh: the webhook already removed the bought items.
   useEffect(() => {
-    const fetchReceiptDetails = async () => {
-      if (!orderId || !userId) return;
+    if (status === 'paid' && user?.id) {
+      window.dispatchEvent(new CustomEvent('paymentSuccess', { detail: { userId: user.id } }));
+    }
+  }, [status, user?.id]);
 
-      try {
-        const response = await fetch(`/api/payment-success?orderId=${orderId}&userId=${userId}`);
-        const data = await response.json();
+  const error =
+    queryError?.message ??
+    (status === 'refunded'
+      ? 'Sorry, this comic sold out before your payment completed. You have been refunded.'
+      : status === 'expired' || status === 'cancelled'
+        ? 'This order was not completed.'
+        : null);
 
-        if (data.error) {
-          setError(data.error);
-        } else {
-          setReceipt(data.receipt);
-          console.log('Receipt Details:', data.receipt);
-
-          // Dispatch a custom event to clear the cart
-          const event = new CustomEvent('paymentSuccess', {
-            detail: { userId },
-          });
-          window.dispatchEvent(event);
-        }
-      } catch (err) {
-        setError('Failed to fetch receipt details');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchReceiptDetails();
-  }, [orderId, userId]);
-
-  if (loading) {
+  if (!orderId) {
     return (
       <Center height="100vh">
+        <Text color="red.500">No order ID provided</Text>
+      </Center>
+    );
+  }
+
+  if (isLoading || status === 'pending') {
+    return (
+      <Center height="100vh" flexDirection="column" gap={4}>
         <Spinner size="xl" />
+        <Text>Processing payment…</Text>
       </Center>
     );
   }

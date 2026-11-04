@@ -675,6 +675,7 @@ const Navbar = () => {
 								<Menu.Positioner>
 									<Menu.Content {...avatarMenuListStyle}>
 										{renderAvatarItem("Profile", "/auth/account")}
+										{renderAvatarItem("Wishlist", "/comics-store/wishlist")}
 										{renderAvatarItem("Sign Out", undefined, handleSignOut)}
 									</Menu.Content>
 								</Menu.Positioner>

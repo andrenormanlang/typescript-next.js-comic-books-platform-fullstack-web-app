@@ -1,3 +1,11 @@
+export type AiListingReview = {
+	cover_matches_title: boolean;
+	quality_flags: string[];
+	suggested_description: string | null;
+	confidence: number;
+	model?: string;
+};
+
 export type Comic = {
 	id: string;
 	user_id: string;
@@ -16,6 +24,8 @@ export type Comic = {
 	currency: string;
 	price: number;
 	stock: number;
+	ai_review?: AiListingReview | null;
+	ai_reviewed_at?: string | null;
 	profiles: {
 		username: string;
 		email: string;
@@ -25,11 +35,11 @@ export type Comic = {
 export type WishlistItem = {
 	id: string;
 	comic_id: string;
-	title: string;
-	price: number;
-	currency: string;
-	stock: number;
-	comic: Comic;
+	created_at: string;
+	comic: Pick<
+		Comic,
+		"id" | "title" | "image" | "price" | "currency" | "stock" | "publisher" | "release_date" | "is_approved"
+	> | null;
 };
 
 export type CartItem = {
