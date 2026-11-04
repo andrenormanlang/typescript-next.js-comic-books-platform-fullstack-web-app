@@ -2,7 +2,7 @@
 
 [retro-pop-comics.com](https://retro-pop-comics.com) — a vintage and modern comic book marketplace with multi-source comic database search, AI-powered recommendations, a live comics news feed, new-release tracking, a community forum, and a blog.
 
-Built with **Next.js 16** (App Router, Turbopack), **Supabase**, **Chakra UI v3**, and **Stripe**.
+Built with **Next.js 16** (App Router, Turbopack), **Supabase** (Postgres, Auth, Storage, Edge Functions), **Chakra UI v3**, and **Stripe**.
 
 ---
 
@@ -12,7 +12,10 @@ Built with **Next.js 16** (App Router, Turbopack), **Supabase**, **Chakra UI v3*
 | --- | --- |
 | 🔍 **Comic Database Search** | Search issues, characters, creators & publishers across Comic Vine, Marvel, Metron Cloud, Superhero API, Quadrinhos Brasil, and getcomics.org |
 | 🆕 **New Releases** | Weekly new-release listings with detailed release pages |
-| 🛒 **Comics Store** | Buy and sell comics with listing management and Stripe checkout |
+| 🛒 **Comics Store** | Buy and sell comics with listing management and Stripe checkout. Stock is reserved for 30 minutes at checkout and orders are confirmed by a Stripe webhook, never by the browser |
+| ❤️ **Wishlist** | Save comics with the heart button, see stock at a glance on `/comics-store/wishlist`, move items to the cart |
+| 🛡️ **Listing moderation** | New listings get an advisory Gemini check (does the cover match the title? red flags?) and admins get an email; results show in the admin table |
+| 🖼️ **Thumbnails** | Uploaded covers and avatars get a 320px thumbnail automatically, so the store grid loads faster |
 | 📰 **Comics News** | Live AI-rewritten articles from 11 sources, infinite scroll, real-time search |
 | 🗞️ **Daily Pull Digest** | AI summary of the day's comics news — 5 themed highlights (publisher + topic) above the news grid, refreshed each morning |
 | 🤖 **Comic Suggestion** | AI-powered comic recommendations via Google Gemini |
@@ -32,7 +35,9 @@ Built with **Next.js 16** (App Router, Turbopack), **Supabase**, **Chakra UI v3*
 | 🎨 UI | Chakra UI v3, Lucide React, Framer Motion |
 | 🔤 Fonts | Google Fonts via `next/font` (Bangers, Archivo Black, Inter) |
 | 🗄️ Auth & Database | Supabase (`@supabase/ssr`, Postgres) |
-| 💳 Payments | Stripe |
+| 💳 Payments | Stripe (PaymentIntents + webhook) |
+| ⚡ Serverless | Supabase Edge Functions (Deno), `pg_cron` + `pg_net` for schedules and database triggers |
+| ✉️ Email | Resend (admin notifications) |
 | 🔄 Server state | TanStack React Query v5 |
 | 🗃️ Client state | Redux Toolkit (`react-redux`) |
 | 📝 Rich text editor | TipTap |
@@ -67,6 +72,16 @@ src/
 ├── helpers/              # Shared helper components and utilities
 ├── contexts/             # React context providers
 └── types/                # Shared TypeScript types
+
+supabase/
+├── config.toml           # Supabase CLI config (Edge Functions run with verify_jwt = false)
+├── migrations/           # SQL migrations: tables, RLS, SQL functions, cron jobs, triggers
+└── functions/            # Supabase Edge Functions (Deno)
+    ├── _shared/          # Admin client, Stripe, Gemini, auth + order helpers (+ Deno tests)
+    ├── stripe-webhook/
+    ├── checkout-maintenance/
+    ├── on-listing-created/
+    └── on-image-uploaded/
 ```
 
 ---
@@ -78,6 +93,7 @@ src/
 - A [Supabase](https://supabase.com) project
 - A [Stripe](https://stripe.com) account (test keys are fine locally)
 - The `retro-pop-dispatch` backend deployed (for the news feed)
+- For the Edge Functions: the Supabase CLI (`npx supabase`), [Deno](https://deno.com) to type-check/test them locally, a [Resend](https://resend.com) account, and a Gemini API key
 
 ---
 
@@ -95,13 +111,12 @@ NEXT_PUBLIC_SUPABASE_URL=https://<your-project>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>
 
-# Stripe
+# Stripe (the webhook secret lives in Supabase, see below)
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 STRIPE_SECRET_KEY=sk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
 
 # Comics news backend (retro-pop-dispatch)
-RETROPOP_DISPATCH_API_URL=https://bue12b3514.execute-api.eu-north-1.amazonaws.com/dev
+RETROPOP_DISPATCH_API_URL=https://<your-api-gateway-url>
 
 # AWS S3 (avatar uploads)
 AWS_REGION=eu-north-1
@@ -111,10 +126,65 @@ S3_BUCKET_NAME=<your-bucket>
 
 # Google Gemini (comic suggestions)
 GEMINI_API_KEY=<your-gemini-key>
-
-# AWS Gateway URL for comics news feed (if using a custom deployment of retro-pop-dispatch)
-RETROPOP_DISPATCH_API_URL=https://<your-api-gateway-url>
 ```
+
+### Supabase (database + Edge Functions)
+
+Run these from the repo root, in this order:
+
+1. **Log in and link the project**
+
+   ```bash
+   npx supabase login
+   npx supabase link --project-ref <project-ref>
+   ```
+
+2. **Create two Vault secrets** in the Supabase SQL editor. The cron job and database triggers use them to call the Edge Functions:
+
+   ```sql
+   select vault.create_secret('https://<project-ref>.supabase.co', 'project_url');
+   select vault.create_secret('<long random string>', 'internal_hook_secret');
+   ```
+
+3. **Apply the migrations** (check the list with `--dry-run` first):
+
+   ```bash
+   npx supabase db push --remote --dry-run
+   npx supabase db push --remote
+   ```
+
+4. **Set the Edge Function secrets.** Put them in `supabase/.env` (git-ignored) and upload:
+
+   ```bash
+   INTERNAL_HOOK_SECRET=<same value as the Vault secret internal_hook_secret>
+   STRIPE_SECRET_KEY=sk_test_...
+   STRIPE_WEBHOOK_SECRET=whsec_...        # from step 6
+   GEMINI_API_KEY=<your-gemini-key>
+   RESEND_API_KEY=re_...
+   NOTIFY_FROM_EMAIL=Retro Pop <onboarding@resend.dev>   # or an address on a domain verified in Resend
+   SITE_URL=https://retro-pop-comics.com
+   ```
+
+   ```bash
+   npx supabase secrets set --env-file supabase/.env
+   ```
+
+   `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are provided to every function automatically.
+
+5. **Deploy the functions**
+
+   ```bash
+   npx supabase functions deploy
+   ```
+
+6. **Create the Stripe webhook** (Stripe Dashboard → Developers → Webhooks → Add destination):
+   - Endpoint URL: `https://<project-ref>.supabase.co/functions/v1/stripe-webhook`
+   - Payload style: **Snapshot**
+   - Events: `payment_intent.succeeded`, `payment_intent.payment_failed`, `payment_intent.canceled`
+
+   Copy its signing secret into `STRIPE_WEBHOOK_SECRET` and run `secrets set` again. Use the same Stripe mode (test or live) as `STRIPE_SECRET_KEY`.
+
+> **Resend test sender:** `onboarding@resend.dev` only delivers to the email address that owns the Resend account. That works while there is a single admin using that address. For more admins, verify a domain in Resend and change `NOTIFY_FROM_EMAIL`.
 
 ---
 
@@ -134,6 +204,11 @@ App runs at `http://localhost:3000` with Turbopack.
 pnpm build        # production build
 pnpm type-check   # TypeScript check without emitting
 pnpm lint         # ESLint
+
+# Edge Functions (Deno; excluded from the Next.js tsconfig and ESLint)
+cd supabase/functions
+deno check */index.ts
+deno test --allow-env _shared/
 ```
 
 ---
@@ -168,6 +243,46 @@ See [retro-pop-dispatch](../retro-pop-dispatch/README.md) for backend setup and 
 
 ---
 
+## 🧾 Checkout & Supabase Edge Functions
+
+Stock and payment state are owned by the database and Stripe, not the browser.
+
+```text
+Add to cart ──► cart row only (stock untouched)
+
+Checkout ──► /api/create-order
+              ├─ reserve_order()      atomic: take stock, price from DB, pending order, 30-min hold
+              └─ Stripe PaymentIntent (amount computed server-side, metadata.order_id)
+
+Pay ──► Stripe ──► stripe-webhook (Edge Function)
+                    ├─ payment_intent.succeeded → mark_order_paid(): order paid, receipt, cart cleared
+                    └─ payment_intent.canceled  → release_order(): stock given back
+
+Every 10 min ──► pg_cron ──► checkout-maintenance (Edge Function)
+                    └─ holds past expires_at: cancel PaymentIntent, release stock
+                       (or settle it if the payment succeeded but the webhook was missed)
+```
+
+The success page (`/payment-success`) polls `/api/payment-success` until the webhook has marked the order paid, then shows the receipt.
+
+| Edge Function | Triggered by | What it does |
+| --- | --- | --- |
+| `stripe-webhook` | Stripe (signature-verified) | Marks orders paid, creates receipts, clears carts, releases stock on cancel. Refunds automatically if a hold expired and the comic sold to someone else |
+| `checkout-maintenance` | `pg_cron`, every 10 minutes | Expires unpaid checkout holds and returns their stock |
+| `on-listing-created` | Insert into `comics-sell` | Gemini reviews the cover and listing (stored in `ai_review`, advisory only), then emails admins via Resend |
+| `on-image-uploaded` | Upload to the `comics-images` / `avatars` buckets | Writes a 320px JPEG to `<bucket>/thumbs/`. WebP/AVIF and files over 4 MB are skipped and the original is used |
+
+The three internal functions only accept calls carrying the `x-internal-secret` header. The database reads it from Vault, and it must match the `INTERNAL_HOOK_SECRET` function secret. A nightly SQL-only cron job also refreshes the price/stock copies stored on cart rows.
+
+**Checking it works:**
+
+- **Cron runs:** `select created, status_code, left(content::text, 80) from net._http_response order by created desc limit 5;`
+- **Webhook deliveries:** Stripe Dashboard → Webhooks → the destination → Event deliveries
+- **Function logs:** Supabase Dashboard → Edge Functions → *function* → Logs
+
+---
+
 ## 🚀 Deployment
 
-The app is deployed to [Vercel](https://vercel.com). Add the same environment variables from `.env.local` to the Vercel project settings under **Settings → Environment Variables**.
+- **Next.js app:** every push to `main` builds the Docker image `retropop:latest` and pushes it to Docker Hub (`.github/workflows/docker-publish.yml`). The app can also be deployed to [Vercel](https://vercel.com); add the variables from `.env.local` under **Settings → Environment Variables**.
+- **Database & Edge Functions:** deployed with the Supabase CLI (see *Setup → Supabase*). When a release contains migrations, run `npx supabase db push --remote` **before** deploying the app, because the new app code expects the new schema.
