@@ -3,7 +3,7 @@
 import { useColorModeValue } from "@/components/ui/color-mode";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, use } from "react";
-import { supabase } from "@/utils/supabaseClient";
+import { supabase } from "@/utils/supabase/client";
 import {Avatar, Dialog,
   Box,
   Spinner,

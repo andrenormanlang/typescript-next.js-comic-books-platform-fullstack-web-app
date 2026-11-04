@@ -8,6 +8,7 @@ const protectedPaths: { path: string; message: string }[] = [
   { path: '/blog/create',       message: 'Sign in to write a blog post.' },
   { path: '/blog/edit',         message: 'Sign in to edit your blog post.' },
   { path: '/auth/account',      message: 'Sign in to access your account.' },
+  { path: '/comics-store/wishlist', message: 'Sign in to see your wishlist.' },
 ];
 
 // Forum write routes matched by pattern

@@ -1,5 +1,5 @@
 // app/blog/page.tsx
-import { createClient } from "@/utils/supabase/client";
+import { createClient } from "@/utils/supabase/server";
 import { BlogPost } from "@/types/blog/blog.type";
 import BlogPostListClient from "./_components/BlogPostList/BlogPostList.client";
 
@@ -7,7 +7,7 @@ import BlogPostListClient from "./_components/BlogPostList/BlogPostList.client";
 export const revalidate = 0; // or 'force-cache', etc.
 
 export default async function BlogPage() {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Fetch posts on the server
   const { data, error } = await supabase

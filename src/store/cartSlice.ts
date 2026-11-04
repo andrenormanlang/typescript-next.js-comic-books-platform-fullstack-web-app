@@ -67,10 +67,6 @@ export const addToCart = createAsyncThunk<AddToCartResponse, AddToCartPayload, {
         throw new Error(error?.message || 'Comic not found');
       }
 
-      if (comic.stock < quantity) {
-        throw new Error('Insufficient stock');
-      }
-
       const { data: existingCartItem, error: fetchError } = await supabase
         .from('cart')
         .select('*')
@@ -80,6 +76,10 @@ export const addToCart = createAsyncThunk<AddToCartResponse, AddToCartPayload, {
 
       if (fetchError && fetchError.code !== 'PGRST116') {
         throw new Error(fetchError.message);
+      }
+
+      if (comic.stock < (existingCartItem?.quantity ?? 0) + quantity) {
+        throw new Error('Insufficient stock');
       }
 
       if (existingCartItem) {
@@ -112,15 +112,7 @@ export const addToCart = createAsyncThunk<AddToCartResponse, AddToCartPayload, {
         }
       }
 
-      const { error: stockError } = await supabase
-        .from('comics-sell')
-        .update({ stock: comic.stock - quantity })
-        .eq('id', comicId);
-
-      if (stockError) {
-        throw new Error(stockError.message);
-      }
-
+      // Stock is reserved at checkout (reserve_order), not when adding to the cart.
       return { userId, comicId, quantity, title: comic.title, image: comic.image, price: comic.price, currency: comic.currency, stock: comic.stock };
     } catch (error: any) {
       return rejectWithValue(error.message);
@@ -179,9 +171,8 @@ export const updateCartQuantity = createAsyncThunk(
 
       if (existingCartItem) {
         const newQuantity = quantity;
-        const stockDifference = newQuantity - existingCartItem.quantity;
 
-        if (comic.stock < stockDifference) {
+        if (comic.stock < newQuantity) {
           throw new Error('Insufficient stock');
         }
 
@@ -193,15 +184,6 @@ export const updateCartQuantity = createAsyncThunk(
 
         if (updateError) {
           throw new Error(updateError.message);
-        }
-
-        const { error: stockError } = await supabase
-          .from('comics-sell')
-          .update({ stock: comic.stock - stockDifference })
-          .eq('id', comicId);
-
-        if (stockError) {
-          throw new Error(stockError.message);
         }
 
         return { userId, comicId, quantity };

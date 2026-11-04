@@ -3,7 +3,7 @@
 import React, { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { supabase } from "@/utils/supabaseClient";
+import { supabase } from "@/utils/supabase/client";
 import {Field, 
   Box,
   Button,

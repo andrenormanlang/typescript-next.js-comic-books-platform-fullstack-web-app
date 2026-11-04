@@ -1,6 +1,6 @@
 "use client";
 
-import {Checkbox, Switch,
+import {Checkbox, Switch, Badge,
 	Table, Heading,
 	Spinner,
 	Center,
@@ -15,7 +15,7 @@ import {Checkbox, Switch,
 } from "@chakra-ui/react";
 import { toaster } from "@/components/ui/toaster";
 import { useGetComics } from "@/hooks/comic-table/useGetComics";
-import { Comic } from "@/types/comics-store/comic-detail.type";
+import { AiListingReview, Comic } from "@/types/comics-store/comic-detail.type";
 import { useState, useEffect, useMemo } from "react";
 import { useUpdateComics } from "@/hooks/comic-table/useUpdateComics";
 import SearchBar from "@/components/comics-store/search";
@@ -36,6 +36,7 @@ const ComicsListTable = () => {
 		"updated_at",
 		"stock",
 		"price",
+		"ai_review",
 		"is_approved",
 	]);
 	const updateStockAndPriceMutation = useUpdateComics();
@@ -198,7 +199,7 @@ const ComicsListTable = () => {
 							<Table.Root variant="outline">
 								<Table.Header>
 									<Table.Row>
-										<Table.ColumnHeader colSpan={9} px={4} py={3}>
+										<Table.ColumnHeader colSpan={10} px={4} py={3}>
 											<Flex align="center" gap={3} flexWrap="wrap" rowGap={2}>
 												<Text fontSize="xs" fontWeight="semibold" color="fg.muted" textTransform="uppercase" letterSpacing="widest" whiteSpace="nowrap">
 													Columns
@@ -240,6 +241,7 @@ const ComicsListTable = () => {
 												{([
 													{ col: "stock", label: "Stock" },
 													{ col: "price", label: "Price" },
+													{ col: "ai_review", label: "AI check" },
 													{ col: "is_approved", label: "Approve" },
 												] as const).map(({ col, label }) => (
 													<Checkbox.Root key={col} checked={visibleColumns.includes(col)} onCheckedChange={() => toggleColumnVisibility(col)} size="sm">
@@ -284,6 +286,7 @@ const ComicsListTable = () => {
 										)}
 										{visibleColumns.includes("stock") && <Table.ColumnHeader textAlign="center">Stock</Table.ColumnHeader>}
 										{visibleColumns.includes("price") && <Table.ColumnHeader textAlign="center">Price</Table.ColumnHeader>}
+										{visibleColumns.includes("ai_review") && <Table.ColumnHeader textAlign="center">AI check</Table.ColumnHeader>}
 										{visibleColumns.includes("is_approved") && <Table.ColumnHeader textAlign="center">Approve</Table.ColumnHeader>}
 									</Table.Row>
 								</Table.Header>
@@ -382,6 +385,11 @@ const ComicsListTable = () => {
 													</HStack>
 												</Table.Cell>
 											)}
+											{visibleColumns.includes("ai_review") && (
+												<Table.Cell textAlign="center">
+													<AiReviewBadge review={comic.ai_review} />
+												</Table.Cell>
+											)}
 											{visibleColumns.includes("is_approved") && (
 												<Table.Cell textAlign="center">
 													<Switch.Root
@@ -404,6 +412,27 @@ const ComicsListTable = () => {
 				</Accordion.Item>
 			</Accordion.Root>
 		</Box>
+	);
+};
+
+// Advisory result from the on-listing-created Edge Function. The full flag list
+// and any suggested description show on hover.
+const AiReviewBadge = ({ review }: { review?: AiListingReview | null }) => {
+	if (!review) return <Text color="fg.muted">—</Text>;
+
+	const issues = review.quality_flags.length + (review.cover_matches_title ? 0 : 1);
+	const details = [
+		!review.cover_matches_title && "Cover may not match the title",
+		...review.quality_flags,
+		review.suggested_description && `Suggested description: ${review.suggested_description}`,
+	]
+		.filter(Boolean)
+		.join("\n");
+
+	return (
+		<Badge colorPalette={issues ? "orange" : "green"} title={details || "No issues flagged"} cursor="help">
+			{issues ? `${issues} flag${issues > 1 ? "s" : ""}` : "OK"}
+		</Badge>
 	);
 };
 

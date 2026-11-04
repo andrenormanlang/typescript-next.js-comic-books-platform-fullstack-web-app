@@ -3,7 +3,7 @@
 import { useColorModeValue } from "@/components/ui/color-mode";
 import { useRouter, useParams } from "next/navigation"; // Import useParams
 import { useState } from "react";
-import { supabase } from "@/utils/supabaseClient";
+import { supabase } from "@/utils/supabase/client";
 import {Field, 
   Box,
   Button,

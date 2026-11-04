@@ -26,8 +26,6 @@ import CheckoutForm from "@/components/CheckoutForm";
 import { Elements } from "@stripe/react-stripe-js";
 import getStripe from "@/utils/get-stripejs";
 import { supabase } from "@/utils/supabase/client";
-import { useUpdateStock } from "@/hooks/stock-management/useUpdateStock";
-import { useQueryClient } from "@tanstack/react-query";
 import { Appearance } from "@stripe/stripe-js";
 
 interface PaymentSuccessDetail {
@@ -51,8 +49,6 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 	const cartItems = useSelector((state: RootState) => state.cart.items);
 	const loading = useSelector((state: RootState) => state.cart.loading);
 	const error = useSelector((state: RootState) => state.cart.error);
-	const queryClient = useQueryClient();
-	const { mutate: updateStock, isPending: updatingStock } = useUpdateStock();
 
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 	const [selectedComicId, setSelectedComicId] = useState<string | null>(null);
@@ -68,7 +64,8 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
 		const handlePaymentSuccess = (event: CustomEvent<PaymentSuccessDetail>) => {
 			if (event.detail.userId === user?.id) {
-				handleClearCart();
+				// The stripe-webhook Edge Function already removed the bought items.
+				dispatch(fetchCart({ userId: event.detail.userId }));
 			}
 		};
 
@@ -83,39 +80,10 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 	const handleRemoveFromCart = async (comicId: string) => {
 		if (!user) return;
 
-		const existingItem = cartItems.find((item) => item.comicId === comicId);
-
-		if (!existingItem) return;
-
-		const { data: comicData, error: comicError } = await supabase
-			.from("comics-sell")
-			.select("stock")
-			.eq("id", comicId)
-			.single();
-
-		if (comicError || !comicData) {
-			toaster.create({
-				title: "Error updating stock.",
-				description: "There was an error updating the stock or insufficient stock available.",
-				type: "error",
-				duration: 5000,
-			});
-			return;
-		}
-
-		const updatedStock = comicData.stock + existingItem.quantity;
-
+		// Stock is only reserved at checkout, so removing an item is cart-only.
 		dispatch(removeFromCart({ userId: user.id, comicId }))
 			.unwrap()
 			.then(() => {
-				updateStock(
-					{ comicId, newStock: updatedStock },
-					{
-						onSuccess: () => {
-							queryClient.invalidateQueries({ queryKey: ["comics"] });
-						},
-					}
-				);
 				toaster.create({
 					title: "Comic removed from cart.",
 					description: "The comic has been removed from your cart.",
@@ -150,8 +118,6 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 			return;
 		}
 
-		const stockDifference = newQuantity - existingItem.quantity;
-
 		const { data: comicData, error: comicError } = await supabase
 			.from("comics-sell")
 			.select("stock")
@@ -168,9 +134,8 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 			return;
 		}
 
-		const updatedStock = comicData.stock - stockDifference;
-
-		if (updatedStock < 0) {
+		// Stock isn't taken until checkout; just make sure enough copies exist.
+		if (newQuantity > comicData.stock) {
 			toaster.create({
 				title: "Insufficient stock",
 				description: "You cannot add more of this comic to your cart.",
@@ -183,14 +148,6 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 		dispatch(updateCartQuantity({ userId: user.id, comicId, quantity: newQuantity }))
 			.unwrap()
 			.then(() => {
-				updateStock(
-					{ comicId, newStock: updatedStock },
-					{
-						onSuccess: () => {
-							queryClient.invalidateQueries({ queryKey: ["comics"] });
-						},
-					}
-				);
 				toaster.create({
 					title: "Cart updated.",
 					description: "The quantity has been updated.",
@@ -208,6 +165,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 			});
 	};
 
+	// Display only; the charged amount is computed server-side.
 	const calculateTotalAmount = () => {
 		return cartItems.reduce((total, item) => total + item.quantity * item.price, 0);
 	};
@@ -215,55 +173,39 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 	const handleCheckout = async () => {
 		if (!user) return;
 
-		const amount = calculateTotalAmount();
-		setTotalAmount(amount);
-
+		// Only ids and quantities are sent; the server prices the order and
+		// reserves the stock for 30 minutes.
 		const response = await fetch("/api/create-order", {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
 			},
-			body: JSON.stringify({ amount, userId: user.id, cartItems }),
+			body: JSON.stringify({
+				items: cartItems.map((item) => ({ comicId: item.comicId, quantity: item.quantity })),
+			}),
 		});
 
 		const data = await response.json();
 
-		if (data.error) {
+		if (!response.ok || data.error) {
 			toaster.create({
-				title: "Payment Error",
+				title: response.status === 409 ? "Sold out" : "Payment Error",
 				description: data.error,
 				type: "error",
 				duration: 5000,
 			});
-		} else {
-			setClientSecret(data.clientSecret);
-			setOrderData({ amount, items: cartItems, orderId: data.orderId });
-			setIsCheckoutOpen(true);
+			if (response.status === 409) {
+				dispatch(fetchCart({ userId: user.id }));
+			}
+			return;
 		}
+
+		setTotalAmount(data.amount);
+		setClientSecret(data.clientSecret);
+		setOrderData({ amount: data.amount, items: cartItems, orderId: data.orderId });
+		setIsCheckoutOpen(true);
 	};
 
-	const handleClearCart = async () => {
-		if (!user) return;
-
-		const { error } = await supabase.from("cart").delete().eq("user_id", user.id);
-
-		if (error) {
-			toaster.create({
-				title: "Error clearing cart",
-				description: error.message,
-				type: "error",
-				duration: 5000,
-			});
-		} else {
-			dispatch(fetchCart({ userId: user.id }));
-			toaster.create({
-				title: "Cart cleared successfully",
-				description: "All items have been removed from your cart.",
-				type: "success",
-				duration: 5000,
-			});
-		}
-	};
 
 	// Stripe UI appearance customization
 	const appearance: Appearance = {
@@ -327,7 +269,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 												<Button
 													size="sm"
 													onClick={() => handleStockChange(item.comicId, item.quantity - 1)}
-													disabled={item.quantity <= 1 || updatingStock}
+													disabled={item.quantity <= 1}
 												>
 													-
 												</Button>
@@ -342,7 +284,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 												<Button
 													size="sm"
 													onClick={() => handleStockChange(item.comicId, item.quantity + 1)}
-													disabled={item.quantity >= item.stock || updatingStock}
+													disabled={item.quantity >= item.stock}
 												>
 													+
 												</Button>
@@ -410,7 +352,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 				</Portal>
 			</Dialog.Root>
 
-			{isCheckoutOpen && clientSecret && (
+			{isCheckoutOpen && clientSecret && orderData && (
 				<Drawer.Root open={isCheckoutOpen} onOpenChange={(e) => { if (!e.open) setIsCheckoutOpen(false); }} placement="end" size={{ base: "full", md: "md" }}>
 					<Drawer.Backdrop />
 					<Drawer.Positioner>
@@ -421,11 +363,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 							<Drawer.Header><Drawer.Title>Checkout</Drawer.Title></Drawer.Header>
 							<Drawer.Body>
 								<Elements stripe={getStripe()} options={{ clientSecret, appearance }}>
-									<CheckoutForm
-										amount={totalAmount}
-										cartItems={cartItems}
-										onPaymentSuccess={handleClearCart}
-									/>
+									<CheckoutForm amount={totalAmount} orderId={orderData.orderId} />
 								</Elements>
 							</Drawer.Body>
 						</Drawer.Content>

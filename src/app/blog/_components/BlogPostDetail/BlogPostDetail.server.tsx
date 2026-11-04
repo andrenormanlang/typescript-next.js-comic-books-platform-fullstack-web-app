@@ -1,5 +1,5 @@
 // BlogPostDetail.server.tsx
-import { createClient } from "@/utils/supabase/client";
+import { createClient } from "@/utils/supabase/server";
 import { BlogPost } from "@/types/blog/blog.type";
 import BlogPostDetailClient from "./BlogPostDetail.client";
 
@@ -8,7 +8,7 @@ interface Props {
 }
 
 export default async function BlogPostDetailServer({ params }: Props) {
-	const supabase = createClient();
+	const supabase = await createClient();
 	const { id } = await params;
 
 	// Fetch the blog post from Supabase on the server

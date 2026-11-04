@@ -29,9 +29,10 @@ import { Comic } from "@/types/comics-store/comic-detail.type";
 import { NextPage } from "next";
 import { useDispatch, useSelector } from "react-redux";
 import { addToCart, updateCartQuantity } from "@/store/cartSlice";
+import { getThumbnailUrl } from "@/lib/storage/thumbnail";
+import WishlistButton from "@/components/comics-store/WishlistButton";
 import { AppDispatch, RootState } from "@/store/store";
 import { useUser } from "@/contexts/UserContext";
-import { useUpdateStock } from "@/hooks/stock-management/useUpdateStock";
 import { useInfiniteComics } from "@/hooks/comics-sale/useInfiniteComics";
 import { useInView } from "react-intersection-observer";
 import SearchBar from "@/components/comics-store/search";
@@ -57,7 +58,6 @@ const ComicsBuy: NextPage = () => {
 	const router = useRouter();
 	const dispatch: AppDispatch = useDispatch();
 	const cart = useSelector((state: RootState) => state.cart.items);
-	const { mutate: updateStock } = useUpdateStock();
 	const { ref, inView } = useInView();
 
 	const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteComics(searchQuery);
@@ -153,53 +153,25 @@ const ComicsBuy: NextPage = () => {
 			return;
 		}
 
-		if (comicData.stock < quantity) {
+		const existingItem = cart.find((item) => item.comicId === comicId);
+		const wanted = (existingItem?.quantity ?? 0) + quantity;
+		const done = () => setLoadingComicIds((prev) => prev.filter((id) => id !== comicId));
+
+		// Stock is reserved at checkout, not here; just check enough copies exist.
+		if (comicData.stock < wanted) {
 			toaster.create({
-				title: "Error updating stock.",
+				title: "Not enough stock.",
 				description: "Insufficient stock available.",
 				type: "error",
 				duration: 5000,
 			});
-			setLoadingComicIds((prev) => prev.filter((id) => id !== comicId));
+			done();
 			return;
 		}
 
-		const existingItem = cart.find((item) => item.comicId === comicId);
-
-		if (existingItem) {
-			dispatch(updateCartQuantity({ userId: user.id, comicId, quantity: existingItem.quantity + quantity }))
-				.unwrap()
-				.then(() => {
-					updateStock(
-						{ comicId, newStock: comicData.stock - quantity },
-						{
-							onSuccess: () => {
-								setLoadingComicIds((prev) => prev.filter((id) => id !== comicId));
-								toaster.create({
-									title: "Cart updated.",
-									description: "The stock has been updated.",
-									type: "success",
-									duration: 5000,
-								});
-							},
-							onError: () => {
-								setLoadingComicIds((prev) => prev.filter((id) => id !== comicId));
-							},
-						}
-					);
-				})
-				.catch(() => {
-					toaster.create({
-						title: "Error updating cart.",
-						description: "There was an error updating the cart.",
-						type: "error",
-						duration: 5000,
-					});
-					setLoadingComicIds((prev) => prev.filter((id) => id !== comicId));
-				});
-		} else {
-			dispatch(
-				addToCart({
+		const action = existingItem
+			? updateCartQuantity({ userId: user.id, comicId, quantity: wanted })
+			: addToCart({
 					userId: user.id,
 					comicId,
 					quantity,
@@ -207,39 +179,28 @@ const ComicsBuy: NextPage = () => {
 					image: comicData.image,
 					price: comicData.price,
 					currency: comicData.currency,
-					stock: comicData.stock - quantity,
-				})
-			)
-				.unwrap()
-				.then(() => {
-					updateStock(
-						{ comicId, newStock: comicData.stock - quantity },
-						{
-							onSuccess: () => {
-								setLoadingComicIds((prev) => prev.filter((id) => id !== comicId));
-								toaster.create({
-									title: "Added to cart.",
-									description: "The comic has been added to your cart.",
-									type: "success",
-									duration: 5000,
-								});
-							},
-							onError: () => {
-								setLoadingComicIds((prev) => prev.filter((id) => id !== comicId));
-							},
-						}
-					);
-				})
-				.catch(() => {
-					toaster.create({
-						title: "Error adding to cart.",
-						description: "There was an error adding the comic to your cart.",
-						type: "error",
-						duration: 5000,
-					});
-					setLoadingComicIds((prev) => prev.filter((id) => id !== comicId));
+					stock: comicData.stock,
+			  });
+
+		dispatch(action)
+			.unwrap()
+			.then(() => {
+				toaster.create({
+					title: existingItem ? "Cart updated." : "Added to cart.",
+					description: existingItem ? "The quantity has been updated." : "The comic has been added to your cart.",
+					type: "success",
+					duration: 5000,
 				});
-		}
+			})
+			.catch(() => {
+				toaster.create({
+					title: "Error updating cart.",
+					description: "There was an error updating the cart.",
+					type: "error",
+					duration: 5000,
+				});
+			})
+			.finally(done);
 	};
 
 	const handleSearch = (query: string) => {
@@ -289,7 +250,7 @@ const ComicsBuy: NextPage = () => {
 									>
 										<Box position="relative" width="100%" height="0" paddingBottom="150%">
 											<Image
-												src={comic.image || defaultImageUrl}
+												src={getThumbnailUrl(comic.image) || comic.image || defaultImageUrl}
 												alt={comic.title}
 												width="100%"
 												height="100%"
@@ -297,8 +258,12 @@ const ComicsBuy: NextPage = () => {
 												top="0"
 												left="0"
 												objectFit="cover"
+												loading="lazy"
 												onError={(e) => {
-													e.currentTarget.src = defaultImageUrl;
+													// No thumbnail yet → original image → placeholder.
+													const img = e.currentTarget;
+													if (comic.image && img.src !== comic.image) img.src = comic.image;
+													else img.src = defaultImageUrl;
 												}}
 											/>
 											<Box
@@ -373,21 +338,21 @@ const ComicsBuy: NextPage = () => {
 												</Badge>
 											</Stack>
 										</Box>
-										<IconButton
-											aria-label="Add to cart"
-											colorPalette="yellow"
-											position="absolute"
-											top={2}
-											left={2}
-											onClick={(e) => {
-												e.stopPropagation();
-												handleStockChange(comic.id, 1);
-											}}
-											size={{ base: "xs", md: "md" }}
-											disabled={comic.stock === 0 || loadingComicIds.includes(comic.id)}
-										>
-											{loadingComicIds.includes(comic.id) ? <Spinner size="sm" /> : <Plus />}
-										</IconButton>
+										<Box position="absolute" top={2} left={2} display="flex" gap={1}>
+											<IconButton
+												aria-label="Add to cart"
+												colorPalette="yellow"
+												onClick={(e) => {
+													e.stopPropagation();
+													handleStockChange(comic.id, 1);
+												}}
+												size={{ base: "xs", md: "md" }}
+												disabled={comic.stock === 0 || loadingComicIds.includes(comic.id)}
+											>
+												{loadingComicIds.includes(comic.id) ? <Spinner size="sm" /> : <Plus />}
+											</IconButton>
+											<WishlistButton comicId={comic.id} size={{ base: "xs", md: "md" }} />
+										</Box>
 										{isAdmin && (
 											<Box position="absolute" top={2} right={2} display="flex" gap={1}>
 												<NextLink href={`/comics-store/edit/${comic.id}`} passHref>

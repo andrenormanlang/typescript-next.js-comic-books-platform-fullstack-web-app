@@ -2,7 +2,7 @@
 
 import { useColorModeValue } from "@/components/ui/color-mode";
 import { useEffect, useState } from "react";
-import { supabase } from "@/utils/supabaseClient";
+import { supabase } from "@/utils/supabase/client";
 import { Box, Spinner, SimpleGrid, Heading, Text, Button, Image, VStack, Center, Container, Badge, Flex } from "@chakra-ui/react";
 import { useRouter } from "next/navigation";
 import { Forum } from "@/types/forum/forum.type";

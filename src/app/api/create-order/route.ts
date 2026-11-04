@@ -1,66 +1,119 @@
 // src/app/api/create-order/route.ts
+//
+// Reserves stock and creates a pending order + Stripe PaymentIntent.
+// The order is marked paid only by the stripe-webhook Edge Function
+// (supabase/functions/stripe-webhook). Unpaid holds expire after 30 minutes
+// (supabase/functions/checkout-maintenance).
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import Stripe from 'stripe';
+import { NextRequest, NextResponse } from "next/server";
+import Stripe from "stripe";
+import { createClient } from "@/utils/supabase/server";
+import { supabaseAdmin } from "@/utils/supabase/admin-client";
+import { createOrderSchema } from "@/lib/validations/checkout";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: '2024-06-20',
+	apiVersion: "2024-06-20",
 });
 
+type ReservedOrder = {
+	id: number;
+	total_amount: number;
+	currency: string;
+};
+
+async function releasePreviousHolds(userId: string) {
+	const { data: pending } = await supabaseAdmin
+		.from("orders")
+		.select("id, stripe_payment_intent_id")
+		.eq("user_id", userId)
+		.eq("status", "pending");
+
+	for (const old of pending ?? []) {
+		if (old.stripe_payment_intent_id) {
+			const intent = await stripe.paymentIntents.retrieve(old.stripe_payment_intent_id).catch(() => null);
+			// Paid or mid-payment: leave it for the webhook.
+			if (intent && (intent.status === "succeeded" || intent.status === "processing")) continue;
+			if (intent && intent.status !== "canceled") {
+				await stripe.paymentIntents.cancel(intent.id).catch(() => undefined);
+			}
+		}
+		await supabaseAdmin.rpc("release_order", { p_order_id: old.id, p_status: "cancelled" });
+	}
+}
+
 export async function POST(request: NextRequest) {
-  const { amount, userId, cartItems } = await request.json();
+	const supabase = await createClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
 
-  if (!amount || !userId || !cartItems || cartItems.length === 0) {
-    return new NextResponse('Missing required fields', { status: 400 });
-  }
+	if (!user) {
+		return NextResponse.json({ error: "You need to be logged in to check out" }, { status: 401 });
+	}
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+	const parsed = createOrderSchema.safeParse(await request.json().catch(() => null));
+	if (!parsed.success) {
+		return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid cart" }, { status: 400 });
+	}
 
-  try {
-    // Calculate the correct total amount (convert to subunits)
-    const totalAmount = Math.round(amount);
-    const currency = 'usd';
+	// 0. Re-opening checkout replaces the buyer's earlier unpaid hold; otherwise
+	//    their own pending order would make a single-copy comic look sold out.
+	await releasePreviousHolds(user.id);
 
-    // Create a payment intent
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: totalAmount,
-      currency: currency,
-      automatic_payment_methods: { enabled: true },
-    });
+	// 1. Reserve stock and create the pending order in one transaction.
+	const { data: order, error: reserveError } = await supabaseAdmin
+		.rpc("reserve_order", {
+			p_user_id: user.id,
+			p_items: parsed.data.items.map((i) => ({ comic_id: i.comicId, quantity: i.quantity })),
+		})
+		.single<ReservedOrder>();
 
-    // Create an order in the database
-    const { data: orderData, error: orderError } = await supabase
-      .from('orders')
-      .insert({
-        user_id: userId,
-        total_amount: totalAmount,
-        currency: currency,
-        items: cartItems,
-      })
-      .select();
+	if (reserveError || !order) {
+		const message = reserveError?.message ?? "";
+		if (message.startsWith("insufficient_stock:")) {
+			return NextResponse.json(
+				{
+					error: "Sorry, one of the comics in your cart just sold out.",
+					comicId: message.split(":")[1],
+				},
+				{ status: 409 }
+			);
+		}
+		console.error("reserve_order failed:", reserveError);
+		return NextResponse.json({ error: "Could not create your order" }, { status: 500 });
+	}
 
-    if (orderError) throw orderError;
+	// 2. Create the PaymentIntent for the amount the database computed.
+	try {
+		const paymentIntent = await stripe.paymentIntents.create(
+			{
+				amount: Math.round(Number(order.total_amount) * 100), // major → minor units
+				currency: order.currency,
+				automatic_payment_methods: { enabled: true },
+				metadata: { order_id: String(order.id), user_id: user.id },
+			},
+			{ idempotencyKey: `order-${order.id}` }
+		);
 
-    const orderId = orderData[0].id;
+		const { error: linkError } = await supabaseAdmin
+			.from("orders")
+			.update({ stripe_payment_intent_id: paymentIntent.id })
+			.eq("id", order.id);
 
-    return new NextResponse(JSON.stringify({ clientSecret: paymentIntent.client_secret, orderId }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-    });
-  } catch (error: any) {
-    console.error('Error creating order:', error);
-    return new NextResponse(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-    });
-  }
+		if (linkError) {
+			await stripe.paymentIntents.cancel(paymentIntent.id).catch(() => undefined);
+			throw linkError;
+		}
+
+		return NextResponse.json({
+			clientSecret: paymentIntent.client_secret,
+			orderId: order.id,
+			amount: Number(order.total_amount),
+		});
+	} catch (error) {
+		// Give the stock back; the order never became payable.
+		await supabaseAdmin.rpc("release_order", { p_order_id: order.id, p_status: "cancelled" });
+		console.error("Creating PaymentIntent failed:", error);
+		return NextResponse.json({ error: "Payment could not be started" }, { status: 500 });
+	}
 }

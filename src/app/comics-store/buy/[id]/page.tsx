@@ -20,11 +20,11 @@ import {Switch,
 import { toaster } from "@/components/ui/toaster";
 import { ArrowLeft, Plus } from "lucide-react";
 import { Comic } from "@/types/comics-store/comic-detail.type";
+import WishlistButton from "@/components/comics-store/WishlistButton";
 import { useUser } from "@/contexts/UserContext";
 import { useDispatch, useSelector } from "react-redux";
 import { addToCart, updateCartQuantity } from "@/store/cartSlice";
 import { AppDispatch, RootState } from "@/store/store";
-import { useUpdateStock } from "@/hooks/stock-management/useUpdateStock";
 
 // Import the CSS file for styling the rendered rich text content
 import '../../../styles/comic-detail-content.css'; // <-- Adjust the path as needed
@@ -43,7 +43,6 @@ const ComicDetail = () => {
 
 	const dispatch: AppDispatch = useDispatch();
 	const cart = useSelector((state: RootState) => state.cart.items);
-	const updateStockMutation = useUpdateStock();
 
 	useEffect(() => {
 		if (user) {
@@ -117,13 +116,6 @@ const ComicDetail = () => {
 			return;
 		}
 
-		const existingItem = cart.find((item) => item.comicId === comicId);
-
-		if (existingItem) {
-			handleStockChange(comicId, existingItem.quantity + 1);
-			return;
-		}
-
 		handleStockChange(comicId, 1);
 	};
 
@@ -147,9 +139,13 @@ const ComicDetail = () => {
 			return;
 		}
 
-		if (comicData.stock < quantity) {
+		const existingItem = cart.find((item) => item.comicId === comicId);
+		const wanted = (existingItem?.quantity ?? 0) + quantity;
+
+		// Stock is reserved at checkout, not here; just check enough copies exist.
+		if (comicData.stock < wanted) {
 			toaster.create({
-				title: "Error updating stock.",
+				title: "Not enough stock.",
 				description: "Insufficient stock available.",
 				type: "error",
 				duration: 5000,
@@ -157,36 +153,9 @@ const ComicDetail = () => {
 			return;
 		}
 
-		const existingItem = cart.find((item) => item.comicId === comicId);
-
-		if (existingItem) {
-			const newQuantity = existingItem.quantity + quantity;
-			const stockDifference = quantity;
-
-			dispatch(updateCartQuantity({ userId: user.id, comicId, quantity: newQuantity }))
-				.unwrap()
-				.then(() => {
-					updateStockMutation.mutate({ comicId, newStock: comicData.stock - stockDifference });
-					toaster.create({
-						title: "Cart updated.",
-						description: "The stock has been updated.",
-						type: "success",
-						duration: 5000,
-					});
-				})
-				.catch(() => {
-					toaster.create({
-						title: "Error updating cart.",
-						description: "There was an error updating the cart.",
-						type: "error",
-						duration: 5000,
-					});
-				});
-		} else {
-			const stockDifference = quantity;
-
-			dispatch(
-				addToCart({
+		const action = existingItem
+			? updateCartQuantity({ userId: user.id, comicId, quantity: wanted })
+			: addToCart({
 					userId: user.id,
 					comicId,
 					quantity,
@@ -194,28 +163,27 @@ const ComicDetail = () => {
 					image: comicData.image,
 					price: comicData.price,
 					currency: comicData.currency,
-					stock: comicData.stock - stockDifference,
-				})
-			)
-				.unwrap()
-				.then(() => {
-					updateStockMutation.mutate({ comicId, newStock: comicData.stock - stockDifference });
-					toaster.create({
-						title: "Added to cart.",
-						description: "The comic has been added to your cart.",
-						type: "success",
-						duration: 5000,
-					});
-				})
-				.catch(() => {
-					toaster.create({
-						title: "Error adding to cart.",
-						description: "There was an error adding the comic to your cart.",
-						type: "error",
-						duration: 5000,
-					});
+					stock: comicData.stock,
+			  });
+
+		dispatch(action)
+			.unwrap()
+			.then(() => {
+				toaster.create({
+					title: existingItem ? "Cart updated." : "Added to cart.",
+					description: existingItem ? "The quantity has been updated." : "The comic has been added to your cart.",
+					type: "success",
+					duration: 5000,
 				});
-		}
+			})
+			.catch(() => {
+				toaster.create({
+					title: "Error updating cart.",
+					description: "There was an error updating the cart.",
+					type: "error",
+					duration: 5000,
+				});
+			});
 	};
 
 	const toggleApproval = async () => {
@@ -368,15 +336,17 @@ const ComicDetail = () => {
 								</Text>
 							</HStack>
 						)}
-						<Button
-							
-							colorPalette="yellow"
-							onClick={() => addToCartHandler(comic.id)}
-							disabled={comic.stock === 0}
-							size={{ base: "sm", md: "md" }} // Responsive button size
-						>
-							Add to Cart
-						</Button>
+						<HStack gap={2}>
+							<Button
+								colorPalette="yellow"
+								onClick={() => addToCartHandler(comic.id)}
+								disabled={comic.stock === 0}
+								size={{ base: "sm", md: "md" }} // Responsive button size
+							>
+								Add to Cart
+							</Button>
+							<WishlistButton comicId={comic.id} size={{ base: "sm", md: "md" }} />
+						</HStack>
 					</VStack>
 				</Flex>
 			</Container>
