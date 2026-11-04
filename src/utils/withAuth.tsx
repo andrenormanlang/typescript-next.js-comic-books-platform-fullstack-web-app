@@ -30,11 +30,11 @@ const withAuth = (WrappedComponent: React.ComponentType) => {
             setIsAuthenticated(true);
           } else {
             // Redirect to login if not authenticated
-            router.push('/auth/login');
+            router.replace('/auth/login');
           }
         } catch (error) {
           console.error('Authentication check failed:', error);
-          router.push('/auth/login');
+          router.replace('/auth/login');
         } finally {
           setIsLoading(false);
         }

@@ -26,11 +26,11 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
         const { data: { session } } = await supabase.auth.getSession();
 
         if (!session) {
-          router.push('/auth/login');
+          router.replace('/auth/login');
         }
       } catch (error) {
         console.error('Authentication check failed:', error);
-        router.push('/auth/login');
+        router.replace('/auth/login');
       } finally {
         setIsLoading(false);
       }

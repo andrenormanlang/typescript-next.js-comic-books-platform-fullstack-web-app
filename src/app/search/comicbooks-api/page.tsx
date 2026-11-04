@@ -87,7 +87,8 @@ const CBAPI: NextPage = () => {
 		}
 		// Convert URL object to a string
 		const urlString = url.toString();
-		router.push(urlString, undefined);
+		// replace, not push: syncing state to the URL must not add history entries
+		if (urlString !== window.location.href) router.replace(urlString, { scroll: false });
 	}, [searchTerm, currentPage, router]);
 
 	if (isLoading) {

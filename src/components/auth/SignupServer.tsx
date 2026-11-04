@@ -80,7 +80,7 @@ export default function SignupForm() {
 
       if (user) {
         setIsAuthenticated(true);
-        router.push("/");
+        router.replace("/");
       } else {
         setLoading(false);
       }
@@ -91,7 +91,7 @@ export default function SignupForm() {
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN") {
         setIsAuthenticated(true);
-        router.push("/");
+        router.replace("/");
       }
     });
 
@@ -134,17 +134,14 @@ export default function SignupForm() {
     }
   };
 
-  if (loading) {
+  // Don't navigate during render (the old push to /auth/login fed the login
+  // page's reload loop). The effect above already redirects logged-in users.
+  if (loading || isAuthenticated) {
     return (
       <Center minH="100vh">
         <Spinner size="xl" />
       </Center>
     );
-  }
-
-  if (isAuthenticated) {
-    router.push(`/auth/login`);
-    return null;
   }
 
   return (

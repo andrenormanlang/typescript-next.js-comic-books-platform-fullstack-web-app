@@ -28,9 +28,14 @@ const validationSchema = z.object({
 
 interface LoginProps {
   message?: string;
+  redirectTo?: string;
 }
 
-export default function LoginServer({ message }: LoginProps) {
+// Only allow same-site paths, so ?redirectTo= can't send users to another site.
+const safeRedirect = (path?: string) =>
+  path && path.startsWith("/") && !path.startsWith("//") && !path.startsWith("/auth/login") ? path : "/";
+
+export default function LoginServer({ message, redirectTo }: LoginProps) {
   const dispatch = useDispatch();
   const router = useRouter();
   const supabase = createClient();
@@ -43,12 +48,16 @@ export default function LoginServer({ message }: LoginProps) {
   const bgCenter = useColorModeValue("gray.50", "gray.800");
   const bgBox = useColorModeValue("white", "gray.700");
 
+  const destination = safeRedirect(redirectTo);
+
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        // Already logged in (e.g. pressed Back after logging in): leave without
+        // adding a history entry, so Back doesn't land here again.
         setIsAuthenticated(true);
-        router.push("/");
+        router.replace(destination);
       } else {
         setLoading(false);
       }
@@ -58,14 +67,13 @@ export default function LoginServer({ message }: LoginProps) {
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN") {
         setIsAuthenticated(true);
-        router.refresh();
       }
     });
 
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [router, supabase.auth]);
+  }, [router, supabase.auth, destination]);
 
   const signIn = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -100,28 +108,26 @@ export default function LoginServer({ message }: LoginProps) {
     } else {
       dispatch(setAccessToken(data.session.access_token));
       setIsAuthenticated(true);
-      router.refresh();
       toaster.create({
         title: "Logged In Successfully",
         description: "You have successfully logged in.",
         type: "success",
         duration: 5000,
       });
-      router.push("/");
+      router.replace(destination);
+      router.refresh(); // re-render server components with the new session cookie
     }
   };
 
-  if (loading) {
+  // Never reload or navigate during render: the old window.location.reload()
+  // here re-ran this page forever for logged-in users. The redirect happens in
+  // the effect / signIn handler; just show a spinner meanwhile.
+  if (loading || isAuthenticated) {
     return (
       <Center minH="100vh">
         <Spinner size="xl" />
       </Center>
     );
-  }
-
-  if (isAuthenticated) {
-    window.location.reload();
-    return null;
   }
 
   return (

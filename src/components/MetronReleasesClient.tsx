@@ -145,7 +145,8 @@ const MetronReleasesClient = () => {
 		} else {
 			url.searchParams.delete("query");
 		}
-		router.push(url.toString());
+		// replace, not push: syncing state to the URL must not add history entries
+		if (url.toString() !== window.location.href) router.replace(url.toString(), { scroll: false });
 	}, [activeView, currentPage, searchTerm, router]);
 
 	const { data, isLoading, error } = useQuery<MetronResponse>({

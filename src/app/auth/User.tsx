@@ -24,11 +24,11 @@ export default function User() {
 		if (data.session && data.session.user) {
 		  setUserEmail(data.session.user.email || null);
 		} else {
-		  router.push('/auth/login');
+		  router.replace('/auth/login');
 		}
 	  } catch (error) {
 		console.error('Failed to fetch session:', error);
-		router.push('/auth/login');
+		router.replace('/auth/login');
 	  }
 	};
 
@@ -44,7 +44,7 @@ export default function User() {
         type: "success",
         duration: 9000,
       });
-      router.push('/auth/login');
+      router.replace('/auth/login');
     } catch (error) {
       const errorMsg = (error as { message?: string }).message || "Unexpected error.";
       toaster.create({

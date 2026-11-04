@@ -57,17 +57,21 @@ export const createClient = (request: NextRequest) => {
     },
   );
 
-  return { supabase, response };
+  // `set`/`remove` replace `response` when Supabase refreshes the session, so
+  // callers must read it AFTER auth calls; a value captured up front is stale
+  // and would drop the refreshed auth cookies.
+  return { supabase, getResponse: () => response };
 };
 
 export const updateSession = async (request: NextRequest) => {
   try {
-    const { supabase, response } = createClient(request);
+    const { supabase, getResponse } = createClient(request);
 
-    // Authenticates via Supabase Auth server — required for Server Components
+    // Authenticates via Supabase Auth server — required for Server Components.
+    // May refresh the session, which rewrites the auth cookies.
     const { data: { user } } = await supabase.auth.getUser();
 
-    return { response, user };
+    return { response: getResponse(), user };
   } catch (e) {
     return {
       response: NextResponse.next({ request: { headers: request.headers } }),

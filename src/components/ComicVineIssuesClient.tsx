@@ -76,7 +76,8 @@ const ComicVineIssuesClient = () => {
     } else {
       url.searchParams.delete("query");
     }
-    router.push(url.toString(), undefined);
+    // replace, not push: syncing state to the URL must not add history entries
+    if (url.toString() !== window.location.href) router.replace(url.toString(), { scroll: false });
   }, [searchTerm, currentPage, router]);
 
   // Initialize currentPage from URL on mount

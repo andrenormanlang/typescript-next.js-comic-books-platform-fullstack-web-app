@@ -42,7 +42,8 @@ const MarvelStoriesClient: NextPage = () => {
 		}
 		// Convert URL object to a string
 		const urlString = url.toString();
-		router.push(urlString, undefined);
+		// replace, not push: syncing state to the URL must not add history entries
+		if (urlString !== window.location.href) router.replace(urlString, { scroll: false });
 	}, [searchTerm, currentPage, router]);
 
 	useEffect(() => {
@@ -54,7 +55,7 @@ const MarvelStoriesClient: NextPage = () => {
 		if (!isNaN(page) && page > 0) {
 			setCurrentPage(page);
 		} else {
-			setCurrentPage(100);
+			setCurrentPage(1);
 		}
 	}, []);
 	const isSearchMode = data && data.results;
@@ -66,18 +67,6 @@ const MarvelStoriesClient: NextPage = () => {
 			// If you're still on page 1 after search, you may want to call onPageChange(1) here to force a refetch
 		}
 	}, [data, pageSize]);
-
-	useEffect(() => {
-		const url = new URL(window.location.href);
-		url.searchParams.set("page", currentPage.toString());
-		if (searchTerm) {
-			url.searchParams.set("query", searchTerm);
-		} else {
-			url.searchParams.delete("query");
-		}
-		const urlString = url.toString();
-		router.push(urlString, undefined);
-	}, [searchTerm, currentPage, router]);
 
 	const onPageChange = (newPage: number) => {
 		setCurrentPage(newPage);

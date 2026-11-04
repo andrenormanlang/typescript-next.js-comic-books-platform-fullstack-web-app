@@ -23,7 +23,9 @@ export default async function Login({ searchParams }: PageProps) {
     }
   }
 
-  return <LoginServer message={message} />;
+  const redirectTo = Array.isArray(params?.redirectTo) ? params?.redirectTo[0] : params?.redirectTo;
+
+  return <LoginServer message={message} redirectTo={redirectTo} />;
 }
 
 
