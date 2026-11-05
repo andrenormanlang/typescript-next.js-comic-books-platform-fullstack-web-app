@@ -2,7 +2,7 @@
 
 import { useColorMode } from "@/components/ui/color-mode";
 // components/RichTextEditor.tsx
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import { } from "@chakra-ui/react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -98,6 +98,16 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 		onFocus: () => onFocus?.(),
 		onBlur: () => onBlur?.(),
 	});
+
+	// `content` is only read when the editor is created. Push later changes from
+	// outside (data loaded on the edit page, AI cover auto-fill) into the editor.
+	// Skipped while typing, when `value` already equals the editor's HTML.
+	useEffect(() => {
+		if (!editor || editor.isDestroyed) return;
+		if ((value || "") !== editor.getHTML()) {
+			editor.commands.setContent(value || "", false); // false: don't fire onUpdate
+		}
+	}, [editor, value]);
 
 	const setLink = useCallback(() => {
 		if (!editor) return;
