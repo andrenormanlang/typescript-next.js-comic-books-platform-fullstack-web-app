@@ -73,7 +73,8 @@ supabase/
     ├── stripe-webhook/         # Stripe → mark order paid / release stock (the ONLY place orders become paid)
     ├── checkout-maintenance/   # pg_cron every 10 min: expire unpaid holds, settle missed webhooks
     ├── on-listing-created/     # "comics-sell" insert trigger: Gemini listing check + admin email (Resend)
-    └── on-image-uploaded/      # storage.objects insert trigger: 320px JPEG thumbs in <bucket>/thumbs/
+    ├── on-image-uploaded/      # storage.objects insert trigger: 320px JPEG thumbs in <bucket>/thumbs/
+    └── analyze-cover/          # browser-invoked (JWT): cover photo → form facts via Gemini + Guia/Metron/Comic Vine
 ```
 
 **Checkout model:** adding to the cart does **not** touch stock. `/api/create-order` calls the
@@ -181,7 +182,11 @@ GEMINI_API_KEY=
 
 Edge Function secrets live in Supabase, not in the Next.js env (`npx supabase secrets set …`):
 `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `GEMINI_API_KEY`, `RESEND_API_KEY`,
-`NOTIFY_FROM_EMAIL`, `INTERNAL_HOOK_SECRET`, `SITE_URL`. The database side reads `project_url` and
+`NOTIFY_FROM_EMAIL`, `INTERNAL_HOOK_SECRET`, `SITE_URL` (the live app's URL; `analyze-cover` calls its
+`/api/guia-search`), `COMIC_VINE_API_KEY`, `METRON_API_AUTH_HEADER`.
+
+Form dropdown options (publishers, genres, currencies, cover fields) live in `src/lib/comicFormOptions.ts`
+and are mirrored in `supabase/functions/_shared/comic-options.ts`; a Deno test keeps them identical. The database side reads `project_url` and
 `internal_hook_secret` from Vault (see `supabase/migrations/20261104120100_checkout_cron.sql`).
 `STRIPE_WEBHOOK_SECRET` is no longer needed by the Next.js app.
 

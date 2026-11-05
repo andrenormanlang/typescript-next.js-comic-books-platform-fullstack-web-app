@@ -18,3 +18,8 @@ verify_jwt = false
 
 [functions.on-image-uploaded]
 verify_jwt = false
+
+# Called from the browser by logged-in sellers (supabase.functions.invoke),
+# so Supabase verifies their JWT before the function runs.
+[functions.analyze-cover]
+verify_jwt = true

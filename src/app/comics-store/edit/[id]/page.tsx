@@ -18,6 +18,7 @@ import {NativeSelect,
 	Field, Container,
 	Flex,
 	Heading,
+	HStack,
 	Image,
 } from "@chakra-ui/react";
 import { useColorMode } from "@/components/ui/color-mode";
@@ -26,6 +27,10 @@ import { ArrowLeft } from "lucide-react";
 import ImageUpload from "./image-upload";
 import { Comic } from "@/types/comics-store/comic-detail.type";
 import { useUpdateComics } from "@/hooks/comic-table/useUpdateComics";
+import { CURRENCIES, GENRES, publisherOptions } from "@/lib/comicFormOptions";
+import { useCoverAutofill } from "@/hooks/comics-sale/useCoverAutofill";
+import AiFieldButton from "@/components/comics-store/AiFieldButton";
+import CoverAutofillBanner from "@/components/comics-store/CoverAutofillBanner";
 
 // Dynamically import RichTextEditor to disable SSR (so it only runs on the client)
 const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), { ssr: false });
@@ -61,14 +66,7 @@ const EditComic = () => {
 	const [error, setError] = useState<string | null>(null);
 	const [comic, setComic] = useState<Comic | null>(null);
 
-	const {
-		register,
-		handleSubmit,
-		formState: { errors },
-		setValue,
-		reset,
-		watch,
-	} = useForm<FormData>({
+	const form = useForm<FormData>({
 		resolver: zodResolver(validationSchema),
 		defaultValues: {
 			title: "",
@@ -85,49 +83,20 @@ const EditComic = () => {
 			stock: 0,
 		},
 	});
+	const {
+		register,
+		handleSubmit,
+		formState: { errors },
+		setValue,
+		reset,
+		watch,
+	} = form;
 
 	const updateStockAndPriceMutation = useUpdateComics();
 
-	const publishers = [
-		"Marvel Comics",
-		"Editorial Abril",
-		"DC Comics",
-		"Vertigo",
-		"Image Comics",
-		"Dark Horse Comics",
-		"IDW Publishing",
-		"Valiant Comics",
-		"Dynamite Entertainment",
-		"Boom! Studios",
-	];
-
-	const currencies = [
-		{ value: "BRL", label: "Brazilian Real (BRL)" },
-		{ value: "DKK", label: "Danish Krone (DKK)" },
-		{ value: "SEK", label: "Swedish Krona (SEK)" },
-		{ value: "USD", label: "US Dollar (USD)" },
-		{ value: "EUR", label: "Euro (EUR)" },
-	];
-
-	const genres = [
-		"Superhero",
-		"Science Fiction",
-		"Fantasy",
-		"Horror",
-		"Mystery/Crime",
-		"Romance",
-		"Comedy/Humor",
-		"Drama",
-		"Historical",
-		"Slice of Life",
-		"Adventure",
-		"Thriller/Suspense",
-		"Western",
-		"War/Military",
-		"Biographical/Autobiographical",
-		"Educational/Non-Fiction",
-		"Anthology",
-	];
+	// AI cover auto-fill. Uses the listing's current cover; a new upload re-runs it,
+	// and auto-fill only fills fields that are still empty.
+	const autofill = useCoverAutofill(form, watch("image"));
 
 	const fetchComic = useCallback(async () => {
 		if (id) {
@@ -242,19 +211,31 @@ const EditComic = () => {
 						/>
 					</Box>
 					<Field.Root invalid={!!errors.title}>
-						<Field.Label>Title</Field.Label>
+						<HStack width="full" justify="space-between">
+							<Field.Label>Title</Field.Label>
+							<AiFieldButton field="title" label="Title" autofill={autofill} />
+						</HStack>
 						<Input type="text" {...register("title")} maxWidth={"500px"} />
 						{errors.title && <Text color="red.500">{errors.title.message}</Text>}
 					</Field.Root>
 					<Field.Root invalid={!!errors.image}>
 						<Field.Label>New Cover Image</Field.Label>
-						<ImageUpload onUpload={(url) => setValue("image", url)} />
+						<ImageUpload
+							onUpload={(url) => {
+								setValue("image", url);
+								autofill.autofill(url); // fills only empty fields
+							}}
+						/>
 						{errors.image && <Text color="red.500">{errors.image.message}</Text>}
 					</Field.Root>
+					<CoverAutofillBanner autofill={autofill} />
 					<Field.Root invalid={!!errors.genre}>
-						<Field.Label>Genre</Field.Label>
+						<HStack width="full" justify="space-between">
+							<Field.Label>Genre</Field.Label>
+							<AiFieldButton field="genre" label="Genre" autofill={autofill} />
+						</HStack>
 						<NativeSelect.Root><NativeSelect.Field placeholder="Select genre" {...register("genre")} maxWidth={"250px"}>
-							{genres.map((genre) => (
+							{GENRES.map((genre) => (
 								<option key={genre} value={genre}>
 									{genre}
 								</option>
@@ -262,8 +243,11 @@ const EditComic = () => {
 						</NativeSelect.Field></NativeSelect.Root>
 						{errors.genre && <Text color="red.500">{errors.genre.message}</Text>}
 					</Field.Root>
-					<Field.Root invalid={!!errors.release_date} maxWidth={"180px"}>
-						<Field.Label>Release Date</Field.Label>
+					<Field.Root invalid={!!errors.release_date} maxWidth={"220px"}>
+						<HStack width="full" justify="space-between">
+							<Field.Label>Release Date</Field.Label>
+							<AiFieldButton field="release_date" label="Release Date" autofill={autofill} />
+						</HStack>
 						<Input type="date" {...register("release_date")} />
 						{errors.release_date && <Text color="red.500">{errors.release_date.message}</Text>}
 					</Field.Root>
@@ -275,7 +259,7 @@ const EditComic = () => {
 					<Field.Root invalid={!!errors.currency}>
 						<Field.Label>Currency</Field.Label>
 						<NativeSelect.Root><NativeSelect.Field placeholder="Select currency" {...register("currency")} maxWidth={"180px"}>
-							{currencies.map((currency) => (
+							{CURRENCIES.map((currency) => (
 								<option key={currency.value} value={currency.value}>
 									{currency.label}
 								</option>
@@ -294,14 +278,20 @@ const EditComic = () => {
 						{errors.price && <Text color="red.500">{errors.price.message}</Text>}
 					</Field.Root>
 					<Field.Root invalid={!!errors.pages}>
-						<Field.Label>Number of Pages</Field.Label>
+						<HStack width="full" justify="space-between">
+							<Field.Label>Number of Pages</Field.Label>
+							<AiFieldButton field="pages" label="Number of Pages" autofill={autofill} />
+						</HStack>
 						<Input type="number" {...register("pages", { valueAsNumber: true })} maxWidth={"80px"} />
 						{errors.pages && <Text color="red.500">{errors.pages.message}</Text>}
 					</Field.Root>
 					<Field.Root invalid={!!errors.publisher}>
-						<Field.Label>Publisher</Field.Label>
+						<HStack width="full" justify="space-between">
+							<Field.Label>Publisher</Field.Label>
+							<AiFieldButton field="publisher" label="Publisher" autofill={autofill} />
+						</HStack>
 						<NativeSelect.Root><NativeSelect.Field placeholder="Select publisher" {...register("publisher")} maxWidth={"200px"}>
-							{publishers.map((publisher) => (
+							{publisherOptions(watch("publisher"), autofill.extraPublisher).map((publisher) => (
 								<option key={publisher} value={publisher}>
 									{publisher}
 								</option>
@@ -310,17 +300,26 @@ const EditComic = () => {
 						{errors.publisher && <Text color="red.500">{errors.publisher.message}</Text>}
 					</Field.Root>
 					<Field.Root invalid={!!errors.main_artist}>
-						<Field.Label>Main Artist</Field.Label>
+						<HStack width="full" justify="space-between">
+							<Field.Label>Main Artist</Field.Label>
+							<AiFieldButton field="main_artist" label="Main Artist" autofill={autofill} />
+						</HStack>
 						<Input type="text" {...register("main_artist")} maxWidth={"250px"} />
 						{errors.main_artist && <Text color="red.500">{errors.main_artist.message}</Text>}
 					</Field.Root>
 					<Field.Root invalid={!!errors.main_writer}>
-						<Field.Label>Main Writer</Field.Label>
+						<HStack width="full" justify="space-between">
+							<Field.Label>Main Writer</Field.Label>
+							<AiFieldButton field="main_writer" label="Main Writer" autofill={autofill} />
+						</HStack>
 						<Input type="text" {...register("main_writer")} maxWidth={"250px"} />
 						{errors.main_writer && <Text color="red.500">{errors.main_writer.message}</Text>}
 					</Field.Root>
 					<Field.Root invalid={!!errors.description}>
-						<Field.Label>Description</Field.Label>
+						<HStack width="full" justify="space-between">
+							<Field.Label>Description</Field.Label>
+							<AiFieldButton field="description" label="Description" autofill={autofill} />
+						</HStack>
 						{/* Hidden input for react-hook-form registration */}
 						<Input type="text" {...register("description")} style={{ display: "none" }} />
 						<Box>

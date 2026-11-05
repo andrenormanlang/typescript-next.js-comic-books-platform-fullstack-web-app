@@ -17,6 +17,7 @@ import {NativeSelect,
 	Spinner,
 	Alert,
 	Center,
+	HStack,
 	Text } from "@chakra-ui/react";
 import { toaster } from "@/components/ui/toaster";
 
@@ -25,6 +26,10 @@ import { useUser } from "@/contexts/UserContext";
 import ImageUpload from "./image-upload";
 import { useRouter } from "next/navigation";
 import { redirectToLogin } from "@/utils/authRedirect";
+import { CURRENCIES, GENRES, publisherOptions } from "@/lib/comicFormOptions";
+import { useCoverAutofill } from "@/hooks/comics-sale/useCoverAutofill";
+import AiFieldButton from "@/components/comics-store/AiFieldButton";
+import CoverAutofillBanner from "@/components/comics-store/CoverAutofillBanner";
 
 // Dynamically import RichTextEditor so it only runs on the client
 const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), {
@@ -61,14 +66,7 @@ export default function ComicFormClient() {
 	const router = useRouter();
 
 	// 3. Setup react-hook-form
-	const {
-		register,
-		handleSubmit,
-		formState: { errors },
-		reset,
-		setValue,
-		watch,
-	} = useForm<FormData>({
+	const form = useForm<FormData>({
 		resolver: zodResolver(validationSchema),
 		defaultValues: {
 			title: "",
@@ -85,6 +83,17 @@ export default function ComicFormClient() {
 			genre: "",
 		},
 	});
+	const {
+		register,
+		handleSubmit,
+		formState: { errors },
+		reset,
+		setValue,
+		watch,
+	} = form;
+
+	// AI cover auto-fill (supabase/functions/analyze-cover). Must run before the early return below.
+	const autofill = useCoverAutofill(form, imageURL);
 
 	// Add simple redirect effect
 	useEffect(() => {
@@ -148,48 +157,6 @@ export default function ComicFormClient() {
 		}
 	};
 
-	// Lists for dropdowns
-	const publishers = [
-		"Marvel Comics",
-		"Editora Abril",
-		"DC Comics",
-		"Vertigo",
-		"Image Comics",
-		"Dark Horse Comics",
-		"IDW Publishing",
-		"Valiant Comics",
-		"Dynamite Entertainment",
-		"Boom! Studios",
-	];
-
-	const currencies = [
-		{ value: "BRL", label: "Brazilian Real (BRL)" },
-		{ value: "DKK", label: "Danish Krone (DKK)" },
-		{ value: "SEK", label: "Swedish Krona (SEK)" },
-		{ value: "USD", label: "US Dollar (USD)" },
-		{ value: "EUR", label: "Euro (EUR)" },
-	];
-
-	const genres = [
-		"Superhero",
-		"Science Fiction",
-		"Fantasy",
-		"Horror",
-		"Mystery/Crime",
-		"Romance",
-		"Comedy/Humor",
-		"Drama",
-		"Historical",
-		"Slice of Life",
-		"Adventure",
-		"Thriller/Suspense",
-		"Western",
-		"War/Military",
-		"Biographical/Autobiographical",
-		"Educational/Non-Fiction",
-		"Anthology",
-	];
-
 	return (
 		<Center>
 			<Box p={8} maxWidth={{ base: "90%", md: "600px" }} width="full" boxShadow="md" borderRadius="md">
@@ -212,20 +179,33 @@ export default function ComicFormClient() {
 					<VStack gap={4} as="form" onSubmit={handleSubmit(onSubmit)}>
 						<Field.Root id="image" invalid={!!errors.image}>
 							<Field.Label>Image</Field.Label>
-							<ImageUpload onUpload={(url) => setImageURL(url)} />
+							<ImageUpload
+								onUpload={(url) => {
+									setImageURL(url);
+									autofill.autofill(url); // fills only empty fields
+								}}
+							/>
 							{errors.image && <Text color="red.500">{errors.image.message}</Text>}
 						</Field.Root>
 
+						<CoverAutofillBanner autofill={autofill} />
+
 						<Field.Root id="title" invalid={!!errors.title}>
-							<Field.Label>Title</Field.Label>
+							<HStack width="full" justify="space-between">
+								<Field.Label>Title</Field.Label>
+								<AiFieldButton field="title" label="Title" autofill={autofill} />
+							</HStack>
 							<Input type="text" {...register("title")} />
 							{errors.title && <Text color="red.500">{errors.title.message}</Text>}
 						</Field.Root>
 
 						<Field.Root id="publisher" invalid={!!errors.publisher}>
-							<Field.Label>Publisher</Field.Label>
+							<HStack width="full" justify="space-between">
+								<Field.Label>Publisher</Field.Label>
+								<AiFieldButton field="publisher" label="Publisher" autofill={autofill} />
+							</HStack>
 							<NativeSelect.Root><NativeSelect.Field placeholder="Select publisher" {...register("publisher")}>
-								{publishers.map((publisher) => (
+								{publisherOptions(autofill.extraPublisher).map((publisher) => (
 									<option key={publisher} value={publisher}>
 										{publisher}
 									</option>
@@ -235,9 +215,12 @@ export default function ComicFormClient() {
 						</Field.Root>
 
 						<Field.Root id="genre" invalid={!!errors.genre}>
-							<Field.Label>Genre</Field.Label>
+							<HStack width="full" justify="space-between">
+								<Field.Label>Genre</Field.Label>
+								<AiFieldButton field="genre" label="Genre" autofill={autofill} />
+							</HStack>
 							<NativeSelect.Root><NativeSelect.Field placeholder="Select genre" {...register("genre")}>
-								{genres.map((genre) => (
+								{GENRES.map((genre) => (
 									<option key={genre} value={genre}>
 										{genre}
 									</option>
@@ -247,7 +230,10 @@ export default function ComicFormClient() {
 						</Field.Root>
 
 						<Field.Root id="release_date" invalid={!!errors.release_date}>
-							<Field.Label>Release Date</Field.Label>
+							<HStack width="full" justify="space-between">
+								<Field.Label>Release Date</Field.Label>
+								<AiFieldButton field="release_date" label="Release Date" autofill={autofill} />
+							</HStack>
 							<Input type="date" {...register("release_date")} />
 							{errors.release_date && <Text color="red.500">{errors.release_date.message}</Text>}
 						</Field.Root>
@@ -255,7 +241,7 @@ export default function ComicFormClient() {
 						<Field.Root id="currency" invalid={!!errors.currency}>
 							<Field.Label>Currency</Field.Label>
 							<NativeSelect.Root><NativeSelect.Field placeholder="Select currency" {...register("currency")}>
-								{currencies.map((currency) => (
+								{CURRENCIES.map((currency) => (
 									<option key={currency.value} value={currency.value}>
 										{currency.label}
 									</option>
@@ -277,25 +263,37 @@ export default function ComicFormClient() {
 						</Field.Root>
 
 						<Field.Root id="pages" invalid={!!errors.pages}>
-							<Field.Label>Number of Pages</Field.Label>
+							<HStack width="full" justify="space-between">
+								<Field.Label>Number of Pages</Field.Label>
+								<AiFieldButton field="pages" label="Number of Pages" autofill={autofill} />
+							</HStack>
 							<Input type="number" {...register("pages", { valueAsNumber: true })} />
 							{errors.pages && <Text color="red.500">{errors.pages.message}</Text>}
 						</Field.Root>
 
 						<Field.Root id="main_artist" invalid={!!errors.main_artist}>
-							<Field.Label>Main Artist</Field.Label>
+							<HStack width="full" justify="space-between">
+								<Field.Label>Main Artist</Field.Label>
+								<AiFieldButton field="main_artist" label="Main Artist" autofill={autofill} />
+							</HStack>
 							<Input type="text" {...register("main_artist")} />
 							{errors.main_artist && <Text color="red.500">{errors.main_artist.message}</Text>}
 						</Field.Root>
 
 						<Field.Root id="main_writer" invalid={!!errors.main_writer}>
-							<Field.Label>Main Writer</Field.Label>
+							<HStack width="full" justify="space-between">
+								<Field.Label>Main Writer</Field.Label>
+								<AiFieldButton field="main_writer" label="Main Writer" autofill={autofill} />
+							</HStack>
 							<Input type="text" {...register("main_writer")} />
 							{errors.main_writer && <Text color="red.500">{errors.main_writer.message}</Text>}
 						</Field.Root>
 
 						<Field.Root invalid={!!errors.description}>
-							<Field.Label>Description</Field.Label>
+							<HStack width="full" justify="space-between">
+								<Field.Label>Description</Field.Label>
+								<AiFieldButton field="description" label="Description" autofill={autofill} />
+							</HStack>
 							<Box>
 								<style>{`.tox-tinymce { resize: vertical; min-height: 300px; max-height: 800px; overflow: auto; }`}</style>
 								<RichTextEditor

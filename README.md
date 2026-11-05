@@ -14,6 +14,7 @@ Built with **Next.js 16** (App Router, Turbopack), **Supabase** (Postgres, Auth,
 | 🆕 **New Releases** | Weekly new-release listings with detailed release pages |
 | 🛒 **Comics Store** | Buy and sell comics with listing management and Stripe checkout. Stock is reserved for 30 minutes at checkout and orders are confirmed by a Stripe webhook, never by the browser |
 | ❤️ **Wishlist** | Save comics with the heart button, see stock at a glance on `/comics-store/wishlist`, move items to the cart |
+| ✨ **AI cover auto-fill** | On "Tip Us!" and the edit page, uploading a cover fills title, publisher, genre, release date, pages, writer, artist and description. Facts come from Guia dos Quadrinhos (Brazilian editions), Metron and Comic Vine, with Gemini as the fallback; every field stays editable and has its own ✨ re-lookup button |
 | 🛡️ **Listing moderation** | New listings get an advisory Gemini check (does the cover match the title? red flags?) and admins get an email; results show in the admin table |
 | 🖼️ **Thumbnails** | Uploaded covers and avatars get a 320px thumbnail automatically, so the store grid loads faster |
 | 📰 **Comics News** | Live AI-rewritten articles from 11 sources, infinite scroll, real-time search |
@@ -160,6 +161,8 @@ Run these from the repo root, in this order:
    STRIPE_SECRET_KEY=sk_test_...
    STRIPE_WEBHOOK_SECRET=whsec_...        # from step 6
    GEMINI_API_KEY=<your-gemini-key>
+   COMIC_VINE_API_KEY=<your-comic-vine-key>        # analyze-cover
+   METRON_API_AUTH_HEADER=<base64 user:password>    # analyze-cover
    RESEND_API_KEY=re_...
    NOTIFY_FROM_EMAIL=Retro Pop <onboarding@resend.dev>   # or an address on a domain verified in Resend
    SITE_URL=https://retro-pop-comics.com
@@ -270,9 +273,10 @@ The success page (`/payment-success`) polls `/api/payment-success` until the web
 | `stripe-webhook` | Stripe (signature-verified) | Marks orders paid, creates receipts, clears carts, releases stock on cancel. Refunds automatically if a hold expired and the comic sold to someone else |
 | `checkout-maintenance` | `pg_cron`, every 10 minutes | Expires unpaid checkout holds and returns their stock |
 | `on-listing-created` | Insert into `comics-sell` | Gemini reviews the cover and listing (stored in `ai_review`, advisory only), then emails admins via Resend |
+| `analyze-cover` | The seller's browser (`supabase.functions.invoke`, logged-in users only; 30 lookups/hour) | Gemini identifies the cover (series, issue, year, language), then Guia dos Quadrinhos (Brazilian) or Metron, plus Comic Vine, supply the facts in parallel; per field the first database with a value wins, Gemini fills the rest. Guia is reached through the app's own `/api/guia-search` route at `SITE_URL` |
 | `on-image-uploaded` | Upload to the `comics-images` / `avatars` buckets | Writes a 320px JPEG to `<bucket>/thumbs/`. WebP/AVIF and files over 4 MB are skipped and the original is used |
 
-The three internal functions only accept calls carrying the `x-internal-secret` header. The database reads it from Vault, and it must match the `INTERNAL_HOOK_SECRET` function secret. A nightly SQL-only cron job also refreshes the price/stock copies stored on cart rows.
+`analyze-cover` uses Supabase's normal login check (`verify_jwt = true`) instead. The three internal functions only accept calls carrying the `x-internal-secret` header. The database reads it from Vault, and it must match the `INTERNAL_HOOK_SECRET` function secret. A nightly SQL-only cron job also refreshes the price/stock copies stored on cart rows.
 
 **Checking it works:**
 

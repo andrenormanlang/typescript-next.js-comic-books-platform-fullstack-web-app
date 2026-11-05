@@ -12,6 +12,11 @@ const MODELS = [
 // Errors worth retrying on another model (a 400 would fail on any model).
 const FALLBACK_STATUSES = new Set([404, 429, 500, 503, 504]);
 
+// After the primary model fails, skip it for a while so every request doesn't
+// first wait up to 12 s on it. Lives as long as the function's warm isolate.
+const PRIMARY_COOLDOWN_MS = 2 * 60 * 1000;
+let primaryCooldownUntil = 0;
+
 let ai: GoogleGenAI | null = null;
 function client(): GoogleGenAI {
 	const apiKey = Deno.env.get("GEMINI_API_KEY");
@@ -38,7 +43,8 @@ export async function generateJson(opts: {
 	parts.push({ text: opts.prompt });
 
 	let lastError: unknown;
-	for (const model of MODELS) {
+	const models = Date.now() < primaryCooldownUntil ? MODELS.slice(1) : MODELS;
+	for (const model of models) {
 		const signal = AbortSignal.timeout(model.timeoutMs);
 		try {
 			const result = await client().models.generateContent({
@@ -61,6 +67,7 @@ export async function generateJson(opts: {
 			const status = errorStatus(error);
 			if (!signal.aborted && !(status && FALLBACK_STATUSES.has(status))) throw error;
 			console.warn(`Gemini ${model.name} unavailable:`, signal.aborted ? "timeout" : `HTTP ${status}`);
+			if (model.name === MODELS[0].name) primaryCooldownUntil = Date.now() + PRIMARY_COOLDOWN_MS;
 			lastError = error;
 		}
 	}
