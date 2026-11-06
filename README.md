@@ -1,6 +1,6 @@
 # 🎨 Retro Pop Comics
 
-[retro-pop-comics](https://retropop.vercel.app) — a vintage and modern comic book marketplace with multi-source comic database search, AI-powered recommendations, a live comics news feed, new-release tracking, a community forum, and a blog.
+[Retropop Comica](https://retropop.vercel.app) is a vintage and modern comic book marketplace with multi-source comic database search, AI-powered recommendations, a live comics news feed, new-release tracking, a community forum, and a blog.
 
 Built with **Next.js 16** (App Router, Turbopack), **Supabase** (Postgres, Auth, Storage, Edge Functions), **Chakra UI v3**, and **Stripe**.
 
