@@ -13,6 +13,9 @@ verify_jwt = false
 [functions.checkout-maintenance]
 verify_jwt = false
 
+[functions.sync-exchange-rates]
+verify_jwt = false
+
 [functions.on-listing-created]
 verify_jwt = false
 

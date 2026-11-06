@@ -1,8 +1,9 @@
 import { z } from "zod";
+import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 
-// What the browser may send to /api/create-order. Prices, titles and the total
-// are looked up in the database by reserve_order(); the client only says which
-// comics and how many.
+// What the browser may send to /api/create-order. Prices, titles, the total and
+// the currency conversion are done in the database by reserve_order(); the
+// client only says which comics, how many, and which currency to pay in.
 export const createOrderSchema = z.object({
 	items: z
 		.array(
@@ -16,6 +17,11 @@ export const createOrderSchema = z.object({
 		.refine((items) => new Set(items.map((i) => i.comicId)).size === items.length, {
 			message: "Duplicate items in cart",
 		}),
+	currency: z.enum(SUPPORTED_CURRENCIES).optional(),
 });
 
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
+
+export const cancelOrderSchema = z.object({
+	orderId: z.number().int().positive(),
+});

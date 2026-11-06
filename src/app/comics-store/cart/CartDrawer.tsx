@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
 	Box,
 	Flex,
@@ -27,6 +27,10 @@ import { Elements } from "@stripe/react-stripe-js";
 import getStripe from "@/utils/get-stripejs";
 import { supabase } from "@/utils/supabase/client";
 import { Appearance } from "@stripe/stripe-js";
+import Price from "@/components/comics-store/Price";
+import { useCurrency } from "@/contexts/CurrencyContext";
+import { formatPrice } from "@/lib/currency";
+import { formatCountdown, useCountdown } from "@/hooks/comics-sale/useCountdown";
 
 interface PaymentSuccessDetail {
 	userId: string;
@@ -34,9 +38,15 @@ interface PaymentSuccessDetail {
 
 interface OrderData {
 	amount: number;
+	currency: string;
 	items: CartItem[];
 	orderId: number;
+	/** End of the 30-minute stock hold (server time). */
+	expiresAt: string;
+	serverNow: string;
 }
+
+const WARN_MS = 5 * 60 * 1000;
 
 interface CartDrawerProps {
 	isOpen: boolean;
@@ -53,9 +63,14 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 	const [selectedComicId, setSelectedComicId] = useState<string | null>(null);
 	const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-	const [totalAmount, setTotalAmount] = useState(0);
 	const [clientSecret, setClientSecret] = useState("");
 	const [orderData, setOrderData] = useState<OrderData | null>(null);
+	const [isPaying, setIsPaying] = useState(false);
+	const [isStartingCheckout, setIsStartingCheckout] = useState(false);
+	const { currency: visitorCurrency, convert, ratesDate } = useCurrency();
+	const remainingMs = useCountdown(isCheckoutOpen ? orderData?.expiresAt : null, orderData?.serverNow);
+	const expired = remainingMs !== null && remainingMs <= 0;
+	const closingRef = useRef(false);
 
 	useEffect(() => {
 		if (user) {
@@ -165,46 +180,126 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 			});
 	};
 
-	// Display only; the charged amount is computed server-side.
-	const calculateTotalAmount = () => {
-		return cartItems.reduce((total, item) => total + item.quantity * item.price, 0);
+	// Display only: the total in the visitor's currency, estimated with the
+	// latest rates. The charged amount is computed by reserve_order() at checkout.
+	const estimateTotal = (): { amount: number; currency: string; estimated: boolean } | null => {
+		if (!visitorCurrency) return null;
+		let amount = 0;
+		let estimated = false;
+		for (const item of cartItems) {
+			const unit = convert(item.price, item.currency);
+			if (unit === null) return null;
+			if ((item.currency || "").toUpperCase() !== visitorCurrency) estimated = true;
+			amount += unit * item.quantity;
+		}
+		return { amount, currency: visitorCurrency, estimated };
 	};
 
+	// Fallback when rates are missing: one subtotal per listing currency.
+	const totalsByCurrency = () => {
+		const totals = new Map<string, number>();
+		for (const item of cartItems) {
+			const code = (item.currency || "USD").toUpperCase();
+			totals.set(code, (totals.get(code) ?? 0) + item.price * item.quantity);
+		}
+		return [...totals.entries()];
+	};
+
+	const estimate = estimateTotal();
+
 	const handleCheckout = async () => {
-		if (!user) return;
+		if (!user || isStartingCheckout) return;
+		setIsStartingCheckout(true);
 
-		// Only ids and quantities are sent; the server prices the order and
-		// reserves the stock for 30 minutes.
-		const response = await fetch("/api/create-order", {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({
-				items: cartItems.map((item) => ({ comicId: item.comicId, quantity: item.quantity })),
-			}),
-		});
+		try {
+			// Only ids, quantities and the currency are sent; the server prices and
+			// converts the order and reserves the stock for 30 minutes.
+			const response = await fetch("/api/create-order", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					items: cartItems.map((item) => ({ comicId: item.comicId, quantity: item.quantity })),
+					...(visitorCurrency ? { currency: visitorCurrency } : {}),
+				}),
+			});
 
-		const data = await response.json();
+			const data = await response.json();
 
-		if (!response.ok || data.error) {
+			if (!response.ok || data.error) {
+				toaster.create({
+					title: response.status === 409 ? "Sold out" : "Payment Error",
+					description: data.error,
+					type: "error",
+					duration: 7000,
+				});
+				if (response.status === 409) {
+					dispatch(fetchCart({ userId: user.id }));
+				}
+				return;
+			}
+
+			if (data.notice) {
+				toaster.create({ title: "Heads up", description: data.notice, type: "info", duration: 7000 });
+			}
+
+			setClientSecret(data.clientSecret);
+			setOrderData({
+				amount: data.amount,
+				currency: data.currency,
+				items: cartItems,
+				orderId: data.orderId,
+				expiresAt: data.expiresAt,
+				serverNow: data.serverNow,
+			});
+			closingRef.current = false;
+			setIsCheckoutOpen(true);
+		} catch {
 			toaster.create({
-				title: response.status === 409 ? "Sold out" : "Payment Error",
-				description: data.error,
+				title: "Payment Error",
+				description: "Could not start checkout. Please try again.",
 				type: "error",
 				duration: 5000,
 			});
-			if (response.status === 409) {
-				dispatch(fetchCart({ userId: user.id }));
-			}
-			return;
+		} finally {
+			setIsStartingCheckout(false);
 		}
-
-		setTotalAmount(data.amount);
-		setClientSecret(data.clientSecret);
-		setOrderData({ amount: data.amount, items: cartItems, orderId: data.orderId });
-		setIsCheckoutOpen(true);
 	};
+
+	// Closes checkout and gives the reserved comics back straight away, instead
+	// of waiting for checkout-maintenance. The cart itself is unchanged.
+	const closeCheckout = useCallback(
+		(reason: "closed" | "expired") => {
+			if (closingRef.current) return;
+			closingRef.current = true;
+			const orderId = orderData?.orderId;
+			setIsCheckoutOpen(false);
+			if (orderId) {
+				fetch("/api/cancel-order", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ orderId }),
+				}).catch(() => undefined); // checkout-maintenance releases it anyway
+			}
+			if (reason === "expired") {
+				toaster.create({
+					title: "Reservation expired",
+					description:
+						"Your 30 minutes ran out and the comics were released. They are still in your cart: press Go to Checkout to reserve them again.",
+					type: "warning",
+					duration: 10000,
+				});
+			}
+		},
+		[orderData?.orderId]
+	);
+
+	// Timer reached 0: close checkout, unless a payment is in progress. Then the
+	// server decides: the webhook settles it or checkout-maintenance expires it.
+	useEffect(() => {
+		if (isCheckoutOpen && expired && !isPaying) closeCheckout("expired");
+	}, [isCheckoutOpen, expired, isPaying, closeCheckout]);
 
 
 	// Stripe UI appearance customization
@@ -264,7 +359,10 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 											<Text fontWeight="bold" fontSize="lg" lineClamp={1}>
 												{item.title}
 											</Text>
-											<Text>Price: ${item.price.toFixed(2)} {item.currency}</Text>
+											<Flex gap={1} alignItems="baseline" wrap="wrap">
+												<Text>Price:</Text>
+												<Price amount={item.price} currency={item.currency} layout="inline" />
+											</Flex>
 											<Flex alignItems="center">
 												<Button
 													size="sm"
@@ -303,15 +401,39 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 						</Drawer.Body>
 						<Drawer.Footer>
 							<Box width="100%" p={4}>
-								<Flex justifyContent="space-between">
-									<Text>Subtotal:</Text>
-									<Text>${calculateTotalAmount().toFixed(2)}</Text>
-								</Flex>
-								<Flex justifyContent="space-between" mt={2} fontWeight="bold">
-									<Text>Total:</Text>
-									<Text>${calculateTotalAmount().toFixed(2)}</Text>
-								</Flex>
-								<Button mt={4} colorPalette="blue" width="100%" onClick={handleCheckout}>
+								{estimate ? (
+									<>
+										<Flex justifyContent="space-between" fontWeight="bold">
+											<Text>Total:</Text>
+											<Text>
+												{estimate.estimated ? "≈ " : ""}
+												{formatPrice(estimate.amount, estimate.currency)}
+											</Text>
+										</Flex>
+										{estimate.estimated && (
+											<Text fontSize="xs" opacity={0.7} mt={1}>
+												Converted to {estimate.currency}
+												{ratesDate ? ` at European Central Bank rates of ${ratesDate}` : ""}. The exact
+												amount is fixed when you go to checkout.
+											</Text>
+										)}
+									</>
+								) : (
+									totalsByCurrency().map(([code, amount]) => (
+										<Flex key={code} justifyContent="space-between" fontWeight="bold">
+											<Text>Total ({code}):</Text>
+											<Text>{formatPrice(amount, code)}</Text>
+										</Flex>
+									))
+								)}
+								<Button
+									mt={4}
+									colorPalette="blue"
+									width="100%"
+									onClick={handleCheckout}
+									loading={isStartingCheckout}
+									disabled={cartItems.length === 0}
+								>
 									Go to Checkout
 								</Button>
 							</Box>
@@ -353,7 +475,16 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 			</Dialog.Root>
 
 			{isCheckoutOpen && clientSecret && orderData && (
-				<Drawer.Root open={isCheckoutOpen} onOpenChange={(e) => { if (!e.open) setIsCheckoutOpen(false); }} placement="end" size={{ base: "full", md: "md" }}>
+				<Drawer.Root
+					open={isCheckoutOpen}
+					// Never close (and release the hold) mid-payment, e.g. on a click
+					// inside Stripe's 3-D Secure pop-up.
+					onOpenChange={(e) => { if (!e.open && !isPaying) closeCheckout("closed"); }}
+					closeOnInteractOutside={!isPaying}
+					closeOnEscape={!isPaying}
+					placement="end"
+					size={{ base: "full", md: "md" }}
+				>
 					<Drawer.Backdrop />
 					<Drawer.Positioner>
 						<Drawer.Content>
@@ -362,8 +493,41 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 							</Drawer.CloseTrigger>
 							<Drawer.Header><Drawer.Title>Checkout</Drawer.Title></Drawer.Header>
 							<Drawer.Body>
+								{remainingMs !== null && (
+									<Alert.Root
+										status={remainingMs < WARN_MS ? "warning" : "info"}
+										mb={4}
+										role="timer"
+										aria-live={remainingMs < WARN_MS ? "polite" : "off"}
+									>
+										<Alert.Indicator />
+										<Alert.Description>
+											{expired
+												? "Your reservation has expired."
+												: remainingMs < WARN_MS
+													? `Your reservation ends in ${formatCountdown(remainingMs)}`
+													: `Comics reserved for you: ${formatCountdown(remainingMs)}`}
+										</Alert.Description>
+									</Alert.Root>
+								)}
+								<Flex justifyContent="space-between" fontWeight="bold" mb={1}>
+									<Text>To pay:</Text>
+									<Text>{formatPrice(orderData.amount, orderData.currency)}</Text>
+								</Flex>
+								{orderData.items.some((i) => (i.currency || "").toUpperCase() !== orderData.currency) && (
+									<Text fontSize="xs" opacity={0.7} mb={4}>
+										Prices converted to {orderData.currency} at European Central Bank rates. This amount is
+										fixed while your reservation lasts.
+									</Text>
+								)}
 								<Elements stripe={getStripe()} options={{ clientSecret, appearance }}>
-									<CheckoutForm amount={totalAmount} orderId={orderData.orderId} />
+									<CheckoutForm
+										amount={orderData.amount}
+										currency={orderData.currency}
+										orderId={orderData.orderId}
+										expired={expired}
+										onSubmittingChange={setIsPaying}
+									/>
 								</Elements>
 							</Drawer.Body>
 						</Drawer.Content>

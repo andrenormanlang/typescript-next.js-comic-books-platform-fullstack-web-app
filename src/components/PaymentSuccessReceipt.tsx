@@ -15,6 +15,7 @@ import {List,
 } from '@chakra-ui/react';
 import { useOrderStatus } from '@/hooks/comics-sale/useOrderStatus';
 import { useUser } from '@/contexts/UserContext';
+import { formatPrice } from '@/lib/currency';
 
 const PaymentSuccessReceipt = () => {
   const router = useRouter();
@@ -81,6 +82,8 @@ const PaymentSuccessReceipt = () => {
     );
   }
 
+  const receiptCurrency = (receipt.currency || 'USD').toUpperCase();
+
   return (
     <Center>
       <Box bg={bg} p={8} rounded="md" shadow="md" maxW="md" width="100%">
@@ -107,7 +110,12 @@ const PaymentSuccessReceipt = () => {
           Items:
         </Heading>
         <List.Root gap={3}>
-          {receipt.items.map((item: any, index: number) => (
+          {receipt.items.map((item, index) => {
+            // unitPrice is the price charged in the order currency (orders from
+            // 2026-11-06 on); older receipts only have the listing price.
+            const unit = item.unitPrice ?? item.price;
+            const converted = item.unitPrice !== undefined && (item.currency || '').toUpperCase() !== receiptCurrency;
+            return (
             <List.Item key={index} display="flex" alignItems="center" color={textColor}>
               <Image
                 src={item.image}
@@ -119,17 +127,23 @@ const PaymentSuccessReceipt = () => {
               <Box>
                 <Text fontWeight="bold">{item.title}</Text>
                 <Text>
-                  ${(item.price).toFixed(2)} x {item.quantity}
+                  {formatPrice(unit, receiptCurrency)} x {item.quantity}
                 </Text>
-                <Text>Total: ${(item.price * item.quantity).toFixed(2)}</Text>
+                {converted && (
+                  <Text fontSize="xs" opacity={0.7}>
+                    Listed at {formatPrice(item.price, item.currency)}
+                  </Text>
+                )}
+                <Text>Total: {formatPrice(unit * item.quantity, receiptCurrency)}</Text>
               </Box>
             </List.Item>
-          ))}
+            );
+          })}
         </List.Root>
         <Separator my={4} />
         <Center>
           <Text fontWeight="bold" fontSize="2xl" color={totalColor}>
-            Total Amount: ${(receipt.total_amount).toFixed(2)}
+            Total Amount: {formatPrice(Number(receipt.total_amount), receiptCurrency)}
           </Text>
         </Center>
         <Separator my={4} />

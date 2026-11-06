@@ -81,6 +81,7 @@ supabase/
     ├── _shared/          # Admin client, Stripe, Gemini, auth + order helpers (+ Deno tests)
     ├── stripe-webhook/
     ├── checkout-maintenance/
+    ├── sync-exchange-rates/
     ├── on-listing-created/
     └── on-image-uploaded/
 ```
@@ -253,9 +254,11 @@ Stock and payment state are owned by the database and Stripe, not the browser.
 ```text
 Add to cart ──► cart row only (stock untouched)
 
-Checkout ──► /api/create-order
-              ├─ reserve_order()      atomic: take stock, price from DB, pending order, 30-min hold
-              └─ Stripe PaymentIntent (amount computed server-side, metadata.order_id)
+Checkout ──► /api/create-order (buyer's currency)
+              ├─ reserve_order()      atomic: take stock, price from DB, convert to the buyer's
+              │                       currency (ECB rates), pending order, 30-min hold
+              └─ Stripe PaymentIntent (amount + currency computed server-side, metadata.order_id)
+            Checkout panel counts down the hold; at 0 (or on close) /api/cancel-order releases it
 
 Pay ──► Stripe ──► stripe-webhook (Edge Function)
                     ├─ payment_intent.succeeded → mark_order_paid(): order paid, receipt, cart cleared
@@ -266,17 +269,20 @@ Every 10 min ──► pg_cron ──► checkout-maintenance (Edge Function)
                        (or settle it if the payment succeeded but the webhook was missed)
 ```
 
+**Currencies.** Visitors see prices in their own currency (USD, EUR, GBP, SEK, DKK, NOK or BRL), guessed from their country by `middleware.ts` (Vercel's `x-vercel-ip-country` header) and changeable in the navbar. Store prices are estimates with the seller's price underneath; `reserve_order()` converts on the server at checkout, stores the rates on the order (`fx_rates`), and Stripe charges in that currency. A mixed-currency cart can't be checked out while rates are stale; a single-currency cart is then charged in its own currency.
+
 The success page (`/payment-success`) polls `/api/payment-success` until the webhook has marked the order paid, then shows the receipt.
 
 | Edge Function | Triggered by | What it does |
 | --- | --- | --- |
 | `stripe-webhook` | Stripe (signature-verified) | Marks orders paid, creates receipts, clears carts, releases stock on cancel. Refunds automatically if a hold expired and the comic sold to someone else |
 | `checkout-maintenance` | `pg_cron`, every 10 minutes | Expires unpaid checkout holds and returns their stock |
+| `sync-exchange-rates` | `pg_cron`, 15:30 and 21:30 UTC | Saves European Central Bank rates (via frankfurter.dev, no key) to `exchange_rates`. Checkout refuses rates older than 5 days |
 | `on-listing-created` | Insert into `comics-sell` | Gemini reviews the cover and listing (stored in `ai_review`, advisory only), then emails admins via Resend |
 | `analyze-cover` | The seller's browser (`supabase.functions.invoke`, logged-in users only; 30 lookups/hour) | Gemini identifies the cover (series, issue, year, language), then Guia dos Quadrinhos (Brazilian) or Metron, plus Comic Vine (and the Marvel/DC Fandom wiki for Marvel/DC covers), supply the facts in parallel; per field the first database with a value wins, writer/artist combine every database's names, Gemini fills the rest. A second Gemini call writes the collector description from all gathered facts only. Guia is reached through the app's own `/api/guia-search` route at `SITE_URL` |
 | `on-image-uploaded` | Upload to the `comics-images` / `avatars` buckets | Writes a 320px JPEG to `<bucket>/thumbs/`. WebP/AVIF and files over 4 MB are skipped and the original is used |
 
-`analyze-cover` uses Supabase's normal login check (`verify_jwt = true`) instead. The three internal functions only accept calls carrying the `x-internal-secret` header. The database reads it from Vault, and it must match the `INTERNAL_HOOK_SECRET` function secret. A nightly SQL-only cron job also refreshes the price/stock copies stored on cart rows.
+`analyze-cover` uses Supabase's normal login check (`verify_jwt = true`) instead. The internal functions only accept calls carrying the `x-internal-secret` header. The database reads it from Vault, and it must match the `INTERNAL_HOOK_SECRET` function secret. A nightly SQL-only cron job also refreshes the price/stock copies stored on cart rows.
 
 **Checking it works:**
 

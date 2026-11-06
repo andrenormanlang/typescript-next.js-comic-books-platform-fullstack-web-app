@@ -6,8 +6,10 @@ export type ReceiptItem = {
 	comicId: string;
 	title: string;
 	image: string;
-	price: number;
+	price: number; // the seller's listing price, in `currency`
 	currency: string;
+	/** Price charged per copy, in the receipt's currency (orders from 2026-11-06 on). */
+	unitPrice?: number;
 	quantity: number;
 };
 

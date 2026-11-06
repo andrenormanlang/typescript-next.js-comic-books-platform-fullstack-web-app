@@ -24,6 +24,7 @@ import { addToCart } from "@/store/cartSlice";
 import { AppDispatch } from "@/store/store";
 import { getThumbnailUrl } from "@/lib/storage/thumbnail";
 import { WishlistItem } from "@/types/comics-store/comic-detail.type";
+import Price from "@/components/comics-store/Price";
 
 const PLACEHOLDER = "/halftone.png";
 
@@ -123,9 +124,7 @@ export default function WishlistPage() {
 									)}
 									{comic && (
 										<HStack mt={1} gap={2} flexWrap="wrap">
-											<Text>
-												{comic.currency} {Number(comic.price).toFixed(2)}
-											</Text>
+											<Price amount={Number(comic.price)} currency={comic.currency} layout="inline" />
 											<Badge colorPalette={available ? "green" : "gray"}>
 												{available ? `${comic.stock} in stock` : "Out of stock"}
 											</Badge>
