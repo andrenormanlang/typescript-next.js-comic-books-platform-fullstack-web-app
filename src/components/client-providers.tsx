@@ -7,6 +7,7 @@ import { ColorModeProvider } from "@/components/ui/color-mode";
 import { AppToaster } from "@/components/ui/toaster";
 import ReduxProvider from "@/contexts/ReduxProvider";
 import { UserProvider } from "@/contexts/UserContext";
+import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import ReactQueryProvider from "@/lib/react-query-provider";
 const Navbar = dynamic(() => import("@/components/partials/navbar"), { ssr: false });
 
@@ -20,11 +21,13 @@ export default function ClientProviders({ children }: { children: React.ReactNod
         <ReactQueryProvider>
           <ReduxProvider>
             <UserProvider>
-              {mounted && <AppToaster />}
-              <Navbar />
-              <Box mt="8rem" className="container">
-                {children}
-              </Box>
+              <CurrencyProvider>
+                {mounted && <AppToaster />}
+                <Navbar />
+                <Box mt="8rem" className="container">
+                  {children}
+                </Box>
+              </CurrencyProvider>
             </UserProvider>
           </ReduxProvider>
         </ReactQueryProvider>

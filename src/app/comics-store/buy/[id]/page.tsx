@@ -28,6 +28,7 @@ import { AppDispatch, RootState } from "@/store/store";
 
 // Import the CSS file for styling the rendered rich text content
 import '../../../styles/comic-detail-content.css'; // <-- Adjust the path as needed
+import Price from "@/components/comics-store/Price";
 
 const ComicDetail = () => {
 	const pathname = usePathname();
@@ -300,11 +301,14 @@ const ComicDetail = () => {
 							<Text fontSize={{ base: "sm", md: "md" }} color="gray.400">
 								<strong>{comic.pages} pages</strong>
 							</Text>
-							<Text fontSize={{ base: "sm", md: "md" }} color="gray.400">
-								<strong>
-									{comic.currency} {comic.price}
-								</strong>
-							</Text>
+							<Price
+								amount={comic.price}
+								currency={comic.currency}
+								layout="inline"
+								fontSize={{ base: "sm", md: "md" }}
+								color="gray.400"
+								fontWeight="bold"
+							/>
 						</HStack>
 						<Box>
 							<Heading as="h2" size={{ base: "sm", md: "md" }} color="orange" mb={2}>

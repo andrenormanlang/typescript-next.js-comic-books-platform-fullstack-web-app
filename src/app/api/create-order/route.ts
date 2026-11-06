@@ -1,44 +1,38 @@
 // src/app/api/create-order/route.ts
 //
-// Reserves stock and creates a pending order + Stripe PaymentIntent.
+// Reserves stock and creates a pending order + Stripe PaymentIntent in the
+// buyer's currency. reserve_order() converts the prices on the server
+// (supabase/migrations/20261106100000_currency_conversion.sql).
 // The order is marked paid only by the stripe-webhook Edge Function
 // (supabase/functions/stripe-webhook). Unpaid holds expire after 30 minutes
-// (supabase/functions/checkout-maintenance).
+// (supabase/functions/checkout-maintenance); the checkout panel counts down to
+// expiresAt and releases the hold itself via /api/cancel-order.
 
 import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
 import { createClient } from "@/utils/supabase/server";
 import { supabaseAdmin } from "@/utils/supabase/admin-client";
-import { createOrderSchema } from "@/lib/validations/checkout";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-	apiVersion: "2024-06-20",
-});
+import { createOrderSchema, type CreateOrderInput } from "@/lib/validations/checkout";
+import { releaseHoldsOf, stripe } from "@/lib/checkout/holds";
+import { CURRENCY_COOKIE, isCurrency } from "@/lib/currency";
 
 type ReservedOrder = {
 	id: number;
 	total_amount: number;
 	currency: string;
+	expires_at: string;
 };
 
-async function releasePreviousHolds(userId: string) {
-	const { data: pending } = await supabaseAdmin
-		.from("orders")
-		.select("id, stripe_payment_intent_id")
-		.eq("user_id", userId)
-		.eq("status", "pending");
+type ReserveResult = { order: ReservedOrder | null; error: { message: string } | null };
 
-	for (const old of pending ?? []) {
-		if (old.stripe_payment_intent_id) {
-			const intent = await stripe.paymentIntents.retrieve(old.stripe_payment_intent_id).catch(() => null);
-			// Paid or mid-payment: leave it for the webhook.
-			if (intent && (intent.status === "succeeded" || intent.status === "processing")) continue;
-			if (intent && intent.status !== "canceled") {
-				await stripe.paymentIntents.cancel(intent.id).catch(() => undefined);
-			}
-		}
-		await supabaseAdmin.rpc("release_order", { p_order_id: old.id, p_status: "cancelled" });
-	}
+async function reserve(userId: string, items: CreateOrderInput["items"], currency: string | null) {
+	const { data, error } = await supabaseAdmin
+		.rpc("reserve_order", {
+			p_user_id: userId,
+			p_items: items.map((i) => ({ comic_id: i.comicId, quantity: i.quantity })),
+			p_currency: currency,
+		})
+		.single<ReservedOrder>();
+	return { order: data, error } as ReserveResult;
 }
 
 export async function POST(request: NextRequest) {
@@ -56,17 +50,23 @@ export async function POST(request: NextRequest) {
 		return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid cart" }, { status: 400 });
 	}
 
+	const cookieCurrency = request.cookies.get(CURRENCY_COOKIE)?.value;
+	const wanted = parsed.data.currency ?? (isCurrency(cookieCurrency) ? cookieCurrency : null);
+
 	// 0. Re-opening checkout replaces the buyer's earlier unpaid hold; otherwise
 	//    their own pending order would make a single-copy comic look sold out.
-	await releasePreviousHolds(user.id);
+	await releaseHoldsOf(user.id);
 
 	// 1. Reserve stock and create the pending order in one transaction.
-	const { data: order, error: reserveError } = await supabaseAdmin
-		.rpc("reserve_order", {
-			p_user_id: user.id,
-			p_items: parsed.data.items.map((i) => ({ comic_id: i.comicId, quantity: i.quantity })),
-		})
-		.single<ReservedOrder>();
+	let { order, error: reserveError } = await reserve(user.id, parsed.data.items, wanted);
+	let notice: string | null = null;
+
+	// No fresh exchange rates: a cart in a single currency can still be paid in
+	// that currency (null lets reserve_order pick it). A mixed cart can't.
+	if (reserveError?.message.startsWith("rates_unavailable:")) {
+		({ order, error: reserveError } = await reserve(user.id, parsed.data.items, null));
+		if (order) notice = `Live exchange rates are unavailable, so this order is charged in ${order.currency}.`;
+	}
 
 	if (reserveError || !order) {
 		const message = reserveError?.message ?? "";
@@ -79,16 +79,26 @@ export async function POST(request: NextRequest) {
 				{ status: 409 }
 			);
 		}
+		if (message.startsWith("rates_unavailable:")) {
+			return NextResponse.json(
+				{
+					error:
+						"Your cart has comics priced in different currencies and live exchange rates are unavailable right now. Please try again later, or check out one currency at a time.",
+				},
+				{ status: 503 }
+			);
+		}
 		console.error("reserve_order failed:", reserveError);
 		return NextResponse.json({ error: "Could not create your order" }, { status: 500 });
 	}
 
-	// 2. Create the PaymentIntent for the amount the database computed.
+	// 2. Create the PaymentIntent for the amount and currency the database computed.
+	//    Every supported currency has two decimals, so ×100 gives minor units.
 	try {
 		const paymentIntent = await stripe.paymentIntents.create(
 			{
-				amount: Math.round(Number(order.total_amount) * 100), // major → minor units
-				currency: order.currency,
+				amount: Math.round(Number(order.total_amount) * 100),
+				currency: order.currency.toLowerCase(),
 				automatic_payment_methods: { enabled: true },
 				metadata: { order_id: String(order.id), user_id: user.id },
 			},
@@ -109,6 +119,11 @@ export async function POST(request: NextRequest) {
 			clientSecret: paymentIntent.client_secret,
 			orderId: order.id,
 			amount: Number(order.total_amount),
+			currency: order.currency.toUpperCase(),
+			expiresAt: order.expires_at,
+			// Lets the browser correct for a wrong local clock in the countdown.
+			serverNow: new Date().toISOString(),
+			notice,
 		});
 	} catch (error) {
 		// Give the stock back; the order never became payable.

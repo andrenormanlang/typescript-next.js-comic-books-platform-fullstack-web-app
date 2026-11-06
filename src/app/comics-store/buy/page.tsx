@@ -36,6 +36,7 @@ import { useUser } from "@/contexts/UserContext";
 import { useInfiniteComics } from "@/hooks/comics-sale/useInfiniteComics";
 import { useInView } from "react-intersection-observer";
 import SearchBar from "@/components/comics-store/search";
+import Price from "@/components/comics-store/Price";
 
 const defaultImageUrl = "/halftone.png";
 
@@ -275,9 +276,12 @@ const ComicsBuy: NextPage = () => {
 												padding={2}
 												fontSize={{ base: "sm", md: "md" }}
 											>
-												<Text fontWeight="bold" fontSize={{ base: "xs", md: "lg" }}>
-													{comic.price} {comic.currency}
-												</Text>
+												<Price
+													amount={comic.price}
+													currency={comic.currency}
+													fontWeight="bold"
+													fontSize={{ base: "xs", md: "lg" }}
+												/>
 												<Text fontSize={{ base: "xs", md: "md" }}>In Stock: {comic.stock}</Text>
 											</Box>
 											{comic.stock === 0 && (

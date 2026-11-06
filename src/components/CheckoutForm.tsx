@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   useStripe,
   useElements,
@@ -11,21 +11,32 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { toaster } from "@/components/ui/toaster";
+import { formatPrice } from "@/lib/currency";
 
 
 interface CheckoutFormProps {
   amount: number;
+  currency: string;
   orderId: number;
+  /** The 30-minute hold has ended: paying is no longer offered. */
+  expired?: boolean;
+  /** Tells the checkout panel not to close or release the hold mid-payment. */
+  onSubmittingChange?: (submitting: boolean) => void;
 }
 
-// The order and PaymentIntent are created by CartDrawer (/api/create-order).
-// Stripe redirects to /payment-success, which waits for the stripe-webhook
-// Edge Function to mark the order paid. Nothing here touches stock or receipts.
-const CheckoutForm: React.FC<CheckoutFormProps> = ({ amount, orderId }) => {
+// The order and PaymentIntent are created by CartDrawer (/api/create-order),
+// in the currency reserve_order() charged. Stripe redirects to
+// /payment-success, which waits for the stripe-webhook Edge Function to mark
+// the order paid. Nothing here touches stock or receipts.
+const CheckoutForm: React.FC<CheckoutFormProps> = ({ amount, currency, orderId, expired = false, onSubmittingChange }) => {
   const stripe = useStripe();
   const elements = useElements();
   const [errorMessage, setErrorMessage] = useState<string>();
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    onSubmittingChange?.(loading);
+  }, [loading, onSubmittingChange]);
 
   const showError = (message?: string) => {
     setErrorMessage(message);
@@ -40,7 +51,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ amount, orderId }) => {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!stripe || !elements) {
+    if (!stripe || !elements || expired) {
       return;
     }
 
@@ -88,10 +99,10 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ amount, orderId }) => {
         colorPalette="blue"
         type="submit"
         loading={loading}
-        disabled={!stripe || loading}
+        disabled={!stripe || loading || expired}
         width="full"
       >
-        {!loading ? `Pay $${amount.toFixed(2)}` : "Processing..."}
+        {expired ? "Reservation expired" : !loading ? `Pay ${formatPrice(amount, currency)}` : "Processing..."}
       </Button>
     </form>
   );

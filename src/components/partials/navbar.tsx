@@ -28,6 +28,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { RootState, AppDispatch } from "@/store/store";
 import { setAvatarUrl } from "@/store/avatarSlice";
 import { fetchCart } from "@/store/cartSlice";
+import CurrencySwitcher from "@/components/comics-store/CurrencySwitcher";
 import AvatarNav from "../../helpers/AvatarNav";
 import CartDrawer from "@/app/comics-store/cart/CartDrawer";
 
@@ -682,6 +683,8 @@ const Navbar = () => {
 							</Menu.Root>
 						</Flex>
 					)}
+
+					<CurrencySwitcher />
 
 					<IconButton
 						aria-label="Toggle theme"

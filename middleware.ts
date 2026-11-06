@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/utils/supabase/middleware";
+import { CURRENCY_COOKIE, currencyForCountry, isCurrency } from "@/lib/currency";
 
 // Paths that require auth, with a message shown on the login page
 const protectedPaths: { path: string; message: string }[] = [
@@ -39,6 +40,17 @@ export async function middleware(request: NextRequest) {
     redirectUrl.searchParams.set('redirectTo', pathname);
     redirectUrl.searchParams.set('message', matched.message);
     return NextResponse.redirect(redirectUrl);
+  }
+
+  // First visit: guess the buyer's currency from their country. Vercel sends
+  // x-vercel-ip-country, Cloudflare cf-ipcountry. The navbar switcher overrides it.
+  if (!isCurrency(request.cookies.get(CURRENCY_COOKIE)?.value)) {
+    const country = request.headers.get('x-vercel-ip-country') ?? request.headers.get('cf-ipcountry');
+    response.cookies.set(CURRENCY_COOKIE, currencyForCountry(country), {
+      path: '/',
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: 'lax',
+    });
   }
 
   return response;
