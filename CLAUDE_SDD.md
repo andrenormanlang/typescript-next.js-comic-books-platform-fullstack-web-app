@@ -74,7 +74,8 @@ supabase/
     ├── checkout-maintenance/   # pg_cron every 10 min: expire unpaid holds, settle missed webhooks
     ├── on-listing-created/     # "comics-sell" insert trigger: Gemini listing check + admin email (Resend)
     ├── on-image-uploaded/      # storage.objects insert trigger: 320px JPEG thumbs in <bucket>/thumbs/
-    └── analyze-cover/          # browser-invoked (JWT): cover photo → form facts via Gemini + Guia/Metron/Comic Vine
+    └── analyze-cover/          # browser-invoked (JWT): cover photo → form facts via Gemini + Guia/Metron/Comic Vine/Fandom,
+                                #   collector description written from those facts (_shared/collector-description.ts)
 ```
 
 **Checkout model:** adding to the cart does **not** touch stock. `/api/create-order` calls the

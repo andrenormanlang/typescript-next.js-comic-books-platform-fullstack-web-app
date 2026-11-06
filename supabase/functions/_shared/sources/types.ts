@@ -10,10 +10,28 @@ export type Identification = {
 	country: string; // ISO 3166-1 alpha-2 if known, e.g. "BR", "US"
 };
 
+/**
+ * Raw facts for the collector description and the combined credits. Every
+ * field is optional: each database knows different things.
+ */
+export type CollectorFacts = {
+	storyTitles?: string[];
+	synopsis?: string; // plain text, already trimmed to a sensible length
+	notes?: string[]; // collector-relevant notes ("First meeting of X and Y")
+	trivia?: string[];
+	firstAppearances?: string[];
+	deaths?: string[];
+	characters?: string[];
+	coverPrice?: string; // e.g. "0.60 USD"
+	writers?: string[];
+	artists?: string[];
+};
+
 export type SourceResult = {
 	source: Exclude<CoverSource, "ai">;
 	url: string | null;
 	values: Partial<CoverValues>;
+	facts?: CollectorFacts;
 };
 
 /** A database adapter. Returns null for "no confident match" or any failure. */

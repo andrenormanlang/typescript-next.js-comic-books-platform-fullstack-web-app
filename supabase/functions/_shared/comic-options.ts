@@ -46,7 +46,7 @@ export const COVER_FIELDS = [
 ] as const;
 
 export type CoverField = (typeof COVER_FIELDS)[number];
-export type CoverSource = "guia" | "comicvine" | "metron" | "ai";
+export type CoverSource = "guia" | "comicvine" | "metron" | "fandom" | "ai";
 
 export type CoverValues = {
 	title: string;

@@ -59,12 +59,13 @@ export const COVER_FIELDS = [
 
 export type CoverField = (typeof COVER_FIELDS)[number];
 
-export type CoverSource = "guia" | "comicvine" | "metron" | "ai";
+export type CoverSource = "guia" | "comicvine" | "metron" | "fandom" | "ai";
 
 export const COVER_SOURCE_LABELS: Record<CoverSource, string> = {
 	guia: "Guia",
 	comicvine: "Comic Vine",
 	metron: "Metron",
+	fandom: "Fandom",
 	ai: "AI",
 };
 

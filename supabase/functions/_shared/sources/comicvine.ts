@@ -3,7 +3,7 @@
 // Comic Vine rejects requests without a User-Agent.
 
 import { normalizePublisher } from "../comic-options.ts";
-import { nameSimilarity, normalizeDate, pickBest, toDescription } from "../cover-text.ts";
+import { htmlToText, nameSimilarity, normalizeDate, pickBest, toDescription, truncateAtSentence } from "../cover-text.ts";
 import type { SourceAdapter } from "./types.ts";
 
 const BASE = "https://comicvine.gamespot.com/api";
@@ -24,16 +24,19 @@ type CvIssue = {
 	site_detail_url?: string;
 	volume?: { id: number; name: string };
 	person_credits?: Array<{ name: string; role: string }>;
+	character_credits?: Array<{ name: string }>;
+	first_appearance_characters?: Array<{ name: string }> | null;
+	character_died_in?: Array<{ name: string }> | null;
 };
 
-function creditFor(issue: CvIssue, roles: string[]): string {
-	for (const role of roles) {
-		// Comic Vine roles are comma-separated, e.g. "writer, penciler".
-		const hit = issue.person_credits?.find((c) => c.role.split(",").map((r) => r.trim().toLowerCase()).includes(role));
-		if (hit) return hit.name;
-	}
-	return "";
+/** Every person with one of the roles. Comic Vine roles are comma-separated ("writer, penciler"). */
+function creditsFor(issue: CvIssue, roles: string[]): string[] {
+	return (issue.person_credits ?? [])
+		.filter((c) => c.role.split(",").some((r) => roles.includes(r.trim().toLowerCase())))
+		.map((c) => c.name);
 }
+
+const names = (list?: Array<{ name: string }> | null) => (list ?? []).map((x) => x.name).filter(Boolean);
 
 export const comicvine: SourceAdapter = async (id, signal) => {
 	const key = Deno.env.get("COMIC_VINE_API_KEY");
@@ -82,19 +85,34 @@ export const comicvine: SourceAdapter = async (id, signal) => {
 	if (!issueId) return null;
 
 	const issue = await get<CvIssue>(`issue/4000-${issueId}/`, {
-		field_list: "name,issue_number,cover_date,description,site_detail_url,volume,person_credits",
+		field_list:
+			"name,issue_number,cover_date,description,site_detail_url,volume,person_credits," +
+			"character_credits,first_appearance_characters,character_died_in",
 	});
 	if (!issue) return null;
+
+	const writers = creditsFor(issue, ["writer"]);
+	const artists = creditsFor(issue, ["penciler", "penciller", "artist"]);
+	const synopsis = htmlToText(issue.description);
 
 	return {
 		source: "comicvine",
 		url: issue.site_detail_url ?? null,
+		facts: {
+			storyTitles: issue.name ? [issue.name] : [],
+			synopsis: synopsis ? truncateAtSentence(synopsis, 1500) : undefined,
+			characters: names(issue.character_credits).slice(0, 12),
+			firstAppearances: names(issue.first_appearance_characters),
+			deaths: names(issue.character_died_in),
+			writers,
+			artists,
+		},
 		values: {
 			title: issue.volume?.name && issue.issue_number ? `${issue.volume.name} #${issue.issue_number}` : "",
 			publisher: normalizePublisher(volume.publisher?.name),
 			release_date: normalizeDate(issue.cover_date),
-			main_writer: creditFor(issue, ["writer"]),
-			main_artist: creditFor(issue, ["penciler", "penciller", "artist"]),
+			main_writer: writers.join(", "),
+			main_artist: artists.join(", "),
 			description: toDescription(issue.description),
 		},
 	};

@@ -5,7 +5,7 @@
 // The scraper can fall back to slow proxies, so the caller's AbortSignal bounds it.
 
 import { clampPages, normalizePublisher } from "../comic-options.ts";
-import { nameSimilarity, normalizeDate, parseTitle, pickBest, sameIssue, toDescription } from "../cover-text.ts";
+import { combineNames, nameSimilarity, normalizeDate, parseTitle, pickBest, sameIssue, splitNames, toDescription, truncateAtSentence } from "../cover-text.ts";
 import type { SourceAdapter } from "./types.ts";
 
 type GuiaListItem = { title?: string; url?: string; editionNumber?: string; releaseDate?: string };
@@ -50,19 +50,28 @@ export const guia: SourceAdapter = async (id, signal) => {
 		if (!edition) return null;
 	}
 
-	const story = edition.stories?.find((s) => s.roteiro || s.desenho);
+	const stories = edition.stories ?? [];
+	const writers = combineNames(stories.map((s) => splitNames(s.roteiro)), 5);
+	const artists = combineNames(stories.map((s) => splitNames(s.desenho)), 5);
 	const title = (edition.title ?? "").replace(/\s*[-|]\s*Guia dos Quadrinhos.*$/i, "").trim();
+	const synopsis = storiesText(stories);
 
 	return {
 		source: "guia",
 		url: edition.url ?? null,
+		facts: {
+			storyTitles: stories.map((s) => s.title ?? "").filter(Boolean).slice(0, 6),
+			synopsis: synopsis ? truncateAtSentence(synopsis, 1500) : undefined,
+			writers,
+			artists,
+		},
 		values: {
 			title,
 			publisher: normalizePublisher(edition.editora),
 			release_date: normalizeDate(edition.releaseDate),
 			pages: clampPages(parseInt(edition.numeroPaginas ?? "", 10)),
-			main_writer: story?.roteiro ?? "",
-			main_artist: story?.desenho ?? "",
+			main_writer: writers.join(", "),
+			main_artist: artists.join(", "),
 			description: toDescription(storiesText(edition.stories)),
 		},
 	};

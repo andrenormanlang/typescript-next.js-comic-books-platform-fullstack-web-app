@@ -25,6 +25,8 @@ export type AnalyzeCoverResult = {
 	values: Partial<CoverValues>;
 	sources: Partial<Record<CoverField, CoverSource>>;
 	matches: Array<{ source: Exclude<CoverSource, "ai">; url: string }>;
+	/** Databases whose facts the AI used to write the collector description. */
+	descriptionFrom?: Array<Exclude<CoverSource, "ai">>;
 };
 
 const FRIENDLY: Record<number, string> = {
