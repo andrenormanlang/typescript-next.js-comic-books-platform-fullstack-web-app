@@ -2,7 +2,7 @@
 // Best for US comics: one detail call has credits, cover date and page count.
 
 import { clampPages, normalizePublisher } from "../comic-options.ts";
-import { normalizeDate, pickBest, scoreCandidate, toDescription } from "../cover-text.ts";
+import { htmlToText, normalizeDate, pickBest, scoreCandidate, toDescription, truncateAtSentence } from "../cover-text.ts";
 import type { SourceAdapter } from "./types.ts";
 
 const BASE = "https://metron.cloud/api";
@@ -17,16 +17,18 @@ type MetronIssue = {
 	cover_date?: string;
 	page?: number | null;
 	desc?: string;
+	price?: string | null;
+	price_currency?: string | null;
+	characters?: Array<{ name: string }>;
 	resource_url?: string;
 	credits?: Array<{ creator: string; role: Array<{ name: string }> }>;
 };
 
-function creditFor(issue: MetronIssue, roles: string[]): string {
-	for (const role of roles) {
-		const hit = issue.credits?.find((c) => c.role.some((r) => r.name.toLowerCase() === role));
-		if (hit) return hit.creator;
-	}
-	return "";
+/** Every creator with one of the roles, in credit order. */
+function creditsFor(issue: MetronIssue, roles: string[]): string[] {
+	return (issue.credits ?? [])
+		.filter((c) => c.role.some((r) => roles.includes(r.name.toLowerCase())))
+		.map((c) => c.creator);
 }
 
 export const metron: SourceAdapter = async (id, signal) => {
@@ -60,16 +62,27 @@ export const metron: SourceAdapter = async (id, signal) => {
 	const issue = await get<MetronIssue>(`${BASE}/issue/${best.id}/`);
 	if (!issue) return null;
 
+	const writers = creditsFor(issue, ["writer", "plotter", "script"]);
+	const artists = creditsFor(issue, ["penciller", "artist", "pencils"]);
+	const synopsis = htmlToText(issue.desc);
+
 	return {
 		source: "metron",
 		url: `https://metron.cloud/issue/${issue.id}/`,
+		facts: {
+			synopsis: synopsis ? truncateAtSentence(synopsis, 1200) : undefined,
+			characters: (issue.characters ?? []).map((c) => c.name).slice(0, 12),
+			coverPrice: issue.price ? `${issue.price} ${issue.price_currency ?? ""}`.trim() : undefined,
+			writers,
+			artists,
+		},
 		values: {
 			title: issue.series?.name && issue.number ? `${issue.series.name} #${issue.number}` : "",
 			publisher: normalizePublisher(issue.publisher?.name),
 			release_date: normalizeDate(issue.cover_date),
 			pages: clampPages(issue.page),
-			main_writer: creditFor(issue, ["writer", "plotter", "script"]),
-			main_artist: creditFor(issue, ["penciller", "artist", "pencils"]),
+			main_writer: writers.join(", "),
+			main_artist: artists.join(", "),
 			description: toDescription(issue.desc),
 		},
 	};

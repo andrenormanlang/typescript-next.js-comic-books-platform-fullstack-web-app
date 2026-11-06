@@ -20,7 +20,7 @@ export default function CoverAutofillBanner({ autofill }: { autofill: CoverAutof
 		return (
 			<Alert.Root status="info" width="full">
 				<Spinner size="sm" />
-				<Alert.Description>Reading the cover and looking it up… this can take up to 20 seconds.</Alert.Description>
+				<Alert.Description>Reading the cover, looking it up and writing a collector description… this can take up to 30 seconds.</Alert.Description>
 			</Alert.Root>
 		);
 	}

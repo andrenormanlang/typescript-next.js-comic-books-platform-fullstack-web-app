@@ -40,6 +40,7 @@ export function useCoverAutofill<T extends FieldValues>(form: UseFormReturn<T>, 
 	const [matches, setMatches] = useState<AnalyzeCoverResult["matches"]>([]);
 	const [filledCount, setFilledCount] = useState(0);
 	const [extraPublisher, setExtraPublisher] = useState<string | null>(null);
+	const [descriptionFrom, setDescriptionFrom] = useState<AnalyzeCoverResult["descriptionFrom"]>([]);
 	const applied = useRef<Partial<CoverValues>>({});
 
 	const read = useCallback((field: CoverField) => getValues(field as Path<T>) as unknown, [getValues]);
@@ -85,6 +86,7 @@ export function useCoverAutofill<T extends FieldValues>(form: UseFormReturn<T>, 
 				count++;
 			}
 			setSources(nextSources);
+			if (nextSources.description && result.values.description) setDescriptionFrom(result.descriptionFrom ?? []);
 			return count;
 		},
 		[read, write],
@@ -150,6 +152,7 @@ export function useCoverAutofill<T extends FieldValues>(form: UseFormReturn<T>, 
 		matches,
 		filledCount,
 		extraPublisher,
+		descriptionFrom,
 		hasCover: !!imageUrl,
 		busy: status === "analyzing" || pendingField !== null,
 	};

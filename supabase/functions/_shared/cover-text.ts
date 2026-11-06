@@ -159,3 +159,42 @@ export function pickBest<T>(items: T[], score: (item: T) => number): T | null {
 	}
 	return best;
 }
+
+/**
+ * Collector era for a cover year. Boundaries follow the usual US hobby
+ * convention (they are approximate by nature); computed here so the AI
+ * description never has to guess it.
+ */
+export function comicEra(year: number | null | undefined): string {
+	if (!year || year < 1897) return "";
+	if (year < 1938) return "Platinum Age";
+	if (year < 1956) return "Golden Age";
+	if (year < 1970) return "Silver Age";
+	if (year < 1985) return "Bronze Age";
+	if (year < 1992) return "Copper Age";
+	return "Modern Age";
+}
+
+/** "Stan Lee / Jack Kirby", "Lee e Kirby", "A, B & C" → individual names. */
+export function splitNames(value: string | null | undefined): string[] {
+	return (value ?? "")
+		.split(/\s*(?:[,/;&+]|\se\s|\sand\s)\s*/i)
+		.map((n) => n.trim())
+		.filter((n) => n.length > 1);
+}
+
+/** Merge name lists in priority order, without duplicates (accent/case-insensitive). */
+export function combineNames(lists: Array<string[] | undefined>, max = 3): string[] {
+	const seen = new Set<string>();
+	const out: string[] = [];
+	for (const list of lists) {
+		for (const name of list ?? []) {
+			const key = normalizeKey(name);
+			if (!key || seen.has(key)) continue;
+			seen.add(key);
+			out.push(name.trim());
+			if (out.length >= max) return out;
+		}
+	}
+	return out;
+}

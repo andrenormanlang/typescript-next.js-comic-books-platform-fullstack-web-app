@@ -7,12 +7,15 @@
 //    every field.
 // 2. Comic databases are asked in parallel, chosen by origin:
 //      Brazilian → Guia dos Quadrinhos, Comic Vine
-//      otherwise → Metron, Comic Vine
+//      otherwise → Metron, Comic Vine (+ Fandom wiki for Marvel/DC)
 // 3. Per field, the first database (in that order) with a value wins; Gemini's
-//    guess fills the rest. Genre always comes from Gemini.
+//    guess fills the rest. Writer/artist combine all databases' names. Genre
+//    always comes from Gemini.
+// 4. The description is rewritten for collectors from all gathered facts
+//    (_shared/collector-description.ts).
 //
 // Request:  { imageUrl, fields?: CoverField[], context?: Partial<CoverValues> }
-// Response: { recognised, confidence, values, sources, matches }
+// Response: { recognised, confidence, values, sources, matches, descriptionFrom }
 //
 // Secrets: GEMINI_API_KEY, COMIC_VINE_API_KEY, METRON_API_AUTH_HEADER, SITE_URL (Guia route)
 
@@ -26,6 +29,8 @@ import { mergeValues, sourceOrder } from "../_shared/sources/merge.ts";
 import { comicvine } from "../_shared/sources/comicvine.ts";
 import { guia } from "../_shared/sources/guia.ts";
 import { metron } from "../_shared/sources/metron.ts";
+import { fandom } from "../_shared/sources/fandom.ts";
+import { writeCollectorDescription } from "../_shared/collector-description.ts";
 import type { Identification, SourceAdapter, SourceResult } from "../_shared/sources/types.ts";
 
 const LOOKUPS_PER_HOUR = 30;
@@ -35,6 +40,7 @@ const ADAPTERS: Record<SourceResult["source"], { run: SourceAdapter; timeoutMs: 
 	// The Guia scraper sits behind a Cloudflare check and may fall back to slow proxies.
 	guia: { run: guia, timeoutMs: 15_000 },
 	metron: { run: metron, timeoutMs: 8_000 },
+	fandom: { run: fandom, timeoutMs: 8_000 },
 	comicvine: { run: comicvine, timeoutMs: 8_000 },
 };
 
@@ -139,10 +145,37 @@ Deno.serve(async (req) => {
 		(r): r is SourceResult => r !== null,
 	);
 
-	const { values, sources } = mergeValues(fields, results, aiValues(cover));
+	const guesses = aiValues(cover);
+	const { values, sources } = mergeValues(fields, results, guesses);
 	const matches = results.filter((r) => r.url).map((r) => ({ source: r.source, url: r.url }));
+
+	// Collector description: written by Gemini from ALL gathered facts (synopses,
+	// Fandom notes, first appearances, credits, era) instead of one database's
+	// blurb. Needs the full merged values even when only the description was asked for.
+	let descriptionFrom: string[] = [];
+	if (fields.includes("description")) {
+		const all = mergeValues(COVER_FIELDS, results, guesses).values;
+		try {
+			const written = await writeCollectorDescription({
+				title: context.title || all.title || "",
+				publisher: context.publisher || all.publisher,
+				releaseDate: context.release_date || all.release_date,
+				writers: context.main_writer || all.main_writer,
+				artists: context.main_artist || all.main_artist,
+				language: cover.language || "en",
+				sources: results,
+			});
+			if (written) {
+				values.description = written.html;
+				sources.description = "ai";
+				descriptionFrom = written.usedSources;
+			}
+		} catch (err) {
+			console.warn("collector description failed, keeping the database description:", (err as Error).message);
+		}
+	}
 
 	console.log(`analyze-cover user=${auth.user.id} id=${JSON.stringify(id)} order=${order} fields=${fields.length} sources=${JSON.stringify(sources)}`);
 
-	return corsJson({ recognised: true, confidence: cover.confidence ?? 0, values, sources, matches });
+	return corsJson({ recognised: true, confidence: cover.confidence ?? 0, values, sources, matches, descriptionFrom });
 });

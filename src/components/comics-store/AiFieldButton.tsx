@@ -18,13 +18,21 @@ type Props = {
 export default function AiFieldButton({ field, label, autofill }: Props) {
 	const source = autofill.sources[field];
 	const loading = autofill.pendingField === field;
+	const writtenFrom =
+		field === "description" && source === "ai" && autofill.descriptionFrom?.length
+			? `Written by AI from ${autofill.descriptionFrom.map((s) => COVER_SOURCE_LABELS[s]).join(", ")}`
+			: null;
 	const hint = autofill.hasCover ? `Look up ${label.toLowerCase()} from the cover` : "Upload a cover image first";
 
 	return (
 		<HStack gap={1}>
 			{source && (
-				<Badge size="xs" colorPalette={source === "ai" ? "purple" : "teal"} title={`Filled from ${COVER_SOURCE_LABELS[source]}`}>
-					{COVER_SOURCE_LABELS[source]}
+				<Badge
+					size="xs"
+					colorPalette={source === "ai" ? "purple" : "teal"}
+					title={writtenFrom ?? `Filled from ${COVER_SOURCE_LABELS[source]}`}
+				>
+					{writtenFrom ? `AI · ${autofill.descriptionFrom!.map((s) => COVER_SOURCE_LABELS[s]).join(", ")}` : COVER_SOURCE_LABELS[source]}
 				</Badge>
 			)}
 			<IconButton
