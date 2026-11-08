@@ -37,6 +37,7 @@ import { useInfiniteComics } from "@/hooks/comics-sale/useInfiniteComics";
 import { useInView } from "react-intersection-observer";
 import SearchBar from "@/components/comics-store/search";
 import Price from "@/components/comics-store/Price";
+import CurrencySwitcher from "@/components/comics-store/CurrencySwitcher";
 
 const defaultImageUrl = "/halftone.png";
 
@@ -217,7 +218,12 @@ const ComicsBuy: NextPage = () => {
 			p={4}
 			css={{ minHeight: "100vh" }}
 		>
-			<SearchBar onSearch={handleSearch} searchQuery={searchQuery} totalResults={totalResults} />
+			<SearchBar
+				onSearch={handleSearch}
+				searchQuery={searchQuery}
+				totalResults={totalResults}
+				endElement={<CurrencySwitcher size="md" tone="field" />}
+			/>
 			{isLoading ? (
 				<Center h="100vh">
 					<Spinner size="xl" />

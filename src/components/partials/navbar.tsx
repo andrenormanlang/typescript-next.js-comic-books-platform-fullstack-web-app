@@ -22,13 +22,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/utils/supabase/client";
 import RetroPopLogo from "@/helpers/RetroPopLogo";
 import { MenuType, SubmenuType } from "@/types/navbar/nav.types";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { User } from "@supabase/supabase-js";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState, AppDispatch } from "@/store/store";
 import { setAvatarUrl } from "@/store/avatarSlice";
 import { fetchCart } from "@/store/cartSlice";
-import CurrencySwitcher from "@/components/comics-store/CurrencySwitcher";
 import AvatarNav from "../../helpers/AvatarNav";
 import CartDrawer from "@/app/comics-store/cart/CartDrawer";
 
@@ -208,10 +207,6 @@ const Navbar = () => {
 	const { open: isOpen, onToggle, onClose } = useDisclosure();
 	const { open: isDrawerOpen, onOpen: onDrawerOpen, onClose: onDrawerClose } = useDisclosure();
 	const { colorMode, toggleColorMode } = useColorMode();
-	// Prices only exist in the store (the home page lists it too); elsewhere the
-	// picker is in the cart drawer.
-	const pathname = usePathname();
-	const isStorePage = pathname === "/" || (pathname?.startsWith("/comics-store") ?? false);
 	const containerRef = React.useRef(null);
 	const [user, setUser] = useState<User | null>(null);
 	const [isAdmin, setIsAdmin] = useState(false);
@@ -686,12 +681,6 @@ const Navbar = () => {
 								</Menu.Positioner>
 							</Menu.Root>
 						</Flex>
-					)}
-
-					{isStorePage && (
-						<Box ml={3}>
-							<CurrencySwitcher tone="navbar" />
-						</Box>
 					)}
 
 					<IconButton

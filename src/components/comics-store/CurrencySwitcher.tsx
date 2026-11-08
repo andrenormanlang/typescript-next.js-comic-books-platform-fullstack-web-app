@@ -1,35 +1,42 @@
 "use client";
 
 import { Button, Menu } from "@chakra-ui/react";
+import { useColorModeValue } from "@/components/ui/color-mode";
 import { ChevronDown } from "lucide-react";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { CURRENCY_LABELS, isCurrency, SUPPORTED_CURRENCIES } from "@/lib/currency";
 
 type CurrencySwitcherProps = {
-	/** "navbar": light text on the dark navbar; "default": follows the colour mode. */
-	tone?: "navbar" | "default";
+	/** "field": styled like the store's search input; "default": plain outline button. */
+	tone?: "field" | "default";
+	size?: "sm" | "md";
 };
 
 // Compact currency picker: the button shows only the code ("SEK"), the open
-// list shows the full names. Shown on store pages (navbar) and in the cart
-// drawer; the choice is saved in the rp_currency cookie for the whole site.
-export default function CurrencySwitcher({ tone = "default" }: CurrencySwitcherProps) {
+// list shows the full names. Shown next to the store's search box and in the
+// cart drawer; the choice is saved in the rp_currency cookie for the whole site.
+export default function CurrencySwitcher({ tone = "default", size = "sm" }: CurrencySwitcherProps) {
 	const { currency, setCurrency } = useCurrency();
+	const fieldBg = useColorModeValue("white", "gray.700");
+	const fieldBorder = useColorModeValue("gray.300", "gray.600");
+	const fieldText = useColorModeValue("black", "white");
 	if (!currency) return null;
 
-	const navbar = tone === "navbar";
+	const field = tone === "field";
 
 	return (
 		<Menu.Root positioning={{ placement: "bottom-end" }}>
 			<Menu.Trigger asChild>
 				<Button
-					size="sm"
+					size={size}
 					variant="outline"
+					flexShrink={0}
 					aria-label={`Currency: ${CURRENCY_LABELS[currency]}. Change currency`}
 					title="Currency for prices and checkout"
-					color={navbar ? "white" : undefined}
-					borderColor={navbar ? "whiteAlpha.400" : undefined}
-					_hover={navbar ? { bg: "whiteAlpha.200" } : undefined}
+					bg={field ? fieldBg : undefined}
+					color={field ? fieldText : undefined}
+					borderColor={field ? fieldBorder : undefined}
+					_hover={field ? { borderColor: "gray.500" } : undefined}
 				>
 					{currency}
 					<ChevronDown size={14} />
