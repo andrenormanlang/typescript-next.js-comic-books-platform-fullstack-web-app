@@ -28,6 +28,7 @@ import getStripe from "@/utils/get-stripejs";
 import { supabase } from "@/utils/supabase/client";
 import { Appearance } from "@stripe/stripe-js";
 import Price from "@/components/comics-store/Price";
+import CurrencySwitcher from "@/components/comics-store/CurrencySwitcher";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { formatPrice } from "@/lib/currency";
 import { formatCountdown, useCountdown } from "@/hooks/comics-sale/useCountdown";
@@ -401,6 +402,12 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 						</Drawer.Body>
 						<Drawer.Footer>
 							<Box width="100%" p={4}>
+								<Flex justifyContent="space-between" alignItems="center" mb={2}>
+									<Text fontSize="sm" opacity={0.8}>
+										Currency
+									</Text>
+									<CurrencySwitcher />
+								</Flex>
 								{estimate ? (
 									<>
 										<Flex justifyContent="space-between" fontWeight="bold">
