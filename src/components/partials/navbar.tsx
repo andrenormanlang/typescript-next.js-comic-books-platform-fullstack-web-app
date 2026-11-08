@@ -22,7 +22,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/utils/supabase/client";
 import RetroPopLogo from "@/helpers/RetroPopLogo";
 import { MenuType, SubmenuType } from "@/types/navbar/nav.types";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { User } from "@supabase/supabase-js";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState, AppDispatch } from "@/store/store";
@@ -208,6 +208,9 @@ const Navbar = () => {
 	const { open: isOpen, onToggle, onClose } = useDisclosure();
 	const { open: isDrawerOpen, onOpen: onDrawerOpen, onClose: onDrawerClose } = useDisclosure();
 	const { colorMode, toggleColorMode } = useColorMode();
+	// Prices only exist in the store; elsewhere the picker is in the cart drawer.
+	const pathname = usePathname();
+	const isStorePage = pathname?.startsWith("/comics-store") ?? false;
 	const containerRef = React.useRef(null);
 	const [user, setUser] = useState<User | null>(null);
 	const [isAdmin, setIsAdmin] = useState(false);
@@ -684,7 +687,11 @@ const Navbar = () => {
 						</Flex>
 					)}
 
-					<CurrencySwitcher />
+					{isStorePage && (
+						<Box ml={3}>
+							<CurrencySwitcher tone="navbar" />
+						</Box>
+					)}
 
 					<IconButton
 						aria-label="Toggle theme"
