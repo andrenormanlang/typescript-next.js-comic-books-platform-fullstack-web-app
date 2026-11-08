@@ -208,9 +208,10 @@ const Navbar = () => {
 	const { open: isOpen, onToggle, onClose } = useDisclosure();
 	const { open: isDrawerOpen, onOpen: onDrawerOpen, onClose: onDrawerClose } = useDisclosure();
 	const { colorMode, toggleColorMode } = useColorMode();
-	// Prices only exist in the store; elsewhere the picker is in the cart drawer.
+	// Prices only exist in the store (the home page lists it too); elsewhere the
+	// picker is in the cart drawer.
 	const pathname = usePathname();
-	const isStorePage = pathname?.startsWith("/comics-store") ?? false;
+	const isStorePage = pathname === "/" || (pathname?.startsWith("/comics-store") ?? false);
 	const containerRef = React.useRef(null);
 	const [user, setUser] = useState<User | null>(null);
 	const [isAdmin, setIsAdmin] = useState(false);
